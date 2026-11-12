@@ -177,6 +177,20 @@ function InterfaceTab() {
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
   const [pending, setPending] = useState(false);
   const [pinOpen, setPinOpen] = useState(false);
+  const [pw, setPw] = useState({ next: '', confirm: '' });
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwPending, setPwPending] = useState(false);
+  const changePassword = async () => {
+    if (pw.next.length < 8) return setPwError(t('errors.WEAK_PASSWORD'));
+    if (pw.next !== pw.confirm) return setPwError(t('settings.passwordMismatch'));
+    setPwPending(true);
+    const { error } = await supabase.auth.updateUser({ password: pw.next });
+    setPwPending(false);
+    if (error) return setPwError(errorMessage(t, error));
+    setPw({ next: '', confirm: '' });
+    setPwError(null);
+    toast.success(t('settings.passwordChanged'));
+  };
   const employee = useQuery(async () => {
     const { data } = await supabase.from('employees_meta').select('id').eq('profile_id', profile?.id ?? '').maybeSingle();
     if (!data) return null;
@@ -237,6 +251,15 @@ function InterfaceTab() {
             <Button icon={<KeyRound className="size-4" />} onClick={() => setPinOpen(true)}>{t('settings.myPin')}</Button>
             <Button variant="primary" loading={pending} onClick={() => void saveProfile()}>{t('common.save')}</Button>
           </div>
+        </div>
+      </Section>
+      <Section title={t('settings.changePassword')} icon={<KeyRound className="size-5" />}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput label={t('settings.newPassword')} type="password" dir="ltr" autoComplete="new-password" value={pw.next} onChange={(e) => { setPw({ ...pw, next: e.target.value }); setPwError(null); }} error={pwError} />
+          <TextInput label={t('settings.confirmPassword')} type="password" dir="ltr" autoComplete="new-password" value={pw.confirm} onChange={(e) => { setPw({ ...pw, confirm: e.target.value }); setPwError(null); }} />
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button variant="primary" loading={pwPending} onClick={() => void changePassword()}>{t('settings.changePassword')}</Button>
         </div>
       </Section>
       {employee.data && (

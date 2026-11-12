@@ -105,6 +105,12 @@ begin
     coalesce(nullif(new.raw_app_meta_data ->> 'language', ''), 'ar')
   )
   on conflict (id) do nothing;
+
+  -- bootstrap: the first owner (created from the Supabase dashboard) also gets an employee record
+  if v_first and not (new.raw_app_meta_data ? 'role') then
+    insert into public.employees_meta (profile_id, full_name, position, phone)
+    values (new.id, coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), split_part(new.email, '@', 1)), 'المالك', '');
+  end if;
   return new;
 end;
 $$;

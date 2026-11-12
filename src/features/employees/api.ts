@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import { env } from '@/lib/env';
 import type { AppRole, Attendance, Employee, Profile } from '@/types/models';
 
 export type EmployeeRow = Employee & { profile: Pick<Profile, 'id' | 'role' | 'last_login_at' | 'is_active' | 'avatar_url'> | null };
@@ -20,30 +19,24 @@ export async function fetchOpenAttendance(): Promise<Attendance[]> {
   return data;
 }
 
-export class CreateUserError extends Error {
-  constructor(public code: string) {
-    super(code);
-  }
+/** Owner creates a login account (any role) — runs as the owner-only SQL function admin_create_user. */
+export async function createEmployeeUser(input: { email: string; password: string; full_name: string; role: AppRole; phone?: string; pin?: string; employee_id?: string }): Promise<string> {
+  const { data, error } = await supabase.rpc('admin_create_user', {
+    p_email: input.email.trim(),
+    p_password: input.password,
+    p_full_name: input.full_name.trim(),
+    p_role: input.role,
+    p_phone: input.phone?.trim() ?? '',
+    p_pin: input.pin ?? '',
+    p_employee_id: input.employee_id,
+  });
+  if (error) throw error;
+  return data;
 }
 
-/** Calls the create-employee-user Edge Function (owner only; uses the service role server side). */
-export async function createEmployeeUser(input: { email: string; password: string; full_name: string; role: AppRole; pin?: string; employee_id?: string }): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new CreateUserError('NOT_AUTHENTICATED');
-  let res: Response;
-  try {
-    res = await fetch(`${env.supabaseUrl}/functions/v1/create-employee-user`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: env.supabaseAnonKey, Authorization: `Bearer ${token}` },
-      body: JSON.stringify(input),
-    });
-  } catch {
-    throw new TypeError('Failed to fetch');
-  }
-  const body = (await res.json().catch(() => ({}))) as { user_id?: string; error?: string };
-  if (!res.ok || !body.user_id) throw new CreateUserError(body.error ?? 'CREATE_FAILED');
-  return body.user_id;
+export async function resetUserPassword(userId: string, password: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_set_password', { p_user_id: userId, p_password: password });
+  if (error) throw error;
 }
 
 export function hoursBetween(from: string, to: string | null, now = Date.now()): number {

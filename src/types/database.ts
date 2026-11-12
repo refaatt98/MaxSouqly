@@ -1040,6 +1040,8 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       adjust_stock: { Args: { p_ingredient_id: string; p_change: number; p_reason: Database["public"]["Enums"]["stock_reason"]; p_note: string }; Returns: number };
+      admin_create_user: { Args: { p_email: string; p_password: string; p_full_name: string; p_role: Database["public"]["Enums"]["app_role"]; p_phone?: string; p_pin?: string; p_employee_id?: string }; Returns: string };
+      admin_set_password: { Args: { p_user_id: string; p_password: string }; Returns: undefined };
       admin_update_profile: { Args: { p_user_id: string; p_role: Database["public"]["Enums"]["app_role"]; p_is_active: boolean }; Returns: Database["public"]["Tables"]["profiles"]["Row"] };
       advance_kitchen_status: { Args: { p_order_id: string; p_status: Database["public"]["Enums"]["kitchen_status"] }; Returns: Json };
       apply_stock_count: { Args: { p_count_id: string }; Returns: Json };

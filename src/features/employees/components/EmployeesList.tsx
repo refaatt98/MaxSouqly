@@ -22,6 +22,7 @@ import { EmptyState, ErrorState } from '@/components/ui/EmptyState';
 import { ImageUploader, useImageField } from '@/components/ui/ImageUploader';
 import { ROLES, type AppRole } from '@/types/models';
 import { createEmployeeUser, fetchOpenAttendance, type EmployeeRow } from '../api';
+import { NewUserModal } from './StaffTabs';
 
 type Field = 'full_name' | 'position' | 'phone' | 'salary_type' | 'salary_amount' | 'hire_date';
 
@@ -154,7 +155,7 @@ function AccountModal({ employee, onClose, onSaved }: { employee: EmployeeRow | 
     if (e.email || e.password || e.pin) return;
     setPending(true);
     try {
-      await createEmployeeUser({ email: email.trim(), password, full_name: employee.full_name, role, pin: pin || undefined, employee_id: employee.id });
+      await createEmployeeUser({ email: email.trim(), password, full_name: employee.full_name, role, phone: employee.phone, pin: pin || undefined, employee_id: employee.id });
       toast.success(t('employees.accountCreated'));
       onSaved();
     } catch (err) {
@@ -253,6 +254,7 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
   const [edit, setEdit] = useState<EmployeeRow | 'new' | null>(null);
   const [account, setAccount] = useState<EmployeeRow | null>(null);
   const [pinTarget, setPinTarget] = useState<{ id: string; name: string } | null>(null);
+  const [newUser, setNewUser] = useState(false);
   const onClock = new Set((openAtt.data ?? []).map((a) => a.employee_id));
 
   const clock = async (e: EmployeeRow, action: 'in' | 'out') => {
@@ -335,7 +337,8 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        {role === 'owner' && <Button onClick={() => setNewUser(true)}>{t('employees.addUser')}</Button>}
         <Button variant="primary" onClick={() => setEdit('new')}>{t('employees.add')}</Button>
       </div>
       <Card className="overflow-hidden">
@@ -355,6 +358,7 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
       <EmployeeModal employee={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); void employees.refetch(); }} />
       <AccountModal employee={account} onClose={() => setAccount(null)} onSaved={() => { setAccount(null); void employees.refetch(); }} />
       <PinModal target={pinTarget} onClose={() => setPinTarget(null)} />
+      <NewUserModal open={newUser} onClose={() => setNewUser(false)} onCreated={() => { setNewUser(false); void employees.refetch(); }} />
     </>
   );
 }

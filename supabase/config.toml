@@ -39,5 +39,3 @@ enable_confirmations = false
 [functions.pin-login]
 verify_jwt = false
 
-[functions.create-employee-user]
-verify_jwt = false

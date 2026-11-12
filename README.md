@@ -2,7 +2,7 @@
 
 **Good Food Good Mood** — نظام متكامل لإدارة المطاعم، عربي أولاً (RTL) مع دعم العبرية: كاشير، شاشة مطبخ مباشرة، طلبات، مخزون بالوصفات، موظفين ورواتب، تقارير مالية، إعدادات، رفع صور إلى Cloudflare R2، عمل بدون إنترنت، وطباعة إيصالات حرارية.
 
-> English version below ↓
+> **للنشر على Netlify + Supabase اتبع [DEPLOY.md](DEPLOY.md).** · English version below ↓
 
 ---
 
@@ -46,10 +46,11 @@ npx supabase db reset          # يطبق كل الـ migrations ثم seed.sql
 npx supabase link --project-ref <PROJECT_REF>
 npx supabase db push --include-seed     # يطبق الـ migrations والبيانات التجريبية
 npx supabase functions deploy pin-login --no-verify-jwt
-npx supabase functions deploy create-employee-user --no-verify-jwt
-npx supabase secrets set ALLOWED_ORIGINS=https://your-app.pages.dev
+npx supabase secrets set ALLOWED_ORIGINS=https://your-app.netlify.app
 ```
-- الدالتان تتحققان من الصلاحيات بنفسيهما، لذلك تُنشران مع `--no-verify-jwt`. يوفّر Supabase تلقائياً `SUPABASE_URL` و `SUPABASE_ANON_KEY` و `SUPABASE_SERVICE_ROLE_KEY` للدوال.
+- دالة `pin-login` تتحقق بنفسها، لذلك تُنشر مع `--no-verify-jwt`. يوفّر Supabase تلقائياً `SUPABASE_URL` و `SUPABASE_ANON_KEY` و `SUPABASE_SERVICE_ROLE_KEY` للدوال.
+- إنشاء حسابات الموظفين يتم من داخل التطبيق عبر الدالة `admin_create_user` في قاعدة البيانات (للمالك فقط) — لا يحتاج دالة Edge.
+- بديل أسرع بدون CLI: الصق `supabase/setup.sql` في SQL Editor.
 - من لوحة Supabase: **Authentication → Providers → Email**: أوقف "Allow new users to sign up" (الموظفون يُنشأون من شاشة الموظفين بواسطة المالك).
 - بدون البيانات التجريبية: أول مستخدم يُنشأ من لوحة Supabase يصبح **المالك** تلقائياً.
 - إعادة توليد الأنواع بعد أي تعديل على قاعدة البيانات:
@@ -68,10 +69,9 @@ npx wrangler deploy
 - للعرض العام: اربط نطاقاً مخصصاً بالـ bucket (R2 → Settings → Custom Domains) وضع رابطه في `PUBLIC_URL` و `VITE_R2_PUBLIC_URL`. أو استخدم الـ Worker نفسه: `https://<worker>/object`.
 - قواعد الرفع: صور JPEG/PNG/WebP فقط (يُتحقق من محتوى الملف)، حتى 5MB. القائمة والإيصالات: مدير فما فوق؛ المواد الخام: مدير أو مسؤول مخزون؛ الشعار: المالك؛ الصورة الشخصية: أي مستخدم (داخل مجلده فقط).
 
-### النشر على Cloudflare Pages
-- Build command: `npm run build` · Output directory: `dist`
-- أضف متغيرات `VITE_*` الأربعة في إعدادات المشروع.
-- الملف `public/_redirects` يضمن عمل روابط التطبيق (SPA).
+### النشر على Netlify (أو Cloudflare Pages)
+- Netlify: كل الإعدادات في `netlify.toml` — فقط اربط المستودع. التفاصيل في [DEPLOY.md](DEPLOY.md).
+- Cloudflare Pages: Build `npm run build` · Output `dist` · أضف متغيرات `VITE_*`. الملف `public/_redirects` يضمن عمل روابط التطبيق.
 
 ### حسابات تجريبية
 كلمة المرور لجميع الحسابات: **`Max@12345`**
@@ -121,13 +121,13 @@ src/
   lib/          supabase, r2, format, dates, errors, validation, offlineQueue + idb, print, sound, csv
   i18n/         ar.ts (source of truth for keys), he.ts (typed against ar), index.tsx
   types/        database.ts (generated shape), models.ts
-supabase/       migrations/, seed.sql, functions/ (pin-login, create-employee-user), config.toml
+supabase/       migrations/, setup.sql (one-paste setup), seed.sql (demo data), seed_catalog.sql (starter menu), functions/pin-login, config.toml
 worker/         Cloudflare Worker for R2 (upload / delete / public GET)
 ```
 
 ### Security model
 - RLS is enabled on every table; policies use `public.current_user_role()` (the spec's `current_role()` — renamed because `current_role` is a reserved SQL keyword). Inactive users resolve to no role.
-- All money/stock-changing operations are `SECURITY DEFINER` functions with explicit role checks: `place_order` (server-side pricing, discount limits per role, exact payment matching, idempotent via `client_ref`, recipe stock deduction, low-stock notifications), `void_order` (restores stock; refund variant does not), `advance_kitchen_status`, `open_shift`/`close_shift`/`shift_report`, `receive_purchase_order` (weighted-average cost), `create_stock_count`/`apply_stock_count`, `adjust_stock`, `compute_payroll`, `clock_in`/`clock_out`, `set_pin`, `admin_update_profile`, `import_backup`, plus SQL-aggregated reports (`dashboard_today`, `report_*`).
+- All money/stock-changing operations are `SECURITY DEFINER` functions with explicit role checks: `place_order` (server-side pricing, discount limits per role, exact payment matching, idempotent via `client_ref`, recipe stock deduction, low-stock notifications), `void_order` (restores stock; refund variant does not), `advance_kitchen_status`, `open_shift`/`close_shift`/`shift_report`, `receive_purchase_order` (weighted-average cost), `create_stock_count`/`apply_stock_count`, `adjust_stock`, `compute_payroll`, `clock_in`/`clock_out`, `set_pin`, `admin_update_profile`, `admin_create_user`, `admin_set_password`, `import_backup`, plus SQL-aggregated reports (`dashboard_today`, `report_*`).
 - `pin_hash` is excluded by column-level grants; ingredient quantity can only change through audited movements. Roles come only from `raw_app_meta_data` (never user-editable metadata). The service role key is used only inside Edge Functions.
 
 ### Decisions worth knowing

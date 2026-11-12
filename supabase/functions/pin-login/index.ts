@@ -2,7 +2,42 @@
 // The PIN is verified in Postgres (bcrypt via pgcrypto). Brute force is limited
 // per client IP: 5 failures in 10 minutes locks that IP for the window.
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { corsHeaders, env, error, json } from '../_shared/http.ts';
+
+// ---- HTTP helpers (inlined so the function is a single file)
+const allowedOrigins = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') ?? '';
+  // When ALLOWED_ORIGINS is not configured (local dev) any origin is echoed back.
+  const allow = allowedOrigins.length === 0 || allowedOrigins.includes(origin) ? origin || '*' : allowedOrigins[0];
+  return {
+    'Access-Control-Allow-Origin': allow,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin',
+  };
+}
+
+function json(req: Request, body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders(req), 'Content-Type': 'application/json; charset=utf-8' },
+  });
+}
+
+function error(req: Request, code: string, status: number): Response {
+  return json(req, { error: code }, status);
+}
+
+function env(name: string): string {
+  const v = Deno.env.get(name);
+  if (!v) throw new Error(`Missing env ${name}`);
+  return v;
+}
 
 const MAX_FAILURES = 5;
 const WINDOW_MINUTES = 10;

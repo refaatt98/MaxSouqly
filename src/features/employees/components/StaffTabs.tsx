@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, HandCoins, LogIn, LogOut, ShieldCheck, Trash, Wallet } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, HandCoins, KeyRound, LogIn, LogOut, ShieldCheck, Trash, UserPlus, Wallet } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
@@ -22,7 +22,7 @@ import { Toggle } from '@/components/ui/Toggle';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonRows } from '@/components/ui/Skeleton';
 import { ROLES, type AppRole, type Attendance, type Payroll, type Profile } from '@/types/models';
-import { hoursBetween, type EmployeeRow } from '../api';
+import { createEmployeeUser, hoursBetween, resetUserPassword, type EmployeeRow } from '../api';
 
 // ===================================================================== shifts
 export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
@@ -163,6 +163,111 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
   );
 }
 
+// ============================================================ account modals
+export function NewUserModal({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+  const t = useT();
+  const toast = useToast();
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'cashier' as AppRole, phone: '', pin: '' });
+  const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setForm({ full_name: '', email: '', password: '', role: 'cashier', phone: '', pin: '' });
+      setErrors({});
+    }
+  }, [open]);
+  const set = (k: keyof typeof form, val: string) => setForm((f) => ({ ...f, [k]: val }));
+
+  const save = async () => {
+    const e = {
+      full_name: form.full_name.trim().length < 2 ? t('validation.minLength', { min: 2 }) : null,
+      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) ? null : t('errors.INVALID_EMAIL'),
+      password: form.password.length < 8 ? t('errors.WEAK_PASSWORD') : null,
+      phone: form.phone && !/^[0-9+\- ]{7,20}$/.test(form.phone.trim()) ? t('validation.phone') : null,
+      pin: form.pin && !/^\d{4,6}$/.test(form.pin) ? t('errors.INVALID_PIN') : null,
+    };
+    setErrors(e);
+    if (Object.values(e).some(Boolean)) return;
+    setPending(true);
+    try {
+      await createEmployeeUser({ ...form, pin: form.pin || undefined });
+      toast.success(t('employees.accountCreated'));
+      onCreated();
+    } catch (err) {
+      toast.error(errorMessage(t, err));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={t('employees.newUser')}
+      description={t('employees.newUserHint')}
+      size="lg"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button variant="primary" loading={pending} onClick={() => void save()}>{t('common.create')}</Button>
+        </>
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextInput label={t('common.name')} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} error={errors.full_name} required data-autofocus />
+        <Select label={t('employees.role')} value={form.role} onChange={(e) => set('role', e.target.value)} options={ROLES.map((r) => ({ value: r, label: t(`role.${r}`) }))} />
+        <TextInput label={t('common.email')} type="email" dir="ltr" autoComplete="off" value={form.email} onChange={(e) => set('email', e.target.value)} error={errors.email} required />
+        <TextInput label={t('employees.password')} type="text" dir="ltr" autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} error={errors.password} required />
+        <TextInput label={t('common.phone')} type="tel" dir="ltr" value={form.phone} onChange={(e) => set('phone', e.target.value)} error={errors.phone} />
+        <TextInput label={t('employees.pinOptional')} inputMode="numeric" dir="ltr" maxLength={6} value={form.pin} onChange={(e) => set('pin', e.target.value.replace(/\D/g, ''))} error={errors.pin} />
+      </div>
+    </Modal>
+  );
+}
+
+function ResetPasswordModal({ user, onClose }: { user: Profile | null; onClose: () => void }) {
+  const t = useT();
+  const toast = useToast();
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    setPassword('');
+    setError(null);
+  }, [user]);
+  const save = async () => {
+    if (!user) return;
+    if (password.length < 8) return setError(t('errors.WEAK_PASSWORD'));
+    setPending(true);
+    try {
+      await resetUserPassword(user.id, password);
+      toast.success(t('employees.passwordReset'));
+      onClose();
+    } catch (err) {
+      setError(errorMessage(t, err));
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <Modal
+      open={user !== null}
+      onClose={onClose}
+      size="sm"
+      title={user ? t('employees.resetPasswordTitle', { name: user.full_name }) : ''}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button variant="primary" loading={pending} onClick={() => void save()}>{t('common.save')}</Button>
+        </>
+      }
+    >
+      <TextInput label={t('settings.newPassword')} type="text" dir="ltr" autoComplete="new-password" value={password} onChange={(e) => { setPassword(e.target.value); setError(null); }} error={error} data-autofocus />
+    </Modal>
+  );
+}
+
 // ================================================================ permissions
 export function PermissionsTab() {
   const t = useT();
@@ -175,6 +280,8 @@ export function PermissionsTab() {
     return data as Profile[];
   }, []);
   const isOwner = role === 'owner';
+  const [creating, setCreating] = useState(false);
+  const [resetting, setResetting] = useState<Profile | null>(null);
 
   const update = async (u: Profile, next: { role?: AppRole; is_active?: boolean }) => {
     const { data, error } = await supabase.rpc('admin_update_profile', { p_user_id: u.id, p_role: next.role ?? u.role, p_is_active: next.is_active ?? u.is_active });
@@ -220,6 +327,20 @@ export function PermissionsTab() {
       align: 'end',
       cell: (u) => <Toggle checked={u.is_active} disabled={!isOwner || u.id === profile?.id} onChange={(v) => void update(u, { is_active: v })} />,
     },
+    ...(isOwner
+      ? [
+          {
+            key: 'pw',
+            header: '',
+            align: 'end' as const,
+            cell: (u: Profile) => (
+              <IconButton label={t('employees.resetPassword')} size="sm" onClick={() => setResetting(u)}>
+                <KeyRound className="size-4" />
+              </IconButton>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -230,10 +351,17 @@ export function PermissionsTab() {
           <p className="text-fg-2">{t('employees.permissionsHint')}</p>
           {!isOwner && <p className="mt-1 font-semibold text-warning">{t('employees.ownerOnly')}</p>}
         </div>
+        {isOwner && (
+          <Button variant="primary" className="ms-auto shrink-0" icon={<UserPlus className="size-4" />} onClick={() => setCreating(true)}>
+            {t('employees.addUser')}
+          </Button>
+        )}
       </Card>
       <Card className="overflow-hidden">
         <DataTable columns={columns} rows={users.data ?? []} rowKey={(u) => u.id} loading={users.loading && !users.data} empty={null} />
       </Card>
+      <NewUserModal open={creating} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); void users.refetch(); }} />
+      <ResetPasswordModal user={resetting} onClose={() => setResetting(null)} />
     </>
   );
 }
