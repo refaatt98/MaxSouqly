@@ -10,6 +10,12 @@
   VITE_SUPABASE_URL = "https://yjytosfsktwrzsthlfji.supabase.co"
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqeXRvc2Zza3R3cnpzdGhsZmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0OTg1NzksImV4cCI6MjExMDA3NDU3OX0.lk54l-_3tSd7BpRX0h9E-ddg8ygC6190w_0Nv2k1pmk"
 
+# Missing build files must 404 (never fall back to index.html), so an old tab can detect a new deploy
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 404
+
 # Single-page app: every route serves index.html
 [[redirects]]
   from = "/*"
@@ -27,3 +33,9 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Always revalidate the app shell so a new deploy is picked up immediately
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
