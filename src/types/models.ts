@@ -9,6 +9,7 @@ export type UnitType = Enums<'unit_type'>;
 export type StockReason = Enums<'stock_reason'>;
 export type PoStatus = Enums<'po_status'>;
 export type ExpenseCategory = Enums<'expense_category'>;
+export type SalaryType = Enums<'salary_type'>;
 export type NotificationType = Enums<'notification_type'>;
 
 export type Profile = Omit<Tables<'profiles'>, 'pin_hash'>;
