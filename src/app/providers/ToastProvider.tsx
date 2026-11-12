@@ -21,10 +21,10 @@ interface ToastApi {
 const ToastContext = createContext<ToastApi | null>(null);
 
 const icons = {
-  success: <CircleCheck className="size-5 text-success" />,
-  error: <TriangleAlert className="size-5 text-danger" />,
-  info: <Info className="size-5 text-[#7aa5ff]" />,
-  order: <span className="relative flex size-3"><span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-75" /><span className="relative inline-flex size-3 rounded-full bg-brand" /></span>,
+  success: <CircleCheck className="size-[18px] text-success" strokeWidth={1.5} />,
+  error: <TriangleAlert className="size-[18px] text-danger" strokeWidth={1.5} />,
+  info: <Info className="size-[18px] text-fg-3" strokeWidth={1.5} />,
+  order: <span className="slash" aria-hidden />,
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -60,18 +60,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <motion.div
               key={t.id}
               layout
-              initial={{ opacity: 0, y: 24, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 36 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               role={t.kind === 'error' ? 'alert' : 'status'}
               className={cn(
                 'glass pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-card border px-4 py-3 shadow-panel',
-                t.kind === 'order' ? 'border-brand/50 shadow-glow' : 'border-line-strong',
+                'border-line-strong',
               )}
             >
               {icons[t.kind]}
-              <p className="min-w-0 flex-1 text-sm font-semibold text-fg">{t.message}</p>
+              <p className="min-w-0 flex-1 text-sm text-fg">{t.message}</p>
               <button type="button" onClick={() => dismiss(t.id)} className="grid size-8 place-items-center rounded-btn text-fg-3 hover:text-fg" aria-label="×">
                 <X className="size-4" />
               </button>

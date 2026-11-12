@@ -57,7 +57,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               id: p.id,
               label: name(p),
               hint: f.money(Number(p.price)),
-              icon: <FoodImage src={p.image_url} alt="" glow={false} className="size-7" />,
+              icon: <FoodImage src={p.image_url} alt="" className="size-7" />,
               go: () => navigate(toPos ? `/pos?q=${encodeURIComponent(p.name_ar)}` : `/menu?edit=${p.id}`),
             }))
         : [];
@@ -87,7 +87,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-[55] flex items-start justify-center p-4 pt-[12vh]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+          <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
           <motion.div
             role="dialog"
             aria-modal="true"
@@ -129,10 +129,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                           e.go();
                           onClose();
                         }}
-                        className={cn('flex h-12 w-full items-center gap-3 rounded-btn px-3 text-start text-sm', i === active ? 'bg-brand/15 text-fg' : 'text-fg-2')}
+                        className={cn('flex h-12 w-full items-center gap-3 rounded-btn px-3 text-start text-sm', i === active ? 'bg-elevated text-fg' : 'text-fg-2')}
                       >
                         <span className="grid size-8 place-items-center rounded-btn bg-white/5">{e.icon}</span>
-                        <span className="flex-1 truncate font-semibold">{e.label}</span>
+                        <span className="flex-1 truncate">{e.label}</span>
                         {e.hint && <span className="num text-xs text-fg-3">{e.hint}</span>}
                         {i === active && <CornerDownLeft className="size-4 text-fg-3" />}
                       </button>

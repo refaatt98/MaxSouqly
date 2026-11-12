@@ -19,7 +19,7 @@ root.render(
   <StrictMode>
     <I18nProvider>
       {/* reducedMotion="user" makes every motion component respect prefers-reduced-motion */}
-      <MotionConfig reducedMotion="user">
+      <MotionConfig reducedMotion="user" transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
         {isSupabaseConfigured ? (
           <ToastProvider>
             <AuthProvider>

@@ -17,7 +17,7 @@ export function Keypad({ onKey, decimal = true, className, extra }: {
           type="button"
           onClick={() => onKey(k)}
           aria-label={k === 'back' ? 'backspace' : k}
-          className="num grid h-14 place-items-center rounded-btn border border-line bg-elevated text-xl font-semibold text-fg transition-all hover:border-line-strong hover:bg-[#2b2b33] active:scale-95 active:bg-brand/30"
+          className="num grid h-14 place-items-center rounded-btn border border-line bg-elevated text-xl font-medium text-fg transition-[color,background-color,border-color,opacity,transform] hover:border-line-strong hover:bg-[#2e2b28] active:scale-[0.97] active:bg-[#2e2b28]"
         >
           {k === 'back' ? <Delete className="size-5" /> : !decimal && k === (extra?.value ?? 'C') ? extra?.label ?? 'C' : k}
         </button>

@@ -10,11 +10,8 @@ export function EmptyState({ icon, title, body, action, className }: {
 }) {
   return (
     <div className={cn('flex flex-col items-center justify-center px-6 py-14 text-center', className)}>
-      <div className="relative mb-4 grid size-16 place-items-center rounded-panel bg-elevated text-fg-3">
-        <div className="absolute inset-0 rounded-panel bg-[radial-gradient(circle_at_center,rgb(225_29_46/0.18),transparent_70%)]" />
-        <span className="relative">{icon}</span>
-      </div>
-      <p className="text-base font-semibold text-fg">{title}</p>
+      <div className="mb-4 grid size-12 place-items-center rounded-card border border-line bg-elevated text-fg-3">{icon}</div>
+      <p className="text-[15px] font-medium text-fg">{title}</p>
       {body && <p className="mt-1 max-w-sm text-sm text-fg-3">{body}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>

@@ -189,7 +189,7 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
               {Number(order.discount_amount) > 0 && (
                 <div className="flex justify-between"><dt className="text-fg-3">{t('pos.discount')}</dt><dd className="num text-success">-{f.money(Number(order.discount_amount))}</dd></div>
               )}
-              <div className="flex justify-between text-lg font-bold"><dt>{t('pos.grandTotal')}</dt><dd className="num">{f.money(Number(order.total))}</dd></div>
+              <div className="flex justify-between text-lg font-semibold"><dt>{t('pos.grandTotal')}</dt><dd className="num">{f.money(Number(order.total))}</dd></div>
               <div className="flex justify-between text-xs text-fg-3"><dt>{t('pos.vatIncluded', { rate: f.number(Number(settings?.vat_percent ?? 0)) })}</dt><dd className="num">{f.money(Number(order.vat_amount))}</dd></div>
             </dl>
           </section>
@@ -209,8 +209,8 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
             <ol className="relative space-y-4 border-s border-line-strong ps-5">
               {timeline.map(([key, at]) => (
                 <li key={key} className="relative">
-                  <span className={`absolute -start-[27px] top-1 size-3 rounded-full ${key === 'orders.timeline.voided' ? 'bg-danger' : 'bg-brand'} shadow-glow-sm`} />
-                  <p className="text-sm font-semibold">{t(key)}</p>
+                  <span className={`absolute -start-[25px] top-1.5 size-2 rounded-full ${key === 'orders.timeline.voided' ? 'bg-danger' : 'bg-fg-3'}`} />
+                  <p className="text-sm text-fg">{t(key)}</p>
                   <p className="num text-xs text-fg-3">{f.dateTime(at as string)}</p>
                 </li>
               ))}
@@ -308,7 +308,7 @@ export default function OrdersPage() {
 
   const columns = useMemo<Column<OrderRow>[]>(
     () => [
-      { key: 'num', header: t('orders.number'), cell: (o) => <span className="num font-bold">#{f.digits(o.order_number)}</span> },
+      { key: 'num', header: t('orders.number'), cell: (o) => <span className="num font-semibold">#{f.digits(o.order_number)}</span> },
       { key: 'time', header: t('orders.createdAt'), cell: (o) => <span className="num text-fg-2">{f.dateTime(o.created_at)}</span> },
       {
         key: 'type',
@@ -331,7 +331,7 @@ export default function OrdersPage() {
         },
       },
       { key: 'status', header: t('common.status'), cell: (o) => <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge> },
-      { key: 'total', header: t('orders.total'), align: 'end', cell: (o) => <span className="num font-bold">{f.money(Number(o.total))}</span> },
+      { key: 'total', header: t('orders.total'), align: 'end', cell: (o) => <span className="num font-semibold">{f.money(Number(o.total))}</span> },
     ],
     [t, f],
   );

@@ -3,7 +3,7 @@ import { useI18n, type Language } from '@/i18n';
 import { useAuth } from '../providers/AuthProvider';
 
 const LANGS: { code: Language; label: string; short: string }[] = [
-  { code: 'ar', label: 'عربي 🇵🇸', short: 'ع' },
+  { code: 'ar', label: 'عربي', short: 'ع' },
   { code: 'he', label: 'עברית', short: 'ע' },
 ];
 
@@ -24,8 +24,8 @@ export function LanguageSwitcher({ compact = false, className }: { compact?: boo
           aria-checked={lang === l.code}
           onClick={() => choose(l.code)}
           className={cn(
-            'h-9 rounded-[8px] text-xs font-bold transition-colors',
-            lang === l.code ? 'bg-elevated text-fg shadow-card' : 'text-fg-3 hover:text-fg',
+            'h-8 rounded-[6px] text-xs transition-colors',
+            lang === l.code ? 'bg-elevated font-medium text-fg shadow-glow-sm' : 'text-fg-3 hover:text-fg-2',
           )}
           lang={l.code}
         >

@@ -83,17 +83,17 @@ export function Modal({ open, onClose, title, description, children, footer, siz
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} aria-hidden />
+          <div className="absolute inset-0 bg-black/60" onClick={close} aria-hidden />
           <motion.div
             ref={ref}
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
             tabIndex={-1}
-            initial={{ opacity: 0, y: 24, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
               'glass relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-panel border border-line-strong shadow-panel sm:rounded-panel',
               sizes[size],
@@ -103,7 +103,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             {(title || dismissable) && (
               <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
                 <div className="min-w-0">
-                  {title && <h2 id={titleId} className="text-lg font-bold text-fg">{title}</h2>}
+                  {title && <h2 id={titleId} className="text-lg font-medium text-fg">{title}</h2>}
                   {description && <p className="mt-0.5 text-sm text-fg-3">{description}</p>}
                 </div>
                 {dismissable && (
@@ -144,7 +144,7 @@ export function Drawer({ open, onClose, title, children, footer, width = 'max-w-
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={onClose} aria-hidden />
+          <div className="absolute inset-0 bg-black/55" onClick={onClose} aria-hidden />
           <motion.aside
             ref={ref}
             role="dialog"
@@ -155,11 +155,11 @@ export function Drawer({ open, onClose, title, children, footer, width = 'max-w-
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
-            transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className={cn('glass absolute inset-y-0 end-0 flex w-full flex-col border-s border-line-strong shadow-panel', width)}
           >
             <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
-              <h2 id={titleId} className="truncate text-lg font-bold">{title}</h2>
+              <h2 id={titleId} className="truncate text-lg font-medium">{title}</h2>
               <button
                 type="button"
                 onClick={onClose}

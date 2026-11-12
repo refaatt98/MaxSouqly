@@ -24,17 +24,18 @@ export function ProductGrid({ items, selectedId, onAdd }: { items: MenuItem[]; s
             disabled={!item.is_available}
             onClick={() => onAdd(item)}
             className={cn(
-              'group relative flex flex-col overflow-hidden rounded-card border bg-card p-2.5 text-start transition-all duration-150',
-              selected ? 'border-brand ring-2 ring-brand shadow-glow' : 'border-line hover:border-line-strong hover:bg-elevated',
+              'group relative flex flex-col overflow-hidden rounded-card border bg-card p-2 text-start transition-[background-color,border-color] duration-150',
+              selected ? 'border-line-strong bg-elevated' : 'border-line hover:border-line-strong hover:bg-elevated',
               !item.is_available && 'cursor-not-allowed opacity-45 grayscale',
             )}
             aria-label={`${name(item)} — ${f.money(Number(item.price))}`}
           >
-            <FoodImage src={item.image_url} alt="" className="aspect-[4/3] w-full rounded-btn bg-gradient-to-b from-white/[0.03] to-transparent p-1.5" />
-            <span className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 font-semibold text-fg">{name(item)}</span>
-            <span className="num mt-1 text-base font-bold text-gold">{f.money(Number(item.price))}</span>
+            <FoodImage src={item.image_url} alt="" className="aspect-[4/3] w-full rounded-[6px] p-1.5" />
+            <span className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-fg">{name(item)}</span>
+            <span className="num mt-1 text-[15px] font-medium text-fg-2">{f.money(Number(item.price))}</span>
+            {selected && <span className="slash absolute start-3 top-3" aria-hidden />}
             {!item.is_available && (
-              <span className="absolute start-2 top-2 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold text-white">{t('pos.unavailable')}</span>
+              <span className="absolute start-2 top-2 rounded-[4px] bg-bg/90 px-1.5 py-0.5 text-[11px] text-fg-2">{t('pos.unavailable')}</span>
             )}
           </motion.button>
         );

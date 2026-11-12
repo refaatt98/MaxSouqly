@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn';
 
-const palette = ['bg-brand/25 text-[#ff7a85]', 'bg-info/25 text-[#8fb2ff]', 'bg-gold/20 text-gold', 'bg-success/20 text-success', 'bg-warning/20 text-warning'];
+const palette = ['bg-elevated text-fg-2'];
 
 function hash(s: string): number {
   let h = 0;
@@ -20,7 +20,7 @@ export function Avatar({ name, url, size = 'md', className }: { name: string; ur
     return <img src={url} alt={name} className={cn('shrink-0 rounded-full object-cover ring-1 ring-line-strong', dims, className)} loading="lazy" />;
   }
   return (
-    <span aria-label={name} className={cn('grid shrink-0 place-items-center rounded-full font-bold ring-1 ring-line-strong', dims, palette[hash(name) % palette.length], className)}>
+    <span aria-label={name} className={cn('grid shrink-0 place-items-center rounded-full font-semibold ring-1 ring-line-strong', dims, palette[hash(name) % palette.length], className)}>
       {initials || '?'}
     </span>
   );

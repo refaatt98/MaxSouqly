@@ -102,9 +102,9 @@ export function PaymentModal({ open, due, onClose, onConfirm, pending }: {
     >
       <div className="grid gap-5 md:grid-cols-2">
         <div className="space-y-4">
-          <div className="rounded-panel border border-brand/30 bg-brand/10 p-5 text-center">
-            <p className="text-sm font-semibold text-fg-2">{t('payment.due')}</p>
-            <p className="num mt-1 text-5xl font-bold text-fg">{f.money(due)}</p>
+          <div className="rounded-card border border-line bg-card p-5 text-center">
+            <p className="text-sm text-fg-2">{t('payment.due')}</p>
+            <p className="num mt-2 text-[44px] leading-none font-medium text-fg">{f.money(due)}</p>
           </div>
           <Segmented
             size="lg"
@@ -125,29 +125,29 @@ export function PaymentModal({ open, due, onClose, onConfirm, pending }: {
             <div className="space-y-3">
               <div className="rounded-card border border-line bg-card p-4">
                 <p className="text-xs text-fg-3">{t('payment.cashGiven')}</p>
-                <p className="num text-3xl font-bold">{f.money(entry === '' ? due : amount)}</p>
+                <p className="num text-[28px] leading-none font-medium">{f.money(entry === '' ? due : amount)}</p>
               </div>
-              <div className={cn('rounded-card border p-4', calc.valid ? 'border-success/30 bg-success/10' : 'border-danger/30 bg-danger/10')}>
+              <div className="rounded-card border border-line bg-card p-4">
                 <p className="text-xs text-fg-2">{calc.valid ? t('payment.changeDue') : t('payment.insufficient')}</p>
-                <p className={cn('num text-3xl font-bold', calc.valid ? 'text-success' : 'text-danger')}>{f.money(calc.valid ? calc.change : due - amount)}</p>
+                <p className={cn('num text-[28px] leading-none font-medium', calc.valid ? 'text-fg' : 'text-danger')}>{f.money(calc.valid ? calc.change : due - amount)}</p>
               </div>
             </div>
           )}
           {method === 'card' && (
             <div className="grid place-items-center rounded-card border border-line bg-card p-8 text-center">
-              <CreditCard className="size-14 text-[#7aa5ff]" />
-              <p className="num mt-3 text-2xl font-bold">{f.money(due)}</p>
+              <CreditCard className="size-10 text-fg-3" strokeWidth={1.5} />
+              <p className="num mt-3 text-2xl font-semibold">{f.money(due)}</p>
             </div>
           )}
           {method === 'mixed' && (
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-card border border-line bg-card p-4">
                 <p className="text-xs text-fg-3">{t('payment.cashPart')}</p>
-                <p className="num text-2xl font-bold">{f.money(calc.cash)}</p>
+                <p className="num text-2xl font-semibold">{f.money(calc.cash)}</p>
               </div>
               <div className="rounded-card border border-line bg-card p-4">
                 <p className="text-xs text-fg-3">{t('payment.cardPart')}</p>
-                <p className="num text-2xl font-bold text-[#7aa5ff]">{f.money(calc.card)}</p>
+                <p className="num text-2xl font-semibold text-fg-2">{f.money(calc.card)}</p>
               </div>
             </div>
           )}
@@ -155,11 +155,11 @@ export function PaymentModal({ open, due, onClose, onConfirm, pending }: {
         <div className={cn('space-y-3', method === 'card' && 'pointer-events-none opacity-30')} aria-hidden={method === 'card'}>
           {method === 'cash' && (
             <div className="grid grid-cols-4 gap-2">
-              <button type="button" onClick={() => setEntry(String(due))} className="h-12 rounded-btn border border-gold/30 bg-gold/10 px-1 text-xs font-bold whitespace-nowrap text-gold">
+              <button type="button" onClick={() => setEntry(String(due))} className="h-12 rounded-btn border border-line-strong bg-elevated px-1 text-xs whitespace-nowrap text-fg">
                 {t('payment.exact')}
               </button>
               {quickAmounts(due).map((v) => (
-                <button key={v} type="button" onClick={() => setEntry(String(v))} className="num h-12 rounded-btn border border-line bg-elevated text-sm font-bold hover:border-line-strong">
+                <button key={v} type="button" onClick={() => setEntry(String(v))} className="num h-12 rounded-btn border border-line bg-elevated text-sm transition-colors hover:border-line-strong">
                   {f.money(v)}
                 </button>
               ))}

@@ -14,7 +14,7 @@ import { useNotifications } from '@/app/providers/NotificationsProvider';
 import { StatCard } from '@/components/ui/StatCard';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { LineChart, RingGauge } from '@/components/ui/Chart';
-import { CountBadge, Badge } from '@/components/ui/Badge';
+import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
@@ -58,23 +58,22 @@ async function fetchRecent(): Promise<RecentOrder[]> {
   return data;
 }
 
-function QuickAction({ icon, label, count, onClick, to, tone }: {
+function QuickAction({ icon, label, count, onClick, to }: {
   icon: React.ReactNode;
   label: string;
   count?: number;
   onClick?: () => void;
   to?: string;
-  tone: string;
+  tone?: string;
 }) {
   const inner = (
     <>
-      <span className={`grid size-12 place-items-center rounded-card ${tone}`}>{icon}</span>
-      <span className="text-sm font-semibold">{label}</span>
-      {count !== undefined && <CountBadge count={count} className="absolute end-3 top-3" />}
+      <span className="text-fg-3">{icon}</span>
+      <span className="flex-1 text-start text-sm text-fg">{label}</span>
+      {count !== undefined && count > 0 && <span className="mono text-[13px] text-fg-2">{count}</span>}
     </>
   );
-  const cls =
-    'relative flex flex-col items-center justify-center gap-3 rounded-card border border-line bg-card p-4 text-center transition-all hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card active:scale-[0.98] min-h-32';
+  const cls = 'flex h-12 items-center gap-2.5 rounded-btn px-3 transition-colors hover:bg-white/[0.04]';
   return to ? (
     <Link to={to} className={cls}>
       {inner}
@@ -138,6 +137,7 @@ export default function DashboardPage() {
           format={money}
           icon={<Wallet className="size-6" />}
           tone="green"
+          emphasis
           loading={dash.loading && !d}
           trend={d ? percentChange(Number(d.today.sales), Number(d.yesterday.sales)) : null}
           trendLabel={t('common.vsYesterday')}
@@ -172,7 +172,7 @@ export default function DashboardPage() {
             title={t('dashboard.weeklySales')}
             subtitle={t('dashboard.thisWeek')}
             icon={<TrendingUp className="size-5" />}
-            actions={<span className="num text-lg font-bold text-fg">{f.money(Math.round(weekTotal))}</span>}
+            actions={<span className="num text-lg font-medium text-fg">{f.money(Math.round(weekTotal))}</span>}
           />
           <div className="px-3 pt-2 pb-3">
             {dash.loading && !d ? <Skeleton className="m-2 h-64" /> : <LineChart data={week} format={f.money} formatAxis={(n) => f.number(Math.round(n), 0)} height={270} />}
@@ -191,42 +191,41 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="relative overflow-hidden rounded-panel border border-line bg-gradient-to-l from-[#2a0a0e] via-surface to-surface p-6 shadow-panel xl:col-span-1"
+          className="relative overflow-hidden rounded-card border border-line bg-card p-6 xl:col-span-1"
         >
-          <div className="absolute -start-8 top-0 h-full w-24 -skew-x-12 bg-brand/70" aria-hidden />
-          <div className="absolute end-0 top-0 size-64 rounded-full bg-brand/25 blur-3xl" aria-hidden />
-          <div className="relative flex h-full items-center gap-4">
-            <div className="flex-1 ps-14">
+          <div className="flex h-full items-center gap-4">
+            <div className="flex-1">
               <BrandMark size="lg" withSlogan />
               <Link
                 to="/pos"
-                className="mt-5 inline-flex h-11 items-center gap-2 rounded-btn bg-brand px-4 text-sm font-semibold text-white shadow-glow-sm hover:bg-brand-hover"
+                className="mt-6 inline-flex h-11 items-center gap-2 rounded-btn bg-brand px-4 text-sm font-medium text-white shadow-glow-sm transition-colors hover:bg-brand-hover"
               >
                 <MonitorSmartphone className="size-4" /> {t('dashboard.heroCta')}
               </Link>
             </div>
-            <img src="/images/hero-burger.svg" alt="" className="w-40 shrink-0 drop-shadow-[0_20px_30px_rgb(0_0_0/0.6)] sm:w-48" />
+            <img src="/images/hero-burger.svg" alt="" className="w-36 shrink-0 sm:w-44" />
           </div>
         </motion.div>
 
         <Card className="xl:col-span-1">
           <CardHeader title={t('dashboard.quickActions')} />
-          <div className="grid grid-cols-2 gap-3 p-5">
-            <QuickAction to="/orders?active=1" icon={<ClipboardList className="size-6" />} label={t('dashboard.currentOrders')} count={d?.active_orders ?? 0} tone="bg-info/20 text-[#7aa5ff]" />
-            <QuickAction onClick={() => setAlertsOpen(true)} icon={<Bell className="size-6" />} label={t('dashboard.alerts')} count={unread} tone="bg-brand/20 text-[#ff6b77]" />
-            <QuickAction to="/inventory?tab=purchases" icon={<ShoppingBag className="size-6" />} label={t('dashboard.purchases')} count={d?.open_purchase_orders ?? 0} tone="bg-gold/15 text-gold" />
-            <QuickAction to="/reports" icon={<ChartColumn className="size-6" />} label={t('dashboard.quickReports')} tone="bg-success/15 text-success" />
+          <div className="space-y-0.5 p-2 pt-3">
+            <QuickAction to="/orders?active=1" icon={<ClipboardList className="size-[18px]" strokeWidth={1.5} />} label={t('dashboard.currentOrders')} count={d?.active_orders ?? 0} />
+            <QuickAction onClick={() => setAlertsOpen(true)} icon={<Bell className="size-[18px]" strokeWidth={1.5} />} label={t('dashboard.alerts')} count={unread} />
+            <QuickAction to="/inventory?tab=purchases" icon={<ShoppingBag className="size-[18px]" strokeWidth={1.5} />} label={t('dashboard.purchases')} count={d?.open_purchase_orders ?? 0} />
+            <QuickAction to="/reports" icon={<ChartColumn className="size-[18px]" strokeWidth={1.5} />} label={t('dashboard.quickReports')} />
           </div>
           {d && d.low_stock_count > 0 && (
-            <button type="button" onClick={() => navigate('/inventory?low=1')} className="mx-5 mb-5 flex w-[calc(100%-2.5rem)] items-center justify-between rounded-btn border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-semibold text-warning">
-              <span>{t('dashboard.lowStock')}</span>
-              <span className="num">{f.number(d.low_stock_count)}</span>
+            <button type="button" onClick={() => navigate('/inventory?low=1')} className="mx-2 mb-2 flex h-12 w-[calc(100%-1rem)] items-center gap-2.5 rounded-btn px-3 text-sm transition-colors hover:bg-white/[0.04]">
+              <span className="size-2 rounded-full bg-warning" aria-hidden />
+              <span className="flex-1 text-start text-fg">{t('dashboard.lowStock')}</span>
+              <span className="mono text-[13px] text-warning">{f.number(d.low_stock_count)}</span>
             </button>
           )}
         </Card>
 
         <Card className="xl:col-span-1">
-          <CardHeader title={t('dashboard.recentOrders')} actions={<Link to="/orders" className="text-xs font-semibold text-[#ff5a67] hover:underline">{t('common.view')}</Link>} />
+          <CardHeader title={t('dashboard.recentOrders')} actions={<Link to="/orders" className="text-[13px] text-fg-2 transition-colors hover:text-fg">{t('common.view')}</Link>} />
           <div className="p-3">
             {recent.loading && !recent.data ? (
               <div className="space-y-2 p-2">{Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-12" />)}</div>
@@ -235,13 +234,13 @@ export default function DashboardPage() {
                 {recent.data.map((o) => (
                   <li key={o.id}>
                     <Link to={`/orders?id=${o.id}`} className="flex items-center gap-3 rounded-btn px-2 py-2.5 hover:bg-white/[0.04]">
-                      <span className="num grid h-10 min-w-14 place-items-center rounded-btn bg-white/5 px-2 text-sm font-bold">#{f.digits(o.order_number)}</span>
+                      <span className="mono min-w-14 text-[13px] text-fg-2">#{f.digits(o.order_number)}</span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold">{t(`order.type.${o.type}`)}{o.table_no ? ` · ${t('order.table', { table: f.digits(o.table_no) })}` : ''}</span>
+                        <span className="block text-sm text-fg">{t(`order.type.${o.type}`)}{o.table_no ? ` · ${t('order.table', { table: f.digits(o.table_no) })}` : ''}</span>
                         <span className="block text-xs text-fg-3">{f.time(o.created_at)}</span>
                       </span>
                       <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge>
-                      <span className="num w-20 text-end text-sm font-bold">{f.money(Number(o.total))}</span>
+                      <span className="num w-20 text-end text-sm text-fg">{f.money(Number(o.total))}</span>
                     </Link>
                   </li>
                 ))}
@@ -261,7 +260,7 @@ export default function DashboardPage() {
             {notifications.slice(0, 15).map((n) => (
               <li key={n.id} className="rounded-card border border-line bg-card px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold">{n.title}</span>
+                  <span className="text-fg">{n.title}</span>
                   <Badge tone={n.type === 'low_stock' ? 'amber' : n.type === 'void' ? 'red' : 'green'}>{t(`notifications.type.${n.type}`)}</Badge>
                 </div>
                 {n.body && <p className="mt-1 text-sm text-fg-3">{n.body}</p>}

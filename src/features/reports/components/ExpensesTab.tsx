@@ -14,7 +14,6 @@ import { useConfirm } from '@/app/providers/ConfirmProvider';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
 import { DataTable, type Column } from '@/components/ui/Table';
-import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Select, TextInput, Textarea } from '@/components/ui/Input';
 import { ShareBars } from '@/components/ui/Chart';
@@ -137,9 +136,9 @@ export function ExpensesTab({ from, to, register }: { from: string; to: string; 
 
   const columns: Column<Expense>[] = [
     { key: 'd', header: t('common.date'), cell: (e) => <span className="num">{f.date(e.expense_date)}</span> },
-    { key: 'c', header: t('menu.category'), cell: (e) => <Badge tone="gold">{t(`expense.${e.category}`)}</Badge> },
+    { key: 'c', header: t('menu.category'), cell: (e) => <span className="text-fg-2">{t(`expense.${e.category}`)}</span> },
     { key: 'n', header: t('common.notes'), hideBelow: 'sm', cell: (e) => <span className="text-fg-2">{e.note || t('common.none')}</span> },
-    { key: 'a', header: t('common.amount'), cell: (e) => <span className="num font-bold">{f.money(Number(e.amount))}</span> },
+    { key: 'a', header: t('common.amount'), cell: (e) => <span className="num font-semibold">{f.money(Number(e.amount))}</span> },
     {
       key: 'x',
       header: '',
@@ -165,7 +164,7 @@ export function ExpensesTab({ from, to, register }: { from: string; to: string; 
         <CardHeader title={t('reports.expensesByCategory')} />
         <div className="p-5">
           {byCategory.length ? (
-            <ShareBars format={f.money} items={byCategory.map(([c, a]) => ({ label: t(`expense.${c}`), value: a, color: 'linear-gradient(90deg,#8A6400,#F5B301)' }))} />
+            <ShareBars format={f.money} items={byCategory.map(([c, a]) => ({ label: t(`expense.${c}`), value: a, color: '#5c5750' }))} />
           ) : (
             <p className="text-sm text-fg-3">{t('reports.expensesEmpty')}</p>
           )}

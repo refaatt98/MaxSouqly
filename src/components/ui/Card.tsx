@@ -19,10 +19,10 @@ export function CardHeader({ title, subtitle, actions, icon, className }: {
   return (
     <div className={cn('flex items-start justify-between gap-3 px-5 pt-5', className)}>
       <div className="flex min-w-0 items-center gap-3">
-        {icon && <span className="grid size-10 shrink-0 place-items-center rounded-btn bg-white/5 text-fg-2">{icon}</span>}
+        {icon && <span className="shrink-0 text-fg-3">{icon}</span>}
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-fg">{title}</h3>
-          {subtitle && <p className="mt-0.5 truncate text-xs text-fg-3">{subtitle}</p>}
+          <h3 className="truncate text-[15px] font-medium text-fg">{title}</h3>
+          {subtitle && <p className="mt-0.5 truncate text-[13px] text-fg-3">{subtitle}</p>}
         </div>
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}

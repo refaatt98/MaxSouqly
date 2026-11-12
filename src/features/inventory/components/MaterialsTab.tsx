@@ -183,7 +183,7 @@ function AdjustModal({ material, onClose, onSaved }: { material: Ingredient | nu
         <TextInput label={t('inventory.adjustReason')} value={note} onChange={(e) => setNote(e.target.value)} error={errors.note} required />
         <p className="text-sm text-fg-3">
           {t('inventory.currentQty')}: <span className="num text-fg">{f.number(Number(material.quantity), 3)}</span> → {t('inventory.after')}:{' '}
-          <span className={`num font-bold ${after < 0 ? 'text-danger' : 'text-fg'}`}>{f.number(after, 3)}</span>
+          <span className={`num font-semibold ${after < 0 ? 'text-danger' : 'text-fg'}`}>{f.number(after, 3)}</span>
         </p>
       </div>
     </Modal>
@@ -221,7 +221,7 @@ function HistoryDrawer({ material, onClose }: { material: Ingredient | null; onC
                 <p className="num text-xs text-fg-3">{f.dateTime(m.created_at)}</p>
               </div>
               <div className="text-end">
-                <p className={`num font-bold ${Number(m.change) >= 0 ? 'text-success' : 'text-danger'}`}>
+                <p className={`num font-semibold ${Number(m.change) >= 0 ? 'text-success' : 'text-danger'}`}>
                   {Number(m.change) >= 0 ? '+' : ''}
                   {f.number(Number(m.change), 3)}
                 </p>
@@ -282,7 +282,7 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
             <span className="grid size-10 place-items-center rounded-btn bg-white/5 text-fg-3"><Boxes className="size-5" /></span>
           )}
           <div>
-            <p className="font-semibold">{name(i)}</p>
+            <p className="text-fg">{name(i)}</p>
             <p className="text-xs text-fg-3">{i.supplier_id ? supplierName.get(i.supplier_id) : t('common.none')}</p>
           </div>
         </div>
@@ -305,7 +305,7 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
       header: t('common.status'),
       cell: (i) => {
         const lvl = stockLevel(i);
-        return <Badge tone={LEVEL_TONE[lvl]}>{t(`inventory.status.${lvl}`)} {lvl === 'ok' ? '✓' : '⚠'}</Badge>;
+        return <Badge tone={LEVEL_TONE[lvl]} dot>{t(`inventory.status.${lvl}`)}</Badge>;
       },
     },
     {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Armchair, Banknote, Bike, Coins, CreditCard, Percent, Receipt, ShoppingBag, TrendingUp, Users, Wallet } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { useI18n } from '@/i18n';
 import { errorMessage } from '@/lib/errors';
 import { percentChange } from '@/lib/format';
@@ -77,9 +78,9 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
   if (sales.error && !s) return <ErrorState message={errorMessage(t, sales.error)} onRetry={() => void sales.refetch()} retryLabel={t('common.retry')} />;
 
   const cashierCols: Column<CashierRow>[] = [
-    { key: 'n', header: t('orders.cashier'), cell: (c) => <span className="flex items-center gap-2"><Avatar name={c.name ?? '?'} url={c.avatar_url} size="sm" /><span className="font-semibold">{c.name ?? t('common.unknown')}</span></span> },
+    { key: 'n', header: t('orders.cashier'), cell: (c) => <span className="flex items-center gap-2"><Avatar name={c.name ?? '?'} url={c.avatar_url} size="sm" /><span>{c.name ?? t('common.unknown')}</span></span> },
     { key: 'o', header: t('reports.ordersShort'), cell: (c) => <span className="num">{f.number(c.orders)}</span> },
-    { key: 't', header: t('common.total'), cell: (c) => <span className="num font-bold">{f.money(Number(c.total))}</span> },
+    { key: 't', header: t('common.total'), cell: (c) => <span className="num font-semibold">{f.money(Number(c.total))}</span> },
     { key: 'a', header: t('reports.avgTicket'), hideBelow: 'sm', cell: (c) => <span className="num">{f.money(Number(c.avg_ticket))}</span> },
     { key: 'd', header: t('reports.discounts'), hideBelow: 'md', cell: (c) => <span className="num">{f.money(Number(c.discounts))}</span> },
     { key: 'v', header: t('reports.voids'), align: 'end', cell: (c) => <span className={`num ${c.voids > 0 ? 'text-danger' : ''}`}>{f.number(c.voids)}</span> },
@@ -89,7 +90,7 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label={t('reports.totalSales')} value={Number(s?.total ?? 0)} format={(n) => f.money(Math.round(n))} icon={<Wallet className="size-6" />} tone="green" loading={!s} trend={s ? percentChange(Number(s.total), Number(s.prev_total)) : null} trendLabel={t('common.vsPrevious')} />
+        <StatCard emphasis label={t('reports.totalSales')} value={Number(s?.total ?? 0)} format={(n) => f.money(Math.round(n))} icon={<Wallet className="size-6" />} tone="green" loading={!s} trend={s ? percentChange(Number(s.total), Number(s.prev_total)) : null} trendLabel={t('common.vsPrevious')} />
         <StatCard label={t('reports.ordersCount')} value={Number(s?.orders ?? 0)} format={(n) => f.number(Math.round(n))} icon={<ShoppingBag className="size-6" />} tone="blue" loading={!s} delay={0.05} />
         <StatCard label={t('reports.avgTicket')} value={Number(s?.avg_ticket ?? 0)} format={f.money} icon={<Receipt className="size-6" />} tone="gold" loading={!s} delay={0.1} />
         <StatCard label={t('reports.discounts')} value={Number(s?.discounts ?? 0)} format={f.money} icon={<Percent className="size-6" />} tone="red" loading={!s} delay={0.15} />
@@ -126,7 +127,7 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
                     label: t(`payment.${p.method}`),
                     value: Number(p.amount),
                     icon: p.method === 'cash' ? <Banknote className="size-4" /> : <CreditCard className="size-4" />,
-                    color: p.method === 'cash' ? 'linear-gradient(90deg,#14532D,#22C55E)' : 'linear-gradient(90deg,#1e3a8a,#2563EB)',
+                    color: p.method === 'cash' ? '#aaa398' : '#5c5750',
                   }))}
                 />
                 <div>
@@ -148,16 +149,16 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
               const max = Number(top.data?.[0]?.qty ?? 1);
               return (
                 <li key={i.menu_item_id ?? idx} className="flex items-center gap-3">
-                  <span className="num w-5 text-center text-sm font-bold text-fg-3">{f.digits(idx + 1)}</span>
-                  <FoodImage src={i.image_url} alt="" glow={false} className="size-11 shrink-0" />
+                  <span className="mono w-5 text-center text-sm text-fg-3">{f.digits(idx + 1)}</span>
+                  <FoodImage src={i.image_url} alt="" className="size-11 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between gap-2 text-sm">
-                      <span className="truncate font-semibold">{name({ name_ar: i.name, name_he: i.name_he })}</span>
-                      <span className="num font-bold">{f.money(Number(i.revenue))}</span>
+                      <span className="truncate text-fg">{name({ name_ar: i.name, name_he: i.name_he })}</span>
+                      <span className="num text-fg">{f.money(Number(i.revenue))}</span>
                     </div>
                     <div className="mt-1 flex items-center gap-2">
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
-                        <div className="h-full rounded-full bg-gradient-to-l from-brand to-[#9F1220]" style={{ width: `${(i.qty / max) * 100}%` }} />
+                        <div className={cn('h-full rounded-full', idx === 0 ? 'bg-brand' : 'bg-[#5c5750]')} style={{ width: `${(i.qty / max) * 100}%` }} />
                       </div>
                       <span className="num text-xs text-fg-3">{f.number(i.qty)} {t('reports.sold')}</span>
                     </div>
@@ -215,6 +216,7 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
         <StatCard label={t('reports.expensesTotal')} value={Number(p?.expenses ?? 0)} format={(n) => f.money(Math.round(n))} icon={<Receipt className="size-6" />} tone="red" loading={!p} delay={0.1} />
         <StatCard
           label={t('reports.netProfit')}
+          emphasis
           value={Number(p?.net ?? 0)}
           format={(n) => f.money(Math.round(n))}
           icon={<Coins className="size-6" />}
@@ -238,7 +240,7 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
           <div className="p-5">
             {p ? (
               p.expenses_by_category.length ? (
-                <ShareBars format={f.money} items={p.expenses_by_category.map((e) => ({ label: t(`expense.${e.category}`), value: Number(e.amount), color: 'linear-gradient(90deg,#8A6400,#F5B301)' }))} />
+                <ShareBars format={f.money} items={p.expenses_by_category.map((e) => ({ label: t(`expense.${e.category}`), value: Number(e.amount), color: '#5c5750' }))} />
               ) : (
                 <EmptyState icon={<Receipt className="size-7" />} title={t('reports.expensesEmpty')} />
               )
@@ -274,9 +276,9 @@ export function EmployeesReportTab({ from, to, register }: { from: string; to: s
   useEffect(() => register(spec), [register, spec]);
 
   const cols: Column<EmployeeReportRow>[] = [
-    { key: 'n', header: t('common.name'), cell: (r) => <span className="flex items-center gap-2"><Avatar name={r.name} url={r.avatar_url} size="sm" /><span className="font-semibold">{r.name}</span></span> },
+    { key: 'n', header: t('common.name'), cell: (r) => <span className="flex items-center gap-2"><Avatar name={r.name} url={r.avatar_url} size="sm" /><span>{r.name}</span></span> },
     { key: 'p', header: t('employees.position'), hideBelow: 'sm', cell: (r) => r.position },
-    { key: 'h', header: t('employees.hours'), cell: (r) => <span className="num font-bold">{f.number(r.hours, 1)}</span> },
+    { key: 'h', header: t('employees.hours'), cell: (r) => <span className="num font-semibold">{f.number(r.hours, 1)}</span> },
     { key: 'd', header: t('employees.days'), cell: (r) => <span className="num">{f.number(r.days)}</span> },
     { key: 's', header: t('employees.scheduled'), hideBelow: 'md', cell: (r) => <span className="num">{f.number(r.scheduled_shifts)}</span> },
     { key: 'c', header: t('employees.salaryAmount'), align: 'end', hideBelow: 'md', cell: (r) => <span className="num text-fg-2">{f.money(Number(r.salary_amount))} · {t(`employees.salary.${r.salary_type}`)}</span> },
@@ -286,7 +288,7 @@ export function EmployeesReportTab({ from, to, register }: { from: string; to: s
     <div className="space-y-4">
       <Card>
         <CardHeader title={t('employees.hours')} />
-        <div className="p-3">{rep.data ? <BarChart color="gold" data={rows.map((r) => ({ label: r.name.split(' ')[0], sublabel: r.name, value: Number(r.hours) }))} format={(n) => `${f.number(n, 1)} ${t('common.hoursShort')}`} height={240} /> : <Skeleton className="h-60" />}</div>
+        <div className="p-3">{rep.data ? <BarChart highlight={null} data={rows.map((r) => ({ label: r.name.split(' ')[0], sublabel: r.name, value: Number(r.hours) }))} format={(n) => `${f.number(n, 1)} ${t('common.hoursShort')}`} height={240} /> : <Skeleton className="h-60" />}</div>
       </Card>
       <Card className="overflow-hidden">
         <DataTable columns={cols} rows={rows} rowKey={(r) => r.id} loading={!rep.data} empty={<EmptyState icon={<Users className="size-7" />} title={t('common.noResults')} />} />

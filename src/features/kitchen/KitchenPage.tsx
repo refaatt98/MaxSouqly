@@ -22,9 +22,9 @@ import type { KitchenStatus } from '@/types/models';
 import { advanceStatus, fetchActiveOrders, fetchKitchenOrder, nextStatus, prevStatus, type KitchenOrder } from './api';
 
 const COLUMNS: { status: KitchenStatus; label: 'kitchen.new' | 'kitchen.preparing' | 'kitchen.ready'; header: string; ring: string }[] = [
-  { status: 'new', label: 'kitchen.new', header: 'bg-brand shadow-glow', ring: 'border-brand/30' },
-  { status: 'preparing', label: 'kitchen.preparing', header: 'bg-warning text-black shadow-[0_8px_24px_-8px_rgb(245_158_11/0.7)]', ring: 'border-warning/30' },
-  { status: 'ready', label: 'kitchen.ready', header: 'bg-success text-black shadow-[0_8px_24px_-8px_rgb(34_197_94/0.7)]', ring: 'border-success/30' },
+  { status: 'new', label: 'kitchen.new', header: 'bg-brand', ring: '' },
+  { status: 'preparing', label: 'kitchen.preparing', header: 'bg-warning', ring: '' },
+  { status: 'ready', label: 'kitchen.ready', header: 'bg-success', ring: '' },
 ];
 
 const LONG_PRESS_MS = 600;
@@ -66,13 +66,15 @@ function OrderCard({ order, now, fresh, onAdvance, onBack }: {
     <motion.article
       layout
       layoutId={order.id}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
-      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8, transition: { duration: 0.18 } }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        'relative cursor-pointer touch-manipulation rounded-panel border-2 bg-card p-4 shadow-card select-none',
-        level === 'late' ? 'border-danger' : level === 'warn' ? 'border-warning' : 'border-line-strong',
+        // a printed thermal ticket on the rail
+        'relative cursor-pointer touch-manipulation rounded-[4px] bg-paper px-4 pt-5 pb-4 text-paper-ink shadow-[0_10px_24px_-12px_rgb(0_0_0/0.8)] outline-2 outline-offset-2 outline-transparent select-none',
+        'before:absolute before:inset-x-0 before:top-0 before:h-1.5 before:rounded-t-[4px]',
+        level === 'late' ? 'before:bg-danger' : level === 'warn' ? 'before:bg-warning' : 'before:bg-[#cfc6b6]',
         fresh && 'animate-pulse-red',
       )}
       onPointerDown={start}
@@ -93,9 +95,9 @@ function OrderCard({ order, now, fresh, onAdvance, onBack }: {
     >
       <header className="flex items-start justify-between gap-2">
         <div>
-          <p className="num text-3xl leading-none font-black">#{f.digits(order.order_number)}</p>
-          <p className="mt-2 flex items-center gap-1.5 text-base font-semibold text-fg-2">
-            <TypeIcon className="size-5" />
+          <p className="mono text-[30px] leading-none font-medium">#{f.digits(order.order_number)}</p>
+          <p className="mt-2 flex items-center gap-1.5 text-[15px] text-paper-muted">
+            <TypeIcon className="size-[18px]" strokeWidth={1.5} />
             {t(`order.type.${order.type}`)}
             {order.table_no ? ` · ${t('order.table', { table: f.digits(order.table_no) })}` : ''}
           </p>
@@ -103,8 +105,8 @@ function OrderCard({ order, now, fresh, onAdvance, onBack }: {
         <div className="flex flex-col items-end gap-2">
           <span
             className={cn(
-              'num rounded-full px-3 py-1 text-base font-bold',
-              level === 'late' ? 'bg-danger text-white' : level === 'warn' ? 'bg-warning text-black' : 'bg-white/8 text-fg-2',
+              'num rounded-[4px] px-2 py-0.5 text-[15px]',
+              level === 'late' ? 'bg-danger text-white' : level === 'warn' ? 'bg-warning text-paper-ink' : 'text-paper-muted',
             )}
           >
             {t('common.ago', { value: `${f.number(mins)} ${t('common.minutesShort')}` })}
@@ -133,32 +135,32 @@ function OrderCard({ order, now, fresh, onAdvance, onBack }: {
                 lang,
               );
             }}
-            className="grid size-9 place-items-center rounded-btn text-fg-3 hover:bg-white/5 hover:text-fg"
+            className="grid size-9 place-items-center rounded-[6px] text-paper-muted transition-colors hover:bg-black/5 hover:text-paper-ink"
             aria-label={t('kitchen.ticket')}
           >
-            <Printer className="size-4" />
+            <Printer className="size-4" strokeWidth={1.5} />
           </button>
         </div>
       </header>
-      <ul className="mt-4 space-y-2 border-t border-line pt-3">
+      <ul className="mt-4 space-y-2.5 border-t-2 border-dashed border-paper-ink/20 pt-3">
         {order.items.map((i) => (
           <li key={i.id}>
-            <div className="flex items-start gap-3 text-xl font-bold">
-              <span className="num grid h-9 min-w-9 place-items-center rounded-btn bg-white/10 px-1.5 text-lg">{f.number(i.quantity)}</span>
+            <div className="flex items-start gap-3 text-xl font-medium">
+              <span className="mono grid h-8 min-w-8 place-items-center rounded-[4px] border border-paper-ink/25 px-1.5 text-lg">{f.number(i.quantity)}</span>
               <span className="pt-0.5">{lang === 'he' && i.name_he_snapshot ? i.name_he_snapshot : i.name_snapshot}</span>
             </div>
-            {i.notes && <p className="ms-12 mt-1 rounded-btn bg-warning/15 px-2 py-1 text-base font-semibold text-warning">⚠ {i.notes}</p>}
+            {i.notes && <p className="ms-11 mt-1 border-s-2 border-danger ps-2 text-base font-medium text-[#b4242c]">{i.notes}</p>}
           </li>
         ))}
       </ul>
       {order.notes && (
-        <p className="mt-3 flex items-start gap-2 rounded-btn border border-line bg-surface p-2 text-sm text-fg-2">
-          <StickyNote className="mt-0.5 size-4 shrink-0" /> {order.notes}
+        <p className="mt-3 flex items-start gap-2 border-t-2 border-dashed border-paper-ink/20 pt-3 text-sm text-paper-muted">
+          <StickyNote className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} /> {order.notes}
         </p>
       )}
-      <div className="mt-4 flex h-12 items-center justify-center gap-2 rounded-btn bg-white/5 text-base font-bold text-fg-2">
+      <div className="mt-4 flex h-11 items-center justify-center gap-2 rounded-[6px] bg-paper-ink text-[15px] font-medium text-paper">
         {actionLabel}
-        <ArrowRight className="size-5 rtl:-scale-x-100" />
+        <ArrowRight className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
       </div>
     </motion.article>
   );
@@ -272,17 +274,17 @@ export default function KitchenPage() {
 
   return (
     <div className="flex h-dvh flex-col bg-bg">
-      <header className="flex h-20 shrink-0 items-center gap-4 border-b border-line bg-surface/80 px-5 backdrop-blur-xl">
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-line bg-surface px-5">
         <BrandMark />
-        <h1 className="flex items-center gap-2 text-xl font-bold">
-          <ChefHat className="size-6 text-[#ff5a67]" /> {t('kitchen.title')}
+        <h1 className="flex items-center gap-2 text-lg font-medium">
+          <ChefHat className="size-5 text-fg-3" strokeWidth={1.5} /> {t('kitchen.title')}
         </h1>
         <span className="hidden text-sm text-fg-3 lg:block">{t('kitchen.tapHint')}</span>
         <div className="ms-auto flex items-center gap-2">
-          <LiveClock className="text-3xl font-bold" />
+          <LiveClock className="text-2xl text-fg" />
           <ConnectionPill />
           {!soundReady ? (
-            <button type="button" onClick={() => void enableSound()} className="h-11 animate-pulse rounded-btn bg-brand px-4 text-sm font-bold text-white shadow-glow-sm">
+            <button type="button" onClick={() => void enableSound()} className="h-10 rounded-btn bg-brand px-4 text-sm font-medium text-white shadow-glow-sm transition-colors hover:bg-brand-hover">
               {t('kitchen.enableSound')}
             </button>
           ) : (
@@ -291,21 +293,21 @@ export default function KitchenPage() {
               onClick={() => setSoundOn((v) => !v)}
               aria-pressed={soundOn}
               aria-label={t('kitchen.sound')}
-              className="grid size-11 place-items-center rounded-btn border border-line text-fg-2 hover:text-fg"
+              className="grid size-10 place-items-center rounded-btn border border-line text-fg-2 transition-colors hover:text-fg"
             >
-              {soundOn ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
+              {soundOn ? <Volume2 className="size-[18px]" strokeWidth={1.5} /> : <VolumeX className="size-[18px]" strokeWidth={1.5} />}
             </button>
           )}
-          <button type="button" onClick={toggleFullscreen} aria-label={t('kitchen.fullscreen')} className="grid size-11 place-items-center rounded-btn border border-line text-fg-2 hover:text-fg">
-            {fullscreen ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
+          <button type="button" onClick={toggleFullscreen} aria-label={t('kitchen.fullscreen')} className="grid size-10 place-items-center rounded-btn border border-line text-fg-2 transition-colors hover:text-fg">
+            {fullscreen ? <Minimize className="size-[18px]" strokeWidth={1.5} /> : <Maximize className="size-[18px]" strokeWidth={1.5} />}
           </button>
           <button
             type="button"
             onClick={() => (role === 'kitchen' ? void signOut() : navigate('/'))}
             aria-label={role === 'kitchen' ? t('nav.logout') : t('kitchen.exit')}
-            className="grid size-11 place-items-center rounded-btn border border-line text-fg-2 hover:border-danger/40 hover:text-danger"
+            className="grid size-10 place-items-center rounded-btn border border-line text-fg-2 transition-colors hover:text-fg"
           >
-            <LogOut className="size-5 rtl:-scale-x-100" />
+            <LogOut className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
           </button>
         </div>
       </header>
@@ -316,12 +318,13 @@ export default function KitchenPage() {
         <LayoutGroup>
           <div className="grid min-h-0 flex-1 gap-4 overflow-x-auto p-4 md:grid-cols-3">
             {COLUMNS.map((col) => (
-              <section key={col.status} className={cn('flex min-h-0 min-w-[300px] flex-col rounded-panel border bg-surface/60', col.ring)} aria-label={t(col.label)}>
-                <div className={cn('m-3 flex items-center justify-between rounded-card px-4 py-3 text-lg font-bold', col.header)}>
-                  <span>{t(col.label)}</span>
-                  <span className="num grid min-w-9 place-items-center rounded-full bg-black/25 px-2 py-0.5 text-base">{grouped[col.status].length}</span>
+              <section key={col.status} className="flex min-h-0 min-w-[300px] flex-col rounded-panel border border-line bg-surface" aria-label={t(col.label)}>
+                <div className="flex h-14 items-center gap-2.5 border-b border-line px-4">
+                  <span className={cn('size-2.5 rounded-full', col.header)} aria-hidden />
+                  <span className="text-[15px] font-medium text-fg">{t(col.label)}</span>
+                  <span className="mono ms-auto text-[15px] text-fg-2">{grouped[col.status].length}</span>
                 </div>
-                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-3">
+                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
                   {orders.loading && !orders.data ? (
                     Array.from({ length: 2 }, (_, i) => <Skeleton key={i} className="h-56 rounded-panel" />)
                   ) : (

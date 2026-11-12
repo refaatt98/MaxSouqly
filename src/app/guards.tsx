@@ -35,10 +35,10 @@ export function Forbidden() {
   return (
     <div className="grid min-h-[60dvh] place-items-center p-6 text-center">
       <div>
-        <div className="mx-auto mb-4 grid size-16 place-items-center rounded-panel bg-brand/15 text-[#ff5a67]">
+        <div className="mx-auto mb-4 grid size-12 place-items-center rounded-card border border-line bg-elevated text-fg-3">
           <ShieldCheck className="size-8" />
         </div>
-        <h1 className="text-2xl font-bold">{t('forbidden.title')}</h1>
+        <h1 className="text-2xl font-semibold">{t('forbidden.title')}</h1>
         <p className="mt-2 text-fg-3">{t('forbidden.body')}</p>
         <Button className="mt-6" variant="primary" onClick={() => navigate(role ? ROLE_HOME[role] : '/')}>
           {t('notFound.home')}

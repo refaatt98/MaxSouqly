@@ -24,7 +24,7 @@ function QtyStepper({ line, dispatch }: { line: CartLine; dispatch: (a: CartActi
       >
         <Minus className="size-4" />
       </button>
-      <motion.span key={line.qty} initial={{ scale: 1.5, color: '#F43F4E' }} animate={{ scale: 1, color: '#F5F5F7' }} className="num w-8 text-center text-base font-bold">
+      <motion.span key={line.qty} initial={{ y: -4, opacity: 0.4 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.16 }} className="num w-8 text-center text-[15px] font-medium">
         {f.number(line.qty)}
       </motion.span>
       <button
@@ -49,7 +49,7 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
       initial={{ opacity: 0, x: -24 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -60, height: 0, marginBottom: 0 }}
-      transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={{ left: 0.6, right: 0.1 }}
@@ -59,11 +59,11 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
       className="mb-2 touch-pan-y rounded-card border border-line bg-card p-2.5"
     >
       <div className="flex items-center gap-3">
-        <FoodImage src={line.item.image_url} alt="" glow={false} className="size-14 shrink-0 rounded-btn bg-white/[0.03]" />
+        <FoodImage src={line.item.image_url} alt="" className="size-14 shrink-0 rounded-btn bg-white/[0.03]" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{name(line.item)}</p>
+          <p className="truncate text-sm text-fg">{name(line.item)}</p>
           <p className="num text-xs text-fg-3">{f.money(Number(line.item.price))}</p>
-          <p className="num text-sm font-bold text-gold">{f.money(Number(line.item.price) * line.qty)}</p>
+          <p className="num text-sm font-medium text-fg">{f.money(Number(line.item.price) * line.qty)}</p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <QtyStepper line={line} dispatch={dispatch} />
@@ -71,7 +71,7 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
             <button
               type="button"
               onClick={() => setEditing((v) => !v)}
-              className={cn('flex h-8 items-center gap-1 rounded-btn px-2 text-xs font-semibold', line.notes ? 'text-gold' : 'text-fg-3 hover:text-fg')}
+              className={cn('flex h-8 items-center gap-1 rounded-btn px-2 text-xs', line.notes ? 'text-warning' : 'text-fg-3 hover:text-fg')}
             >
               <StickyNote className="size-3.5" /> {t('pos.addNote')}
             </button>
@@ -94,7 +94,7 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
           aria-label={t('pos.itemNote')}
           maxLength={200}
           autoFocus={line.notes === ''}
-          className="mt-2 h-10 w-full rounded-btn border border-line-strong bg-surface px-3 text-sm placeholder:text-fg-3 focus:border-brand focus:outline-none"
+          className="mt-2 h-10 w-full rounded-btn border border-line-strong bg-surface px-3 text-sm placeholder:text-fg-3 focus:border-fg-3 focus:outline-none"
         />
       )}
     </motion.li>
@@ -127,7 +127,7 @@ export function CartPanel(p: CartPanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
-        <h2 className="flex items-center gap-2 text-lg font-bold">
+        <h2 className="flex items-center gap-2 text-[15px] font-medium">
           {t('pos.cart')} <CountBadge count={totals.count} />
         </h2>
         <div className="flex gap-1">
@@ -203,7 +203,7 @@ export function CartPanel(p: CartPanelProps) {
             placeholder={t('pos.orderNotes')}
             aria-label={t('pos.orderNotes')}
             maxLength={500}
-            className="mt-1 h-10 w-full rounded-btn border border-line bg-surface px-3 text-sm placeholder:text-fg-3 focus:border-brand focus:outline-none"
+            className="mt-1 h-10 w-full rounded-btn border border-line bg-surface px-3 text-sm placeholder:text-fg-3 focus:border-fg-3 focus:outline-none"
           />
         )}
       </div>
@@ -236,7 +236,7 @@ export function CartPanel(p: CartPanelProps) {
               placeholder="0"
               className={cn(
                 'num h-9 w-20 rounded-btn border bg-surface px-2 text-center text-sm focus:outline-none',
-                p.issue === 'discount' ? 'border-danger text-danger' : 'border-line-strong focus:border-brand',
+                p.issue === 'discount' ? 'border-danger text-danger' : 'border-line-strong focus:border-fg-3',
               )}
             />
           </div>
@@ -249,21 +249,21 @@ export function CartPanel(p: CartPanelProps) {
         )}
         <div className="flex items-end justify-between pt-1">
           <div>
-            <p className="text-sm font-semibold text-fg-2">{t('pos.grandTotal')}</p>
+            <p className="text-sm text-fg-2">{t('pos.grandTotal')}</p>
             <p className="text-[11px] text-fg-3">{t('pos.vatIncluded', { rate: f.number(p.vatPercent) })}</p>
           </div>
-          <motion.p key={totals.total} initial={{ scale: 1.08 }} animate={{ scale: 1 }} className="num text-3xl font-bold text-fg">
+          <motion.p key={totals.total} initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className="num text-[30px] leading-none font-medium text-fg">
             {f.money(totals.total)}
           </motion.p>
         </div>
         <div className="grid grid-cols-[1fr_1fr_2fr] gap-2 pt-1">
-          <Button variant="danger" size="lg" onClick={p.onCancel} disabled={empty}>
+          <Button variant="ghost" size="lg" onClick={p.onCancel} disabled={empty}>
             {t('pos.cancel')}
           </Button>
           <Button variant="secondary" size="lg" icon={<Printer className="size-4" />} onClick={p.onPrint} disabled={empty}>
             {t('pos.print')}
           </Button>
-          <Button variant="primary" size="lg" icon={<Wallet className="size-5" />} onClick={p.onPay} disabled={empty} className="text-lg">
+          <Button variant="primary" size="lg" icon={<Wallet className="size-[18px]" strokeWidth={1.5} />} onClick={p.onPay} disabled={empty} className="text-base">
             {t('pos.pay')}
           </Button>
         </div>

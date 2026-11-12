@@ -85,7 +85,7 @@ export function CustomQtyModal({ open, onClose, onConfirm }: { open: boolean; on
         </Button>
       }
     >
-      <p className="num mb-3 rounded-card border border-line bg-card p-4 text-center text-4xl font-bold">{f.number(qty)}×</p>
+      <p className="num mb-3 rounded-card border border-line bg-card p-4 text-center text-4xl font-semibold">{f.number(qty)}×</p>
       <Keypad decimal={false} extra={{ label: 'C', value: 'C' }} onKey={(k) => setEntry((v) => applyKey(v, k, 0).slice(0, 3))} />
     </Modal>
   );
@@ -111,7 +111,7 @@ export function HeldOrdersModal({ open, onClose, held, onResume, onDiscard }: {
             return (
               <li key={h.id} className="flex items-center gap-3 rounded-card border border-line bg-card p-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">
+                  <p className="text-fg">
                     {t(`order.type.${h.cart.type}`)}
                     {h.cart.tableNo && ` · ${t('order.table', { table: f.digits(h.cart.tableNo) })}`} · <span className="num">{f.money(totals.total)}</span>
                   </p>
@@ -153,7 +153,7 @@ export function SuccessOverlay({ info, onDone }: { info: SuccessInfo | null; onD
     <AnimatePresence>
       {info && (
         <motion.div
-          className="fixed inset-0 z-[58] grid place-items-center bg-black/70 p-6 backdrop-blur-md"
+          className="fixed inset-0 z-[58] grid place-items-center bg-black/70 p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -162,23 +162,22 @@ export function SuccessOverlay({ info, onDone }: { info: SuccessInfo | null; onD
           aria-live="assertive"
         >
           <motion.div
-            initial={{ scale: 0.8, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="relative w-full max-w-sm overflow-hidden rounded-panel border border-success/30 bg-surface p-8 text-center shadow-panel"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-sm overflow-hidden rounded-panel border border-line-strong bg-surface p-8 text-center shadow-panel"
           >
-            <div className="absolute inset-x-0 -top-20 mx-auto size-56 rounded-full bg-success/25 blur-3xl" aria-hidden />
-            <motion.div initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 14, delay: 0.1 }} className="relative mx-auto mb-4 grid size-24 place-items-center rounded-full bg-success text-black shadow-[0_0_40px_rgb(34_197_94/0.6)]">
-              {info.offline ? <WifiOff className="size-12" /> : <CircleCheck className="size-14" />}
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3, delay: 0.08, ease: [0.22, 1, 0.36, 1] }} className="relative mx-auto mb-5 grid size-16 place-items-center rounded-full border border-success/30 bg-success/10 text-success">
+              {info.offline ? <WifiOff className="size-7" strokeWidth={1.5} /> : <CircleCheck className="size-8" strokeWidth={1.5} />}
             </motion.div>
-            <h2 className="relative text-2xl font-bold">{t('pos.successTitle')}</h2>
-            <p className="num relative mt-1 text-lg text-fg-2">{t('pos.successOrder', { number: f.digits(info.number) })}</p>
+            <h2 className="relative text-xl font-medium">{t('pos.successTitle')}</h2>
+            <p className="num relative mt-1 text-[15px] text-fg-2">{t('pos.successOrder', { number: f.digits(info.number) })}</p>
             {info.offline && <p className="relative mt-2 text-sm text-warning">{t('pos.offlineSaved')}</p>}
             {info.change > 0 && (
-              <div className="relative mt-5 rounded-card border border-gold/30 bg-gold/10 p-4">
+              <div className="relative mt-6 rounded-card border border-line bg-card p-4">
                 <p className="text-sm text-fg-2">{t('pos.successChange')}</p>
-                <p className="num text-4xl font-bold text-gold">{f.money(info.change)}</p>
+                <p className="num mt-1 text-[40px] leading-none font-medium text-fg">{f.money(info.change)}</p>
               </div>
             )}
             <Button variant="primary" size="lg" block className="relative mt-6" onClick={onDone}>

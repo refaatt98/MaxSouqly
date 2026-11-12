@@ -4,12 +4,12 @@ import { cn } from '@/lib/cn';
 export type Tone = 'neutral' | 'red' | 'green' | 'gold' | 'blue' | 'amber';
 
 const tones: Record<Tone, string> = {
-  neutral: 'bg-white/6 text-fg-2 border-line',
-  red: 'bg-brand/12 text-[#ff5a67] border-brand/25',
-  green: 'bg-success/12 text-success border-success/25',
-  gold: 'bg-gold/12 text-gold border-gold/25',
-  blue: 'bg-info/15 text-[#6b9bff] border-info/30',
-  amber: 'bg-warning/12 text-warning border-warning/25',
+  neutral: 'bg-white/[0.04] text-fg-2 border-line',
+  red: 'bg-danger/10 text-[#f08a8d] border-danger/20',
+  green: 'bg-success/10 text-success border-success/20',
+  gold: 'bg-warning/10 text-warning border-warning/20',
+  blue: 'bg-white/[0.04] text-fg-2 border-line',
+  amber: 'bg-warning/10 text-warning border-warning/20',
 };
 
 export function Badge({ tone = 'neutral', children, icon, dot, className }: {
@@ -28,12 +28,14 @@ export function Badge({ tone = 'neutral', children, icon, dot, className }: {
   );
 }
 
-export function CountBadge({ count, className }: { count: number; className?: string }) {
+/** Quiet count. `alert` is reserved for the one count that needs attention (unread notifications). */
+export function CountBadge({ count, className, alert = false }: { count: number; className?: string; alert?: boolean }) {
   if (count <= 0) return null;
   return (
     <span
       className={cn(
-        'num inline-grid min-w-5 place-items-center rounded-full bg-brand px-1.5 text-[11px] leading-5 font-bold text-white shadow-glow-sm',
+        'mono inline-grid min-w-5 place-items-center rounded-[6px] px-1.5 text-[11px] leading-5 font-medium',
+        alert ? 'bg-brand text-white' : 'bg-white/[0.06] text-fg-2',
         className,
       )}
     >

@@ -219,7 +219,7 @@ function InterfaceTab() {
   };
 
   const langs: { code: Language; label: string; sample: string }[] = [
-    { code: 'ar', label: 'عربي 🇵🇸', sample: 'مرحباً بكم في MAX' },
+    { code: 'ar', label: 'عربي', sample: 'مرحباً بكم في MAX' },
     { code: 'he', label: 'עברית', sample: 'ברוכים הבאים ל־MAX' },
   ];
 
@@ -235,9 +235,9 @@ function InterfaceTab() {
               onClick={() => void setLanguage(l.code)}
               aria-pressed={lang === l.code}
               lang={l.code}
-              className={cn('rounded-card border p-5 text-start transition-all', lang === l.code ? 'border-brand bg-brand/10 shadow-glow' : 'border-line bg-surface hover:border-line-strong')}
+              className={cn('rounded-card border p-5 text-start transition-[color,background-color,border-color,opacity,transform]', lang === l.code ? 'border-line-strong bg-elevated shadow-glow-sm' : 'border-line bg-surface hover:border-line-strong')}
             >
-              <p className="text-lg font-bold">{l.label}</p>
+              <p className="flex items-center gap-2 text-lg font-medium">{lang === l.code && <span className="slash" aria-hidden />}{l.label}</p>
               <p className="mt-1 text-sm text-fg-3">{l.sample}</p>
             </button>
           ))}
@@ -372,26 +372,25 @@ function AboutTab() {
   ];
   return (
     <Card className="relative overflow-hidden p-8">
-      <div className="absolute -end-20 -top-20 size-72 rounded-full bg-brand/20 blur-3xl" aria-hidden />
       <div className="relative flex flex-col items-start gap-6 md:flex-row md:items-center">
-        <img src="/images/hero-burger.svg" alt="" className="w-40 drop-shadow-[0_20px_30px_rgb(0_0_0/0.6)]" />
+        <img src="/images/hero-burger.svg" alt="" className="w-36" />
         <div className="flex-1">
           <BrandMark size="lg" withSlogan />
           <p className="mt-4 max-w-xl text-fg-2">{t('settings.aboutBody')}</p>
-          <p className="num mt-4 font-semibold text-gold">{t('app.version')}</p>
+          <p className="mono mt-4 text-sm text-fg-3">{t('app.version')}</p>
         </div>
       </div>
       <div className="relative mt-8 grid gap-4 md:grid-cols-2">
         <div className="rounded-card border border-line bg-surface p-4">
-          <p className="mb-3 text-sm font-semibold text-fg-3">⌨</p>
+          <p className="mb-3 text-sm text-fg-3">{t('settings.shortcuts')}</p>
           <ul className="space-y-2 text-sm">
             {shortcuts.map(([k, label]) => (
-              <li key={k} className="flex justify-between gap-2"><span className="text-fg-2">{label}</span><kbd className="rounded border border-line px-2 text-xs" dir="ltr">{k}</kbd></li>
+              <li key={k} className="flex justify-between gap-2"><span className="text-fg-2">{label}</span><kbd className="mono rounded-[4px] border border-line bg-elevated px-1.5 text-[11px] text-fg-2" dir="ltr">{k}</kbd></li>
             ))}
           </ul>
         </div>
         <div className="rounded-card border border-line bg-surface p-4 text-sm" dir="ltr">
-          <p className="mb-3 font-semibold text-fg-3">Environment</p>
+          <p className="mb-3 text-fg-3">Environment</p>
           <p className="truncate text-fg-2">Supabase: {env.supabaseUrl.replace(/^https?:\/\//, '')}</p>
           <p className="truncate text-fg-2">R2 Worker: {env.r2WorkerUrl ? env.r2WorkerUrl.replace(/^https?:\/\//, '') : '—'}</p>
           <p className="text-fg-2">Build: {import.meta.env.MODE}</p>

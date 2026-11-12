@@ -59,7 +59,7 @@ export function AppShell() {
               // RTL: content enters from the inline-end (left) side
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="h-full"
             >
               <Outlet />

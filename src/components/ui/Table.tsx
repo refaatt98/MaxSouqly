@@ -36,7 +36,7 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, loading, empty
                 key={c.key}
                 scope="col"
                 className={cn(
-                  'sticky top-0 z-[1] border-b border-line bg-card/95 px-4 py-3 text-xs font-semibold whitespace-nowrap text-fg-3 backdrop-blur',
+                  'sticky top-0 z-[1] border-b border-line bg-card px-4 py-3 text-xs font-medium whitespace-nowrap text-fg-3',
                   align[c.align ?? 'start'],
                   c.hideBelow && hide[c.hideBelow],
                   c.className,

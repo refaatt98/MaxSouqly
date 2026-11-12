@@ -109,7 +109,7 @@ export const he: Dictionary = {
   'notifications.type.system': 'מערכת',
 
   'auth.title': 'כניסה למערכת',
-  'auth.subtitle': 'ברוך שובך! התחבר כדי לנהל את המסעדה',
+  'auth.subtitle': 'קופה, מטבח, מלאי ודוחות למסעדת MAX',
   'auth.email': 'אימייל',
   'auth.password': 'סיסמה',
   'auth.signIn': 'כניסה',
@@ -700,6 +700,7 @@ export const he: Dictionary = {
   'settings.offlineCache': 'נתונים שמורים מקומית',
   'settings.clearCache': 'ניקוי זיכרון מקומי',
   'settings.cacheCleared': 'הזיכרון המקומי נוקה',
+  'settings.shortcuts': 'קיצורי מקלדת',
   'settings.preview': 'תצוגה מקדימה',
 
   'upload.drop': 'גרור תמונה לכאן או לחץ לבחירה',

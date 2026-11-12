@@ -16,12 +16,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<ButtonVariant, string> = {
   primary: 'bg-brand text-white hover:bg-brand-hover shadow-glow-sm',
-  secondary: 'bg-elevated text-fg hover:bg-[#2b2b33] border border-line',
+  secondary: 'bg-elevated text-fg hover:bg-[#2e2b28] border border-line shadow-glow-sm',
   ghost: 'text-fg-2 hover:text-fg hover:bg-white/5',
   danger: 'bg-danger/15 text-danger hover:bg-danger/25 border border-danger/30',
-  success: 'bg-success text-black hover:brightness-110 shadow-[0_6px_18px_-6px_rgb(34_197_94/0.6)]',
+  success: 'bg-success text-[#0c1f15] hover:bg-[#44b27f]',
   outline: 'border border-line-strong text-fg hover:bg-white/5',
-  gold: 'bg-gold text-black hover:brightness-110',
+  gold: 'bg-fg text-bg hover:bg-[#ddd6c9]',
 };
 
 const sizes: Record<ButtonSize, string> = {
@@ -42,7 +42,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'relative inline-flex select-none items-center justify-center rounded-btn font-semibold whitespace-nowrap transition-all duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45',
+        'relative inline-flex select-none items-center justify-center rounded-btn font-semibold whitespace-nowrap transition-[color,background-color,border-color,opacity,transform] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45',
         variants[variant],
         sizes[size],
         block && 'w-full',
@@ -76,7 +76,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-btn transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none',
+        'inline-flex shrink-0 items-center justify-center rounded-btn transition-[color,background-color,border-color,opacity,transform] active:scale-95 disabled:opacity-40 disabled:pointer-events-none',
         variants[variant],
         iconSizes[size],
         className,

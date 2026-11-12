@@ -39,7 +39,8 @@ export function InventoryReportsTab() {
   useLiveRefetch(['stock_movements', 'ingredients'], report.refetch, 1500);
   const r = report.data;
   const waste = Number(r?.by_reason.find((x) => x.reason === 'waste')?.value ?? 0);
-  const colors: Record<StockReason, string> = { sale: '#E11D2E', purchase: '#22C55E', adjustment: '#2563EB', waste: '#F59E0B', void: '#F5B301' };
+  // one meaning per color: waste is the figure that matters
+  const colors: Record<StockReason, string> = { sale: '#5c5750', purchase: '#4cc38a', adjustment: '#5c5750', waste: '#e5484d', void: '#5c5750' };
 
   const exportCsv = () =>
     r &&
@@ -83,7 +84,7 @@ export function InventoryReportsTab() {
           <CardHeader title={t('invReports.consumption')} />
           <div className="p-3">
             {r ? (
-              <BarChart color="gold" data={r.top_consumed.map((c) => ({ label: (lang === 'he' && c.name_he) || c.name, value: Number(c.value), sublabel: `${f.number(c.quantity, 2)} ${t(`unit.${c.unit}`)}` }))} format={f.money} formatAxis={(n) => f.number(Math.round(n), 0)} />
+              <BarChart highlight={0} data={r.top_consumed.map((c) => ({ label: (lang === 'he' && c.name_he) || c.name, value: Number(c.value), sublabel: `${f.number(c.quantity, 2)} ${t(`unit.${c.unit}`)}` }))} format={f.money} formatAxis={(n) => f.number(Math.round(n), 0)} />
             ) : (
               <Skeleton className="h-64" />
             )}
@@ -100,8 +101,8 @@ export function InventoryReportsTab() {
         <CardHeader title={t('invReports.lowList')} />
         <ul className="grid gap-2 p-5 sm:grid-cols-2 xl:grid-cols-3">
           {(r?.low_stock ?? []).map((l) => (
-            <li key={l.id} className="flex items-center justify-between rounded-card border border-danger/25 bg-danger/5 px-4 py-3">
-              <span className="font-semibold">{name({ name_ar: l.name, name_he: l.name_he })}</span>
+            <li key={l.id} className="flex items-center justify-between rounded-btn border border-line bg-card px-4 py-3">
+              <span className="text-fg">{name({ name_ar: l.name, name_he: l.name_he })}</span>
               <span className="num text-sm text-danger">
                 {f.number(l.quantity, 3)} / {f.number(l.min_quantity, 3)} {t(`unit.${l.unit}`)}
               </span>

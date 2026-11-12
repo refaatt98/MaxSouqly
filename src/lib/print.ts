@@ -203,7 +203,7 @@ export function printKitchenTicket(r: ReceiptData, ctx: { t: TFunction; f: Forma
   ${r.items
     .map(
       (i) => `<div class="item"><span class="qty">${f.number(i.qty)}</span><span>${escapeHtml(i.name)}</span></div>${
-        i.notes ? `<div class="note">⚠ ${escapeHtml(i.notes)}</div>` : ''
+        i.notes ? `<div class="note">— ${escapeHtml(i.notes)}</div>` : ''
       }`,
     )
     .join('')}

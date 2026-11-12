@@ -88,7 +88,7 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
               <tr>
                 <th className="sticky start-0 z-[1] border-b border-line bg-card px-3 py-3 text-start text-xs text-fg-3">{t('employees.shiftEmployee')}</th>
                 {days.map((d, i) => (
-                  <th key={i} className={cn('border-b border-line px-2 py-3 text-xs', toISODate(d) === today ? 'text-[#ff5a67]' : 'text-fg-3')}>
+                  <th key={i} className={cn('border-b border-line px-2 py-3 text-xs', toISODate(d) === today ? 'text-fg' : 'text-fg-3')}>
                     {t(`day.${i}` as 'day.0')}
                     <span className="num block font-normal">{f.shortDate(d)}</span>
                   </th>
@@ -105,14 +105,14 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
                     const date = toISODate(d);
                     const list = cell(e.id, date);
                     return (
-                      <td key={date} className={cn('h-16 border-b border-s border-line p-1 align-top', date === today && 'bg-brand/[0.04]')}>
+                      <td key={date} className={cn('h-16 border-b border-s border-line p-1 align-top', date === today && 'bg-white/[0.02]')}>
                         <div className="flex h-full flex-col gap-1">
                           {list.map((s) => (
                             <button
                               key={s.id}
                               type="button"
                               onClick={() => setDraft({ id: s.id, employee_id: s.employee_id, date: s.shift_date, start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5), notes: s.notes })}
-                              className={cn('num rounded-btn px-2 py-1 text-[11px] font-bold', Number(s.start_time.slice(0, 2)) < 14 ? 'bg-gold/15 text-gold' : 'bg-info/20 text-[#7aa5ff]')}
+                              className={cn('num rounded-btn px-2 py-1 text-[11px] font-semibold', Number(s.start_time.slice(0, 2)) < 14 ? 'bg-elevated text-fg' : 'bg-elevated text-fg-2')}
                               dir="ltr"
                             >
                               {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
@@ -312,7 +312,7 @@ export function PermissionsTab() {
             value={u.role}
             onChange={(e) => void update(u, { role: e.target.value as AppRole })}
             aria-label={t('employees.role')}
-            className="h-10 rounded-btn border border-line-strong bg-surface px-3 text-sm focus:border-brand focus:outline-none"
+            className="h-10 rounded-btn border border-line-strong bg-surface px-3 text-sm focus:border-fg-3 focus:outline-none"
           >
             {ROLES.map((r) => (
               <option key={r} value={r}>{t(`role.${r}`)}</option>
@@ -348,7 +348,7 @@ export function PermissionsTab() {
   return (
     <>
       <Card className="mb-4 flex items-start gap-3 p-4">
-        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-gold" />
+        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-fg" />
         <div className="text-sm">
           <p className="text-fg-2">{t('employees.permissionsHint')}</p>
           {!isOwner && <p className="mt-1 font-semibold text-warning">{t('employees.ownerOnly')}</p>}
@@ -416,9 +416,9 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
     <div className="space-y-4">
       {me && (
         <Card className="flex flex-wrap items-center gap-4 p-5">
-          <Clock className="size-8 text-[#ff5a67]" />
+          <Clock className="size-8 text-fg-2" />
           <div className="flex-1">
-            <p className="font-bold">{t('employees.myClock')}</p>
+            <p className="font-semibold">{t('employees.myClock')}</p>
             <p className="text-sm text-fg-3">{myOpen ? `${t('employees.onClock')} · ${f.time(myOpen.clock_in)}` : me.full_name}</p>
           </div>
           {myOpen ? (
@@ -512,7 +512,7 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
     { key: 'bonus', header: t('employees.bonuses'), hideBelow: 'lg', cell: (p) => <span className="num text-success">{f.money(Number(p.bonuses))}</span> },
     { key: 'adv', header: t('employees.advances'), hideBelow: 'lg', cell: (p) => <span className="num text-warning">{f.money(Number(p.advances))}</span> },
     { key: 'ded', header: t('employees.deductions'), hideBelow: 'lg', cell: (p) => <span className="num text-danger">{f.money(Number(p.deductions))}</span> },
-    { key: 'net', header: t('employees.net'), cell: (p) => <span className="num font-bold text-gold">{f.money(Number(p.net_amount))}</span> },
+    { key: 'net', header: t('employees.net'), cell: (p) => <span className="num font-semibold text-fg">{f.money(Number(p.net_amount))}</span> },
     { key: 'status', header: t('common.status'), cell: (p) => <Badge tone={p.status === 'paid' ? 'green' : 'neutral'}>{p.status === 'paid' ? t('employees.paid') : t('employees.draft')}</Badge> },
     {
       key: 'act',
@@ -536,9 +536,9 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
         <TextInput type="month" label={t('employees.month')} value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} />
         <Button variant="primary" className="mb-0.5" loading={computing} onClick={() => void compute()}>{t('employees.compute')}</Button>
         <Card className="ms-auto flex items-center gap-3 px-4 py-2.5">
-          <Wallet className="size-5 text-gold" />
+          <Wallet className="size-5 text-fg" />
           <span className="text-sm text-fg-2">{t('employees.payrollTotal')}</span>
-          <span className="num text-lg font-bold">{f.money(total)}</span>
+          <span className="num text-lg font-semibold">{f.money(total)}</span>
         </Card>
       </div>
       <Card className="overflow-hidden">
@@ -564,7 +564,7 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
           <Textarea label={t('common.notes')} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
           {edit && (
             <p className="num text-sm text-fg-2">
-              {t('employees.net')}: <b className="text-gold">{f.money(Number(edit.base_amount) + (Number(form.bonuses) || 0) - (Number(form.advances) || 0) - (Number(form.deductions) || 0))}</b>
+              {t('employees.net')}: <b className="text-fg">{f.money(Number(edit.base_amount) + (Number(form.bonuses) || 0) - (Number(form.advances) || 0) - (Number(form.deductions) || 0))}</b>
             </p>
           )}
         </div>

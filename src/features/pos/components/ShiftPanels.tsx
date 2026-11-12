@@ -37,17 +37,17 @@ export function OpenShiftPanel({ onOpened }: { onOpened: (s: CashShift) => void 
     <div className="grid h-full place-items-center p-6">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm rounded-panel border border-line bg-surface p-6 shadow-panel">
         <div className="mb-5 flex items-center gap-3">
-          <span className="grid size-12 place-items-center rounded-card bg-brand/15 text-[#ff5a67]">
-            <Wallet className="size-6" />
+          <span className="grid size-10 place-items-center rounded-btn border border-line bg-elevated text-fg-3">
+            <Wallet className="size-[18px]" strokeWidth={1.5} />
           </span>
           <div>
-            <h2 className="text-lg font-bold">{t('shift.openTitle')}</h2>
+            <h2 className="text-lg font-medium">{t('shift.openTitle')}</h2>
             <p className="text-sm text-fg-3">{t('shift.openHint')}</p>
           </div>
         </div>
         <div className="mb-3 rounded-card border border-line bg-card p-4">
           <p className="text-xs text-fg-3">{t('shift.openingFloat')}</p>
-          <p className="num text-3xl font-bold">{f.money(Number(entry) || 0)}</p>
+          <p className="num text-[28px] leading-none font-medium">{f.money(Number(entry) || 0)}</p>
         </div>
         <Keypad onKey={(k) => setEntry((v) => applyKey(v, k))} />
         <Button variant="primary" size="lg" block className="mt-4" loading={pending} onClick={() => void submit()}>
@@ -85,15 +85,15 @@ export function ZReportView({ report }: { report: ShiftReport }) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-card border border-line bg-card p-3">
           <p className="text-xs text-fg-3">{t('shift.expectedCash')}</p>
-          <p className="num text-lg font-bold">{f.money(report.expected_cash)}</p>
+          <p className="num text-lg font-semibold">{f.money(report.expected_cash)}</p>
         </div>
         <div className="rounded-card border border-line bg-card p-3">
           <p className="text-xs text-fg-3">{t('shift.countedCash')}</p>
-          <p className="num text-lg font-bold">{s.counted_cash !== null ? f.money(Number(s.counted_cash)) : t('common.none')}</p>
+          <p className="num text-lg font-semibold">{s.counted_cash !== null ? f.money(Number(s.counted_cash)) : t('common.none')}</p>
         </div>
-        <div className={cn('rounded-card border p-3', variance === null || Math.abs(variance) < 0.01 ? 'border-success/30 bg-success/10' : 'border-danger/30 bg-danger/10')}>
+        <div className="rounded-card border border-line bg-card p-3">
           <p className="text-xs text-fg-3">{t('shift.variance')}</p>
-          <p className={cn('num text-lg font-bold', variance !== null && Math.abs(variance) >= 0.01 ? 'text-danger' : 'text-success')}>
+          <p className={cn('num text-lg font-semibold', variance !== null && Math.abs(variance) >= 0.01 ? 'text-danger' : 'text-success')}>
             {variance === null ? t('common.none') : f.money(variance)}
           </p>
         </div>
@@ -168,7 +168,7 @@ export function CloseShiftModal({ open, onClose, onClosed }: { open: boolean; on
         <div className="space-y-4">
           <div className="rounded-card border border-line bg-card p-4">
             <p className="text-xs text-fg-3">{t('shift.countedCash')}</p>
-            <p className="num text-3xl font-bold">{f.money(Number(entry) || 0)}</p>
+            <p className="num text-[28px] leading-none font-medium">{f.money(Number(entry) || 0)}</p>
           </div>
           <Keypad onKey={(k) => setEntry((v) => applyKey(v, k))} />
           <Textarea label={t('shift.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={500} />

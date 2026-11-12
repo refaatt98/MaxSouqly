@@ -11,7 +11,7 @@ export interface TabItem<K extends string> {
 }
 
 /** Underlined sub-navigation (used for module sub-nav). */
-export function Tabs<K extends string>({ items, value, onChange, className, layoutId = 'tabs' }: {
+export function Tabs<K extends string>({ items, value, onChange, className }: {
   items: TabItem<K>[];
   value: K;
   onChange: (key: K) => void;
@@ -30,19 +30,13 @@ export function Tabs<K extends string>({ items, value, onChange, className, layo
             aria-selected={active}
             onClick={() => onChange(it.key)}
             className={cn(
-              'relative flex h-12 shrink-0 items-center gap-2 px-4 text-sm font-semibold transition-colors',
+              'relative flex h-11 shrink-0 items-center gap-2 px-3 text-sm font-medium transition-colors',
               active ? 'text-fg' : 'text-fg-3 hover:text-fg-2',
             )}
           >
-            {it.icon}
+            {active ? <span className="slash" aria-hidden /> : it.icon}
             {it.label}
             {it.count !== undefined && <CountBadge count={it.count} />}
-            {active && (
-              <motion.span
-                layoutId={layoutId}
-                className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-brand shadow-[0_0_12px_rgb(225_29_46/0.8)]"
-              />
-            )}
           </button>
         );
       })}
@@ -71,10 +65,10 @@ export function Segmented<K extends string>({ items, value, onChange, className,
             role="radio"
             aria-checked={active}
             onClick={() => onChange(it.key)}
-            className={cn('relative flex flex-1 items-center justify-center gap-2 rounded-[8px] px-3 font-semibold whitespace-nowrap transition-colors', h, active ? 'text-white' : 'text-fg-3 hover:text-fg')}
+            className={cn('relative flex flex-1 items-center justify-center gap-2 rounded-[6px] px-3 font-medium whitespace-nowrap transition-colors', h, active ? 'text-fg' : 'text-fg-3 hover:text-fg-2')}
           >
             {active && (
-              <motion.span layoutId={layoutId} className="absolute inset-0 rounded-[8px] bg-brand shadow-glow-sm" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />
+              <motion.span layoutId={layoutId} className="absolute inset-0 rounded-[6px] border border-line-strong bg-elevated shadow-glow-sm" transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }} />
             )}
             <span className="relative flex items-center gap-2">
               {it.icon}

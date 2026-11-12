@@ -20,12 +20,12 @@ export function Toggle({ checked, onChange, label, description, disabled, id }: 
       onClick={() => onChange(!checked)}
       className={cn(
         'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors duration-200 disabled:opacity-40',
-        checked ? 'border-brand bg-brand shadow-glow-sm' : 'border-line-strong bg-elevated',
+        checked ? 'border-brand bg-brand' : 'border-line-strong bg-elevated',
       )}
     >
       <motion.span
         layout
-        transition={{ type: 'spring', stiffness: 600, damping: 34 }}
+        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
         className={cn('absolute size-5 rounded-full bg-white shadow', checked ? 'end-1' : 'start-1')}
       />
     </button>
@@ -34,7 +34,7 @@ export function Toggle({ checked, onChange, label, description, disabled, id }: 
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <div className="min-w-0">
-        <label htmlFor={id} className="block text-sm font-semibold text-fg">{label}</label>
+        <label htmlFor={id} className="block text-sm font-medium text-fg">{label}</label>
         {description && <p className="mt-0.5 text-xs text-fg-3">{description}</p>}
       </div>
       {sw}

@@ -113,11 +113,11 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
               <button
                 type="button"
                 onClick={() => setSelected(m)}
-                className={cn('flex w-full items-center gap-3 rounded-btn p-2 text-start', selected?.id === m.id ? 'bg-brand/15 ring-1 ring-brand' : 'hover:bg-white/5')}
+                className={cn('flex w-full items-center gap-3 rounded-btn p-2 text-start', selected?.id === m.id ? 'bg-elevated shadow-glow-sm' : 'hover:bg-white/[0.04]')}
               >
-                <FoodImage src={m.image_url} alt="" glow={false} className="size-10" />
+                <FoodImage src={m.image_url} alt="" className="size-10" />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{name(m)}</span>
+                  <span className="block truncate text-sm text-fg">{name(m)}</span>
                   <span className="num block text-xs text-fg-3">{f.money(Number(m.price))} · {t('common.cost')} {f.money(Number(m.cost_cache))}</span>
                 </span>
               </button>
@@ -133,12 +133,12 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
             <div className="mb-4 flex flex-wrap items-center gap-4">
               <FoodImage src={selected.image_url} alt="" className="size-16" />
               <div className="flex-1">
-                <h2 className="text-lg font-bold">{name(selected)}</h2>
+                <h2 className="text-lg font-semibold">{name(selected)}</h2>
                 <p className="num text-sm text-fg-3">{t('common.price')}: {f.money(price)}</p>
               </div>
               <div className="text-end">
                 <p className="text-xs text-fg-3">{t('recipes.costTotal')}</p>
-                <p className="num text-2xl font-bold text-gold">{f.money(cost)}</p>
+                <p className="num text-2xl font-medium text-fg">{f.money(cost)}</p>
                 <p className={cn('num text-xs font-semibold', margin >= 60 ? 'text-success' : margin >= 40 ? 'text-warning' : 'text-danger')}>
                   {t('recipes.marginHint', { margin: f.number(margin, 0) })}
                 </p>

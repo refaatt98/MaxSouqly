@@ -17,6 +17,8 @@ export interface Formatter {
   time: (value: string | Date, seconds?: boolean) => string;
   dateTime: (value: string | Date) => string;
   monthYear: (value: string | Date) => string;
+  /** e.g. الخميس، 12 نوفمبر 2026 — used as the top-bar title */
+  weekdayDate: (value: string | Date) => string;
   digits: (text: string | number) => string;
 }
 
@@ -51,6 +53,7 @@ export function createFormatter(opts: FormatOptions): Formatter {
   const timeSecF = new Intl.DateTimeFormat(loc, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateTimeF = new Intl.DateTimeFormat(loc, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   const monthF = new Intl.DateTimeFormat(loc, { month: 'long', year: 'numeric' });
+  const weekdayF = new Intl.DateTimeFormat(loc, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
 
   const f: Formatter = {
@@ -71,6 +74,7 @@ export function createFormatter(opts: FormatOptions): Formatter {
     time: (v, seconds = false) => (seconds ? timeSecF : timeF).format(toDate(v)),
     dateTime: (v) => dateTimeF.format(toDate(v)),
     monthYear: (v) => monthF.format(toDate(v)),
+    weekdayDate: (v) => weekdayF.format(toDate(v)),
     digits: (text) =>
       opts.digits === 'arabic' ? String(text).replace(/[0-9]/g, (d) => arabicDigits[Number(d)]) : String(text),
   };

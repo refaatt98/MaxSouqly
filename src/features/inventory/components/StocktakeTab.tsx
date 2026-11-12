@@ -159,10 +159,10 @@ function CountEditor({ count, ingredients, onClose, onChanged }: { count: StockC
                         disabled={readOnly}
                         onChange={(e) => update(r.id, { counted: e.target.value })}
                         aria-label={`${t('count.counted')} ${ing?.name_ar ?? ''}`}
-                        className="num h-10 w-28 rounded-btn border border-line-strong bg-surface px-2 text-center focus:border-brand focus:outline-none"
+                        className="num h-10 w-28 rounded-btn border border-line-strong bg-surface px-2 text-center focus:border-fg-3 focus:outline-none"
                       />
                     </td>
-                    <td className={cn('num px-3 py-2 font-bold', variance === null ? 'text-fg-3' : variance < 0 ? 'text-danger' : variance > 0 ? 'text-success' : 'text-fg-2')}>
+                    <td className={cn('num px-3 py-2 font-semibold', variance === null ? 'text-fg-3' : variance < 0 ? 'text-danger' : variance > 0 ? 'text-success' : 'text-fg-2')}>
                       {variance === null ? t('common.none') : `${variance > 0 ? '+' : ''}${f.number(variance, 3)}`}
                     </td>
                     <td className="px-3 py-2">
@@ -171,7 +171,7 @@ function CountEditor({ count, ingredients, onClose, onChanged }: { count: StockC
                         disabled={readOnly || variance === null || variance === 0}
                         onChange={(e) => update(r.id, { reason: e.target.value.slice(0, 200) })}
                         aria-label={t('count.reason')}
-                        className="h-10 w-full min-w-40 rounded-btn border border-line bg-surface px-2 focus:border-brand focus:outline-none disabled:opacity-40"
+                        className="h-10 w-full min-w-40 rounded-btn border border-line bg-surface px-2 focus:border-fg-3 focus:outline-none disabled:opacity-40"
                       />
                     </td>
                   </tr>

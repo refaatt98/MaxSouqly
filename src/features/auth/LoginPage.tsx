@@ -134,7 +134,7 @@ function PinForm() {
   return (
     <div className="space-y-5">
       <div className="text-center">
-        <p className="font-semibold">{t('auth.pinTitle')}</p>
+        <p className="font-medium">{t('auth.pinTitle')}</p>
         <p className="mt-1 text-xs text-fg-3">{t('auth.pinHint')}</p>
       </div>
       <motion.div key={shake} animate={shake ? { x: [0, -10, 10, -6, 6, 0] } : undefined} transition={{ duration: 0.35 }} className="flex justify-center gap-3" dir="ltr" aria-live="polite">
@@ -142,8 +142,8 @@ function PinForm() {
           <span
             key={i}
             className={cn(
-              'size-4 rounded-full border-2 transition-all',
-              i < pin.length ? 'scale-110 border-brand bg-brand shadow-glow-sm' : 'border-line-strong',
+              'size-4 rounded-full border-2 transition-[color,background-color,border-color,opacity,transform]',
+              i < pin.length ? 'border-fg bg-fg' : 'border-line-strong',
               i >= 4 && i >= pin.length && 'opacity-40',
             )}
           />
@@ -178,7 +178,7 @@ export default function LoginPage() {
           <LanguageSwitcher className="w-48" />
         </div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mx-auto w-full max-w-sm">
-          <h1 className="text-3xl font-bold tracking-tight">{t('auth.title')}</h1>
+          <h1 className="text-[28px] leading-tight font-medium">{t('auth.title')}</h1>
           <p className="mt-2 text-sm text-fg-3">{t('auth.subtitle')}</p>
           <Segmented
             className="mt-8 w-full"
@@ -197,20 +197,17 @@ export default function LoginPage() {
 
       {/* Brand side */}
       <div className="relative hidden overflow-hidden border-s border-line bg-surface lg:block">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgb(225_29_46/0.35),transparent_60%)]" />
-        <div className="absolute -start-24 top-0 h-full w-40 -skew-x-12 bg-brand/80 blur-[2px]" aria-hidden />
-        <div className="absolute -start-6 top-0 h-full w-6 -skew-x-12 bg-brand shadow-glow" aria-hidden />
         <div className="relative flex h-full flex-col items-center justify-center p-12 text-center">
           <motion.img
             src="/images/hero-burger.svg"
             alt=""
-            className="w-[min(440px,80%)] drop-shadow-[0_30px_40px_rgb(0_0_0/0.6)]"
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 120, damping: 16 }}
+            className="w-[min(400px,72%)]"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           />
-          <BrandMark size="xl" withSlogan className="mt-6 items-center" />
-          <p className="mt-6 text-xl font-semibold">{t('auth.heroLine')}</p>
+          <BrandMark size="lg" withSlogan className="mt-8 items-center" />
+          <p className="mt-8 text-xl font-medium">{t('auth.heroLine')}</p>
           <p className="mt-2 max-w-md text-fg-3">{t('auth.heroSub')}</p>
         </div>
       </div>

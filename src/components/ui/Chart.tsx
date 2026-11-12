@@ -126,21 +126,14 @@ export function LineChart({ data, format, formatAxis, height = 260, className, e
         <svg width={width} height={height} className="overflow-visible" onPointerMove={onMove} onPointerLeave={() => setTip(null)} role="img">
           <defs>
             <linearGradient id={`fill-${gid}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#E11D2E" stopOpacity="0.45" />
+              <stop offset="0%" stopColor="#E11D2E" stopOpacity="0.16" />
               <stop offset="100%" stopColor="#E11D2E" stopOpacity="0" />
             </linearGradient>
-            <filter id={`glow-${gid}`} x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="4" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
           </defs>
           {geo.ticks.map((tk) => (
             <g key={tk.v}>
-              <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(255,255,255,0.06)" strokeDasharray="4 6" />
-              <text x={width - 4} y={tk.y + 4} textAnchor="end" className="num fill-fg-3 text-[11px]">
+              <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(239,233,222,0.07)" />
+              <text x={width - 4} y={tk.y + 4} textAnchor="end" className="mono fill-fg-3 text-[11px]">
                 {(formatAxis ?? format)(tk.v)}
               </text>
             </g>
@@ -164,21 +157,17 @@ export function LineChart({ data, format, formatAxis, height = 260, className, e
               d={geo.line}
               fill="none"
               stroke="#E11D2E"
-              strokeWidth={3}
+              strokeWidth={2}
               strokeLinecap="round"
-              filter={`url(#glow-${gid})`}
               initial={reduce ? false : { pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 1.1, ease: 'easeOut' }}
+              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             />
           )}
-          {tip && <line x1={tip.x} x2={tip.x} y1={PAD.top} y2={PAD.top + geo.innerH} stroke="rgba(255,255,255,0.15)" />}
+          {tip && <line x1={tip.x} x2={tip.x} y1={PAD.top} y2={PAD.top + geo.innerH} stroke="rgba(239,233,222,0.14)" />}
           {geo.pts.map((p, i) =>
             p ? (
-              <g key={i}>
-                <circle cx={p[0]} cy={p[1]} r={tip?.index === i ? 9 : 6} fill="#E11D2E" opacity={0.25} />
-                <circle cx={p[0]} cy={p[1]} r={tip?.index === i ? 5 : 3.5} fill="#fff" stroke="#E11D2E" strokeWidth={2} />
-              </g>
+              <circle key={i} cx={p[0]} cy={p[1]} r={tip?.index === i ? 4.5 : 3} fill="#1b1a18" stroke="#E11D2E" strokeWidth={2} />
             ) : null,
           )}
         </svg>
@@ -186,7 +175,7 @@ export function LineChart({ data, format, formatAxis, height = 260, className, e
       {tip && data[tip.index] && (
         <Tooltip x={tip.x} y={tip.y} width={width}>
           <div className="text-fg-3">{data[tip.index].sublabel ?? data[tip.index].label}</div>
-          <div className="num text-sm font-bold text-fg">{format(data[tip.index].value ?? 0)}</div>
+          <div className="num text-sm font-medium text-fg">{format(data[tip.index].value ?? 0)}</div>
         </Tooltip>
       )}
       {allEmpty && emptyLabel && <div className="absolute inset-0 grid place-items-center text-sm text-fg-3">{emptyLabel}</div>}
@@ -194,20 +183,21 @@ export function LineChart({ data, format, formatAxis, height = 260, className, e
   );
 }
 
-export function BarChart({ data, format, formatAxis, height = 260, className, color = 'red', emptyLabel }: {
+export function BarChart({ data, format, formatAxis, height = 260, className, highlight, emptyLabel }: {
   data: ChartPoint[];
   format: (n: number) => string;
   formatAxis?: (n: number) => string;
   height?: number;
   className?: string;
+  /** index of the bar that matters (defaults to the latest); every other bar stays neutral */
+  highlight?: number | null;
   color?: 'red' | 'gold' | 'green';
   emptyLabel?: string;
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
-  const gid = useId().replace(/:/g, '');
   const reduce = useReducedMotion();
   const [tip, setTip] = useState<TooltipState | null>(null);
-  const colors = { red: ['#F43F4E', '#9F1220'], gold: ['#F5B301', '#8A6400'], green: ['#22C55E', '#14532D'] }[color];
+  const accentIndex = highlight === undefined ? data.length - 1 : highlight;
 
   const values = data.map((d) => Math.max(d.value ?? 0, 0));
   const max = niceMax(Math.max(...values, 0) * 1.1);
@@ -224,16 +214,10 @@ export function BarChart({ data, format, formatAxis, height = 260, className, co
     <div ref={ref} className={cn('relative w-full select-none', className)} style={{ height }}>
       {width > 0 && (
         <svg width={width} height={height} className="overflow-visible" onPointerLeave={() => setTip(null)} role="img">
-          <defs>
-            <linearGradient id={`bar-${gid}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={colors[0]} />
-              <stop offset="100%" stopColor={colors[1]} />
-            </linearGradient>
-          </defs>
           {ticks.map((tk) => (
             <g key={tk.v}>
-              <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(255,255,255,0.06)" strokeDasharray="4 6" />
-              <text x={width - 4} y={tk.y + 4} textAnchor="end" className="num fill-fg-3 text-[11px]">
+              <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(239,233,222,0.07)" />
+              <text x={width - 4} y={tk.y + 4} textAnchor="end" className="mono fill-fg-3 text-[11px]">
                 {(formatAxis ?? format)(tk.v)}
               </text>
             </g>
@@ -248,12 +232,11 @@ export function BarChart({ data, format, formatAxis, height = 260, className, co
                 <motion.rect
                   x={x}
                   width={barW}
-                  rx={Math.min(6, barW / 2)}
-                  fill={`url(#bar-${gid})`}
-                  opacity={tip && tip.index !== i ? 0.55 : 1}
+                  rx={Math.min(3, barW / 2)}
+                  fill={i === accentIndex ? '#E11D2E' : tip?.index === i ? '#5c5750' : '#3d3a36'}
                   initial={reduce ? false : { y: PAD.top + innerH, height: 0 }}
                   animate={{ y: PAD.top + innerH - h, height: h }}
-                  transition={{ duration: 0.6, delay: reduce ? 0 : Math.min(i * 0.02, 0.5), ease: 'easeOut' }}
+                  transition={{ duration: 0.5, delay: reduce ? 0 : Math.min(i * 0.02, 0.3), ease: [0.22, 1, 0.36, 1] }}
                 />
                 {i % labelEvery === 0 && (
                   <text x={xCenter(i)} y={height - 8} textAnchor="middle" className={cn('text-[11px]', tip?.index === i ? 'fill-fg' : 'fill-fg-3')}>
@@ -268,7 +251,7 @@ export function BarChart({ data, format, formatAxis, height = 260, className, co
       {tip && data[tip.index] && (
         <Tooltip x={tip.x} y={tip.y} width={width}>
           <div className="text-fg-3">{data[tip.index].sublabel ?? data[tip.index].label}</div>
-          <div className="num text-sm font-bold text-fg">{format(data[tip.index].value ?? 0)}</div>
+          <div className="num text-sm font-medium text-fg">{format(data[tip.index].value ?? 0)}</div>
         </Tooltip>
       )}
       {values.every((v) => v === 0) && emptyLabel && <div className="absolute inset-0 grid place-items-center text-sm text-fg-3">{emptyLabel}</div>}
@@ -284,39 +267,30 @@ export function RingGauge({ value, size = 180, stroke = 16, label, sublabel, for
   sublabel?: ReactNode;
   format: (n: number) => string;
 }) {
-  const gid = useId().replace(/:/g, '');
   const reduce = useReducedMotion();
   const pct = Math.max(0, Math.min(100, value));
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const color = pct >= 90 ? '#EF4444' : pct >= 70 ? '#F5B301' : '#22C55E';
   return (
     <div className="relative grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <defs>
-          <linearGradient id={`ring-${gid}`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#E11D2E" />
-            <stop offset="100%" stopColor={color} />
-          </linearGradient>
-        </defs>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(239,233,222,0.07)" strokeWidth={stroke} />
         <motion.circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={`url(#ring-${gid})`}
+          stroke="#E11D2E"
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
           initial={reduce ? false : { strokeDashoffset: c }}
           animate={{ strokeDashoffset: c - (pct / 100) * c }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-          style={{ filter: 'drop-shadow(0 0 8px rgba(225,29,46,0.55))' }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="num text-4xl font-bold text-fg">{format(pct)}</span>
+        <span className="num text-[34px] leading-none font-medium text-fg">{format(pct)}</span>
         {label && <span className="mt-1 text-xs text-fg-3">{label}</span>}
         {sublabel}
       </div>
@@ -359,10 +333,9 @@ export function Heatmap({ rows, cols, value, format, rowLabel, colLabel }: {
                   <td
                     key={c}
                     title={`${rowLabel(r)} ${colLabel(c)} — ${format(v)}`}
-                    className="h-7 min-w-7 rounded-[6px]"
+                    className="h-7 min-w-7 rounded-[4px]"
                     style={{
-                      background: v ? `rgba(225,29,46,${0.12 + a * 0.85})` : 'rgba(255,255,255,0.03)',
-                      boxShadow: a > 0.75 ? '0 0 12px rgba(225,29,46,0.5)' : undefined,
+                      background: v ? `rgba(225,29,46,${0.1 + a * 0.8})` : 'rgba(239,233,222,0.03)',
                     }}
                   />
                 );
@@ -389,17 +362,17 @@ export function ShareBars({ items, format }: { items: { label: string; value: nu
                 {it.icon}
                 {it.label}
               </span>
-              <span className="num font-semibold text-fg">
+              <span className="num font-medium text-fg">
                 {format(it.value)} <span className="text-xs font-normal text-fg-3">· {pct.toFixed(0)}%</span>
               </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/5">
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: it.color ?? 'linear-gradient(90deg,#9F1220,#F43F4E)' }}
+                style={{ background: it.color ?? '#5c5750' }}
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
           </li>

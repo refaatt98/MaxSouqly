@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
@@ -10,7 +9,7 @@ export function CategoryTabs({ categories, value, onChange }: { categories: Cate
   const t = useT();
   const { name } = useSettings();
   const tabs: { id: string | null; label: string; icon: React.ReactNode; key?: string }[] = [
-    { id: null, label: t('pos.allCategories'), icon: <LayoutGrid className="size-6" /> },
+    { id: null, label: t('pos.allCategories'), icon: <LayoutGrid className="size-6" strokeWidth={1.5} /> },
     ...categories.map((c, i) => ({
       id: c.id,
       label: name(c),
@@ -30,14 +29,14 @@ export function CategoryTabs({ categories, value, onChange }: { categories: Cate
             aria-selected={active}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'relative flex min-h-20 min-w-[88px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-card border px-3 text-sm font-semibold transition-colors',
-              active ? 'border-brand text-white' : 'border-line bg-card text-fg-2 hover:border-line-strong hover:text-fg',
+              'relative flex min-h-[76px] min-w-[88px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-card border px-3 text-sm transition-colors',
+              active ? 'border-line-strong bg-elevated font-medium text-fg shadow-glow-sm' : 'border-line bg-card text-fg-2 hover:border-line-strong hover:text-fg',
             )}
           >
-            {active && <motion.span layoutId="pos-cat" className="absolute inset-0 rounded-card bg-brand shadow-glow" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
-            <span className="relative">{tab.icon}</span>
+            {active && <span className="slash absolute start-2.5 top-2.5" aria-hidden />}
+            <span className="relative text-fg-3">{tab.icon}</span>
             <span className="relative">{tab.label}</span>
-            {tab.key && <kbd className={cn('absolute end-1.5 top-1 text-[9px] font-medium', active ? 'text-white/70' : 'text-fg-3')}>{tab.key}</kbd>}
+            {tab.key && <kbd className="mono absolute end-2 top-1.5 text-[11px] text-fg-3">{tab.key}</kbd>}
           </button>
         );
       })}

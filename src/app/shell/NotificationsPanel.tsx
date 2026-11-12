@@ -11,10 +11,10 @@ import { canAccess } from '../nav';
 import type { AppNotification } from '@/types/models';
 
 const icon = {
-  low_stock: <Boxes className="size-4 text-warning" />,
-  new_order: <ClipboardList className="size-4 text-success" />,
-  void: <Ban className="size-4 text-danger" />,
-  system: <Info className="size-4 text-[#7aa5ff]" />,
+  low_stock: <Boxes className="size-4 text-fg-3" strokeWidth={1.5} />,
+  new_order: <ClipboardList className="size-4 text-fg-3" strokeWidth={1.5} />,
+  void: <Ban className="size-4 text-fg-3" strokeWidth={1.5} />,
+  system: <Info className="size-4 text-fg-3" strokeWidth={1.5} />,
 };
 
 export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -60,8 +60,8 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
           aria-label={t('notifications.title')}
         >
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <h2 className="font-bold">{t('notifications.title')}</h2>
-            <button type="button" onClick={() => void markAllRead()} className="text-xs font-semibold text-[#ff5a67] hover:underline">
+            <h2 className="font-medium">{t('notifications.title')}</h2>
+            <button type="button" onClick={() => void markAllRead()} className="text-xs text-fg-2 hover:text-fg">
               {t('notifications.markAll')}
             </button>
           </div>
@@ -77,17 +77,17 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
                 <button
                   type="button"
                   onClick={() => openItem(n)}
-                  className={cn('flex w-full items-start gap-3 border-b border-line px-4 py-3 text-start transition-colors hover:bg-white/[0.04]', isUnread(n) && 'bg-brand/[0.05]')}
+                  className={cn('flex w-full items-start gap-3 border-b border-line px-4 py-3 text-start transition-colors hover:bg-white/[0.04]', isUnread(n) && 'bg-white/[0.02]')}
                 >
                   <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-btn bg-white/5">{icon[n.type]}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">{n.title}</span>
+                    <span className="block truncate text-sm text-fg">{n.title}</span>
                     {n.body && <span className="block truncate text-xs text-fg-3">{n.body}</span>}
                     <span className="mt-1 block text-[11px] text-fg-3">
                       {t(`notifications.type.${n.type}`)} · {f.dateTime(n.created_at)}
                     </span>
                   </span>
-                  {isUnread(n) && <span className="mt-2 size-2 shrink-0 rounded-full bg-brand shadow-glow-sm" />}
+                  {isUnread(n) && <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />}
                 </button>
               </li>
             ))}

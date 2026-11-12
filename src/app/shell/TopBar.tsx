@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
-import { useAuth } from '../providers/AuthProvider';
 import { useConnection } from '../providers/ConnectionProvider';
 import { useNotifications } from '../providers/NotificationsProvider';
 import { useFormat } from '../providers/SettingsProvider';
@@ -15,18 +14,8 @@ export function ConnectionPill({ className }: { className?: string }) {
   const t = useT();
   const { online } = useConnection();
   return (
-    <span
-      role="status"
-      className={cn(
-        'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold',
-        online ? 'border-success/25 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger',
-        className,
-      )}
-    >
-      <span className="relative flex size-2">
-        {online && <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" />}
-        <span className={cn('relative inline-flex size-2 rounded-full', online ? 'bg-success' : 'bg-danger')} />
-      </span>
+    <span role="status" className={cn('inline-flex items-center gap-2 px-2 text-[13px]', online ? 'text-fg-2' : 'text-danger', className)}>
+      <span className={cn('size-2 rounded-full', online ? 'bg-success' : 'bg-danger')} aria-hidden />
       {online ? t('topbar.online') : t('topbar.offline')}
     </span>
   );
@@ -45,31 +34,27 @@ export function LiveClock({ className }: { className?: string }) {
 export function TopBar({ onOpenCommand }: { onOpenCommand: () => void }) {
   const t = useT();
   const f = useFormat();
-  const { profile } = useAuth();
   const { unread } = useNotifications();
   const [panelOpen, setPanelOpen] = useState(false);
-  const firstName = profile?.full_name.split(' ')[0] ?? '';
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-bg/80 px-4 backdrop-blur-xl md:h-20 md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-bg px-4 md:px-6">
       <div className="md:hidden">
         <BrandMark size="sm" />
       </div>
       <div className="hidden min-w-0 md:block">
-        <p className="truncate text-lg font-bold">{t('topbar.greeting', { name: firstName })} 👋</p>
-        <p className="text-xs text-fg-3">
-          {f.date(new Date())} · <LiveClock />
-        </p>
+        <p className="truncate text-[15px] font-medium text-fg">{f.weekdayDate(new Date())}</p>
+        <LiveClock className="text-[13px] text-fg-3" />
       </div>
       <div className="ms-auto flex items-center gap-2">
         <button
           type="button"
           onClick={onOpenCommand}
-          className="hidden h-10 items-center gap-2 rounded-btn border border-line bg-surface px-3 text-sm text-fg-3 transition-colors hover:border-line-strong hover:text-fg lg:flex"
+          className="hidden h-9 items-center gap-2 rounded-btn border border-line bg-card px-3 text-sm text-fg-3 transition-colors hover:border-line-strong hover:text-fg-2 lg:flex"
         >
-          <Search className="size-4" />
+          <Search className="size-4" strokeWidth={1.5} />
           <span>{t('topbar.commandHint')}</span>
-          <kbd className="ms-4 inline-flex items-center gap-0.5 rounded border border-line px-1.5 text-[11px]" dir="ltr">
+          <kbd className="mono ms-6 inline-flex items-center gap-0.5 rounded-[4px] border border-line bg-elevated px-1.5 text-[11px] text-fg-3" dir="ltr">
             <Command className="size-3" />K
           </kbd>
         </button>
@@ -85,8 +70,8 @@ export function TopBar({ onOpenCommand }: { onOpenCommand: () => void }) {
             aria-expanded={panelOpen}
             className="relative grid size-10 place-items-center rounded-btn text-fg-2 transition-colors hover:bg-white/5 hover:text-fg"
           >
-            <Bell className="size-5" />
-            <CountBadge count={unread} className="absolute -end-1 -top-1" />
+            <Bell className="size-[18px]" strokeWidth={1.5} />
+            <CountBadge count={unread} alert className="absolute -end-1 -top-1" />
           </button>
           <NotificationsPanel open={panelOpen} onClose={() => setPanelOpen(false)} />
         </div>

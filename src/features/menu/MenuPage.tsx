@@ -18,7 +18,6 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select, TextInput, Textarea } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
-import { Badge } from '@/components/ui/Badge';
 import { FoodImage } from '@/components/ui/FoodImage';
 import { EmptyState, ErrorState } from '@/components/ui/EmptyState';
 import { SkeletonGrid } from '@/components/ui/Skeleton';
@@ -222,7 +221,7 @@ function CategoryModal({ category, onClose, onSaved }: { category: Category | 'n
                 onClick={() => setIcon(k)}
                 aria-pressed={icon === k}
                 aria-label={k}
-                className={cn('grid h-12 place-items-center rounded-btn border transition-colors', icon === k ? 'border-brand bg-brand text-white shadow-glow-sm' : 'border-line bg-card text-fg-2 hover:border-line-strong')}
+                className={cn('grid h-12 place-items-center rounded-btn border transition-colors', icon === k ? 'border-line-strong bg-elevated text-fg shadow-glow-sm' : 'border-line bg-card text-fg-3 hover:border-line-strong')}
               >
                 <CategoryIcon icon={k} className="size-5" />
               </button>
@@ -315,10 +314,10 @@ export default function MenuPage() {
             <button
               type="button"
               onClick={() => setCategory(null)}
-              className={cn('flex h-11 w-full items-center gap-3 rounded-btn px-3 text-sm font-semibold', category === null ? 'bg-brand text-white shadow-glow-sm' : 'text-fg-2 hover:bg-white/5')}
+              className={cn('flex h-10 w-full items-center gap-2.5 rounded-btn px-3 text-sm transition-colors', category === null ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-white/[0.04]')}
             >
               <UtensilsCrossed className="size-4" /> {t('common.all')}
-              <span className="num ms-auto text-xs opacity-80">{menu.data?.items.length ?? 0}</span>
+              <span className="mono ms-auto text-xs text-fg-3">{menu.data?.items.length ?? 0}</span>
             </button>
             {(menu.data?.categories ?? []).map((c) => (
               <div key={c.id} className="group flex items-center">
@@ -326,14 +325,14 @@ export default function MenuPage() {
                   type="button"
                   onClick={() => setCategory(c.id)}
                   className={cn(
-                    'flex h-11 min-w-0 flex-1 items-center gap-3 rounded-btn px-3 text-sm font-semibold',
-                    category === c.id ? 'bg-brand text-white shadow-glow-sm' : 'text-fg-2 hover:bg-white/5',
+                    'flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-btn px-3 text-sm transition-colors',
+                    category === c.id ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-white/[0.04]',
                     !c.is_active && 'opacity-50',
                   )}
                 >
                   {c.image_url ? <img src={c.image_url} alt="" className="size-6 rounded object-cover" /> : <CategoryIcon icon={c.icon} className="size-4" />}
                   <span className="truncate">{name(c)}</span>
-                  <span className="num ms-auto text-xs opacity-80">{menu.data?.items.filter((i) => i.category_id === c.id).length}</span>
+                  <span className="mono ms-auto text-xs text-fg-3">{menu.data?.items.filter((i) => i.category_id === c.id).length}</span>
                 </button>
                 <IconButton label={t('common.edit')} size="sm" onClick={() => setEditCat(c)}><Pencil className="size-3.5" /></IconButton>
                 <IconButton label={t('common.delete')} size="sm" onClick={() => void removeCategory(c)} className="hover:text-danger"><Trash className="size-3.5" /></IconButton>
@@ -354,11 +353,11 @@ export default function MenuPage() {
                     <Card key={i.id} className={cn('flex flex-col p-3', !i.is_available && 'opacity-60')}>
                       <button type="button" onClick={() => setEditItem(i)} className="text-start">
                         <FoodImage src={i.image_url} alt="" className="aspect-[4/3] w-full rounded-btn" />
-                        <p className="mt-2 truncate font-semibold">{name(i)}</p>
+                        <p className="mt-2 truncate text-fg">{name(i)}</p>
                       </button>
                       <div className="mt-1 flex items-center justify-between">
-                        <span className="num text-lg font-bold text-gold">{f.money(Number(i.price))}</span>
-                        <Badge tone={margin >= 60 ? 'green' : margin >= 40 ? 'amber' : 'red'}>{t('menu.margin')} {f.percent(margin)}</Badge>
+                        <span className="num text-[17px] font-medium text-fg">{f.money(Number(i.price))}</span>
+                        <span className={cn('num text-xs', margin >= 40 ? 'text-fg-3' : 'text-danger')}>{t('menu.margin')} {f.percent(margin)}</span>
                       </div>
                       <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
                         <Toggle checked={i.is_available} onChange={() => void toggleAvailable(i)} />

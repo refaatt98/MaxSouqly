@@ -282,7 +282,7 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
         <div className="flex items-center gap-3">
           <Avatar name={e.full_name} url={e.avatar_url ?? e.profile?.avatar_url} />
           <div>
-            <p className="font-semibold">{e.full_name}</p>
+            <p className="text-fg">{e.full_name}</p>
             <p className="text-xs text-fg-3" dir="ltr">{e.phone}</p>
           </div>
         </div>
@@ -321,7 +321,7 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
       cell: (e) => (
         <div className="flex justify-end">
           {onClock.has(e.id) ? (
-            <IconButton label={t('employees.clockOut')} size="sm" onClick={() => void clock(e, 'out')} className="text-[#7aa5ff]"><LogOut className="size-4 rtl:-scale-x-100" /></IconButton>
+            <IconButton label={t('employees.clockOut')} size="sm" onClick={() => void clock(e, 'out')} className="text-fg-2"><LogOut className="size-4 rtl:-scale-x-100" /></IconButton>
           ) : (
             <IconButton label={t('employees.clockIn')} size="sm" onClick={() => void clock(e, 'in')} disabled={!e.is_active}><LogIn className="size-4 rtl:-scale-x-100" /></IconButton>
           )}

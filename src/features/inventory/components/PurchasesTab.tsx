@@ -214,7 +214,7 @@ function PoEditor({ po, suppliers, ingredients, onClose, onChanged }: {
               <TextInput label={t('po.unitCost')} type="number" inputMode="decimal" min={0} step="0.01" value={l.unit_cost} onChange={(e) => update(l.key, { unit_cost: e.target.value })} disabled={!editable} />
               <div className="pb-2.5">
                 <p className="text-xs text-fg-3">{t('po.lineTotal')}</p>
-                <p className="num font-bold">{f.money((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0))}</p>
+                <p className="num font-semibold">{f.money((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0))}</p>
               </div>
               {editable && (
                 <IconButton label={t('common.delete')} onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} className="hover:text-danger">
@@ -227,7 +227,7 @@ function PoEditor({ po, suppliers, ingredients, onClose, onChanged }: {
         {lines.length === 0 && <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-3">{t('po.noLines')}</p>}
       </div>
       {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
-      <div className="mt-4 flex justify-end gap-3 text-lg font-bold">
+      <div className="mt-4 flex justify-end gap-3 text-lg font-semibold">
         <span>{t('common.total')}</span>
         <span className="num">{f.money(total)}</span>
       </div>
@@ -266,12 +266,12 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
   };
 
   const columns: Column<PurchaseOrder>[] = [
-    { key: 'num', header: '#', cell: (p) => <span className="num font-bold">#{f.digits(p.po_number)}</span> },
+    { key: 'num', header: '#', cell: (p) => <span className="num font-semibold">#{f.digits(p.po_number)}</span> },
     { key: 'supplier', header: t('po.supplier'), cell: (p) => supplierName.get(p.supplier_id) ?? t('common.unknown') },
     { key: 'date', header: t('common.date'), hideBelow: 'sm', cell: (p) => <span className="num text-fg-2">{f.dateTime(p.created_at)}</span> },
     { key: 'expected', header: t('po.expectedDate'), hideBelow: 'md', cell: (p) => (p.expected_date ? f.date(p.expected_date) : t('common.none')) },
     { key: 'status', header: t('common.status'), cell: (p) => <Badge tone={STATUS_TONE[p.status]}>{t(`po.status.${p.status}`)}</Badge> },
-    { key: 'total', header: t('common.total'), align: 'end', cell: (p) => <span className="num font-bold">{f.money(Number(p.total))}</span> },
+    { key: 'total', header: t('common.total'), align: 'end', cell: (p) => <span className="num font-semibold">{f.money(Number(p.total))}</span> },
     {
       key: 'actions',
       header: '',

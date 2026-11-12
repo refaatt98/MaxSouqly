@@ -18,16 +18,16 @@ export function BottomNav() {
   const rest = items.slice(4);
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    cn('flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors', isActive ? 'text-[#ff5a67]' : 'text-fg-3');
+    cn('flex flex-1 flex-col items-center justify-center gap-1 text-[11px] transition-colors', isActive ? 'font-medium text-fg' : 'text-fg-3');
 
   return (
     <>
-      <nav className="glass fixed inset-x-0 bottom-0 z-40 flex h-16 border-t border-line pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="bottom navigation">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="bottom navigation">
         {primary.map((item) => (
           <NavLink key={item.path} to={item.path} end={item.path === '/'} className={linkClass}>
             {({ isActive }) => (
               <>
-                <span className={cn('grid h-7 w-12 place-items-center rounded-full transition-colors', isActive && 'bg-brand text-white shadow-glow-sm')}>
+                <span className={cn('relative grid h-7 w-12 place-items-center rounded-[8px] transition-colors', isActive && 'bg-elevated')}>
                   <item.icon className="size-5" />
                 </span>
                 {t(item.label)}
@@ -48,7 +48,7 @@ export function BottomNav() {
               to={item.path}
               onClick={() => setMore(false)}
               className={({ isActive }) =>
-                cn('flex flex-col items-center gap-2 rounded-card border p-4 text-xs font-semibold', isActive ? 'border-brand bg-brand/15 text-fg' : 'border-line bg-card text-fg-2')
+                cn('flex flex-col items-center gap-2 rounded-card border p-4 text-xs', isActive ? 'border-line-strong bg-elevated font-medium text-fg' : 'border-line bg-card text-fg-2')
               }
             >
               <item.icon className="size-6" />
@@ -57,7 +57,7 @@ export function BottomNav() {
           ))}
         </div>
         <LanguageSwitcher className="mt-4" />
-        <button type="button" onClick={() => void signOut()} className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-btn bg-danger/10 font-semibold text-danger">
+        <button type="button" onClick={() => void signOut()} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-btn border border-line text-sm text-fg-2">
           <LogOut className="size-5 rtl:-scale-x-100" /> {t('nav.logout')}
         </button>
       </Modal>

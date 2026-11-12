@@ -315,16 +315,16 @@ export default function PosPage() {
       <section className="flex min-w-0 flex-1 flex-col" aria-label={t('pos.title')}>
         <div className="space-y-3 border-b border-line px-4 pt-4 pb-3 md:px-5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-lg font-bold">{t('pos.title')}</h1>
+            <h1 className="text-lg font-medium">{t('pos.title')}</h1>
             <Badge tone="neutral">{t('pos.cashier', { name: profile?.full_name ?? '' })}</Badge>
             {shift && (
-              <button type="button" onClick={() => setCloseShiftOpen(true)} className="inline-flex items-center gap-1.5 rounded-full border border-success/25 bg-success/10 px-2.5 py-0.5 text-xs font-semibold text-success hover:bg-success/20">
+              <button type="button" onClick={() => setCloseShiftOpen(true)} className="inline-flex items-center gap-1.5 rounded-[6px] border border-line px-2 py-0.5 text-xs text-fg-2 transition-colors hover:text-fg">
                 <LockKeyhole className="size-3" />
                 {t('shift.openedAt', { time: f.time(shift.opened_at) })} · {t('shift.close')}
               </button>
             )}
             {!shift && (
-              <button type="button" onClick={() => setOpenShiftOpen(true)} className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-2.5 py-0.5 text-xs font-semibold text-fg-2 hover:text-fg">
+              <button type="button" onClick={() => setOpenShiftOpen(true)} className="inline-flex items-center gap-1.5 rounded-[6px] border border-line px-2 py-0.5 text-xs text-fg-2 transition-colors hover:text-fg">
                 <LockKeyhole className="size-3" />
                 {t('shift.open')}
               </button>
@@ -356,7 +356,7 @@ export default function PosPage() {
               }}
               placeholder={t('pos.search')}
               aria-label={t('pos.search')}
-              className="h-12 w-full rounded-btn border border-line-strong bg-surface ps-11 pe-11 text-base placeholder:text-fg-3 focus:border-brand focus:ring-2 focus:ring-brand/30 focus:outline-none"
+              className="h-12 w-full rounded-btn border border-line-strong bg-surface ps-11 pe-11 text-base placeholder:text-fg-3 focus:border-fg-3 focus:ring-2 focus:ring-white/10 focus:outline-none"
             />
             <ScanBarcode className="pointer-events-none absolute end-3.5 top-1/2 size-5 -translate-y-1/2 text-fg-3" />
           </div>
@@ -369,7 +369,7 @@ export default function PosPage() {
             }}
           />
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-fg-3">{t('pos.multiplier')}</span>
+            <span className="text-[13px] text-fg-3">{t('pos.multiplier')}</span>
             {[1, 2, 3].map((m) => (
               <button
                 key={m}
@@ -377,8 +377,8 @@ export default function PosPage() {
                 onClick={() => setMultiplier(m)}
                 aria-pressed={multiplier === m}
                 className={cn(
-                  'num h-11 min-w-14 rounded-btn border px-3 text-base font-bold transition-all',
-                  multiplier === m ? 'border-brand bg-brand text-white shadow-glow-sm' : 'border-line bg-card text-fg-2 hover:border-line-strong',
+                  'mono h-11 min-w-14 rounded-btn border px-3 text-[15px] transition-colors',
+                  multiplier === m ? 'border-line-strong bg-elevated text-fg shadow-glow-sm' : 'border-line bg-card text-fg-3 hover:border-line-strong hover:text-fg-2',
                 )}
               >
                 {f.digits(m)}x
@@ -389,13 +389,13 @@ export default function PosPage() {
               onClick={() => setQtyOpen(true)}
               aria-label={t('pos.customQty')}
               className={cn(
-                'num grid h-11 min-w-14 place-items-center rounded-btn border px-3 font-bold transition-all',
-                multiplier > 3 ? 'border-brand bg-brand text-white shadow-glow-sm' : 'border-line bg-card text-fg-2 hover:border-line-strong',
+                'mono grid h-11 min-w-14 place-items-center rounded-btn border px-3 transition-colors',
+                multiplier > 3 ? 'border-line-strong bg-elevated text-fg shadow-glow-sm' : 'border-line bg-card text-fg-3 hover:border-line-strong hover:text-fg-2',
               )}
             >
               {multiplier > 3 ? `${f.digits(multiplier)}x` : <Plus className="size-5" />}
             </button>
-            <span className="ms-auto text-xs text-fg-3">{t('pos.productsCount', { count: f.number(visibleItems.length) })}</span>
+            <span className="num ms-auto text-xs text-fg-3">{t('pos.productsCount', { count: f.number(visibleItems.length) })}</span>
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-28 md:p-5 lg:pb-5">
@@ -415,7 +415,7 @@ export default function PosPage() {
             animate={{ y: 0 }}
             exit={{ y: 80 }}
             onClick={() => setMobileCart(true)}
-            className="fixed inset-x-4 bottom-20 z-30 flex h-14 items-center justify-between rounded-card bg-brand px-5 font-bold text-white shadow-glow lg:hidden"
+            className="fixed inset-x-4 bottom-20 z-30 flex h-14 items-center justify-between rounded-card bg-brand px-5 font-medium text-white shadow-panel lg:hidden"
           >
             <span className="flex items-center gap-2">
               <ShoppingBag className="size-5" /> {t('pos.cart')} · <span className="num">{f.number(totals.count)}</span>

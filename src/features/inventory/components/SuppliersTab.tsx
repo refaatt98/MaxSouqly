@@ -109,9 +109,9 @@ export function SuppliersTab({ suppliers, ingredients }: { suppliers: QueryState
               <Card key={s.id} className="p-5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <span className="grid size-11 place-items-center rounded-card bg-gold/15 text-gold"><Truck className="size-5" /></span>
+                    <span className="grid size-10 place-items-center rounded-btn border border-line bg-elevated text-fg-3"><Truck className="size-[18px]" strokeWidth={1.5} /></span>
                     <div>
-                      <p className="font-bold">{s.name}</p>
+                      <p className="font-medium">{s.name}</p>
                       <p className="text-xs text-fg-3">{s.contact_name || t('common.none')}</p>
                     </div>
                   </div>

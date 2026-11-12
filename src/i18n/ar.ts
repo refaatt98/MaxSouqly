@@ -116,7 +116,7 @@ export const ar = {
 
   // auth
   'auth.title': 'تسجيل الدخول',
-  'auth.subtitle': 'أهلاً بعودتك! سجّل الدخول لإدارة مطعمك',
+  'auth.subtitle': 'الكاشير والمطبخ والمخزون والتقارير لمطعم MAX',
   'auth.email': 'البريد الإلكتروني',
   'auth.password': 'كلمة المرور',
   'auth.signIn': 'دخول',
@@ -723,6 +723,7 @@ export const ar = {
   'settings.offlineCache': 'بيانات محفوظة محلياً',
   'settings.clearCache': 'مسح الذاكرة المحلية',
   'settings.cacheCleared': 'تم مسح الذاكرة المحلية',
+  'settings.shortcuts': 'اختصارات لوحة المفاتيح',
   'settings.preview': 'معاينة',
 
   // uploader
