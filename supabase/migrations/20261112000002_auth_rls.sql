@@ -196,6 +196,7 @@ as $$
   limit 1
 $$;
 revoke all on function public.verify_pin(text) from public, anon, authenticated;
+grant execute on function public.verify_pin(text) to service_role;
 
 -- ---------------------------------------------------------------------
 -- Grants. Column-level grants keep secrets (pin_hash) out of reach.
