@@ -10,7 +10,11 @@ export function BrandMark({ size = 'md', withSlogan = false, className }: { size
         <span className={cn('inline-block -skew-x-12 rounded-sm bg-brand shadow-glow-sm', slash)} aria-hidden />
         <span>MAX</span>
       </div>
-      {withSlogan && <span className="mt-1 text-xs font-medium tracking-[0.2em] text-fg-3 uppercase">Good Food Good Mood</span>}
+      {withSlogan && (
+        <span className={cn('mt-1 font-medium whitespace-nowrap text-fg-3 uppercase', size === 'xl' || size === 'lg' ? 'text-xs tracking-[0.2em]' : 'text-[10px] tracking-[0.12em]')}>
+          Good Food Good Mood
+        </span>
+      )}
     </div>
   );
 }

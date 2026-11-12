@@ -5,6 +5,7 @@ import { corsHeaders, env, error, json } from '../_shared/http.ts';
 
 const ROLES = ['owner', 'manager', 'cashier', 'kitchen', 'inventory'] as const;
 type Role = (typeof ROLES)[number];
+const ROLE_LABEL_AR: Record<Role, string> = { owner: 'المالك', manager: 'مدير', cashier: 'كاشير', kitchen: 'مطبخ', inventory: 'مسؤول مخزون' };
 
 interface Body {
   email: string;
@@ -85,7 +86,7 @@ Deno.serve(async (req) => {
   if (body.employee_id) {
     await admin.from('employees_meta').update({ profile_id: userId }).eq('id', body.employee_id).is('profile_id', null);
   } else {
-    await admin.from('employees_meta').insert({ profile_id: userId, full_name: body.full_name, position: body.role });
+    await admin.from('employees_meta').insert({ profile_id: userId, full_name: body.full_name, position: ROLE_LABEL_AR[body.role] });
   }
 
   await admin.from('audit_log').insert({

@@ -71,7 +71,7 @@ export function Segmented<K extends string>({ items, value, onChange, className,
             role="radio"
             aria-checked={active}
             onClick={() => onChange(it.key)}
-            className={cn('relative flex flex-1 items-center justify-center gap-2 rounded-[8px] px-3 font-semibold transition-colors', h, active ? 'text-white' : 'text-fg-3 hover:text-fg')}
+            className={cn('relative flex flex-1 items-center justify-center gap-2 rounded-[8px] px-3 font-semibold whitespace-nowrap transition-colors', h, active ? 'text-white' : 'text-fg-3 hover:text-fg')}
           >
             {active && (
               <motion.span layoutId={layoutId} className="absolute inset-0 rounded-[8px] bg-brand shadow-glow-sm" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />

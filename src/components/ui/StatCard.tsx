@@ -42,8 +42,10 @@ export function TrendChip({ value, label }: { value: number | null; label?: stri
       )}
     >
       {up ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
-      {up ? '+' : ''}
-      {value.toFixed(0)}%
+      <span dir="ltr">
+        {up ? '+' : ''}
+        {value.toFixed(0)}%
+      </span>
     </span>
   );
 }

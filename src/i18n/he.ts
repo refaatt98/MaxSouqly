@@ -267,7 +267,7 @@ export const he: Dictionary = {
   'pos.unavailable': 'לא זמין',
   'pos.shortcuts': 'קיצורים: F1–F6 קטגוריות · Enter תשלום · Esc ניקוי',
   'pos.successTitle': 'התשלום בוצע בהצלחה',
-  'pos.successOrder': 'הזמנה #{number}',
+  'pos.successOrder': 'הזמנה {number}',
   'pos.successChange': 'עודף ללקוח',
   'pos.newOrder': 'הזמנה חדשה',
   'pos.offlineSaved': 'ההזמנה נשמרה מקומית ותסונכרן כשהחיבור יחזור',

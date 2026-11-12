@@ -155,7 +155,7 @@ export function PaymentModal({ open, due, onClose, onConfirm, pending }: {
         <div className={cn('space-y-3', method === 'card' && 'pointer-events-none opacity-30')} aria-hidden={method === 'card'}>
           {method === 'cash' && (
             <div className="grid grid-cols-4 gap-2">
-              <button type="button" onClick={() => setEntry(String(due))} className="h-12 rounded-btn border border-gold/30 bg-gold/10 text-sm font-bold text-gold">
+              <button type="button" onClick={() => setEntry(String(due))} className="h-12 rounded-btn border border-gold/30 bg-gold/10 px-1 text-xs font-bold whitespace-nowrap text-gold">
                 {t('payment.exact')}
               </button>
               {quickAmounts(due).map((v) => (

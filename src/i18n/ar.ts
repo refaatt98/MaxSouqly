@@ -279,7 +279,7 @@ export const ar = {
   'pos.unavailable': 'غير متوفر',
   'pos.shortcuts': 'اختصارات: F1–F6 الأقسام · Enter دفع · Esc مسح',
   'pos.successTitle': 'تم الدفع بنجاح',
-  'pos.successOrder': 'رقم الطلب #{number}',
+  'pos.successOrder': 'رقم الطلب {number}',
   'pos.successChange': 'الباقي للزبون',
   'pos.newOrder': 'طلب جديد',
   'pos.offlineSaved': 'تم حفظ الطلب محلياً وسيتم مزامنته عند عودة الاتصال',

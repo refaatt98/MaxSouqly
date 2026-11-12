@@ -1,0 +1,18 @@
+# Copy to wrangler.toml and fill in your values:  cp wrangler.toml.example wrangler.toml
+name = "max-images"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+[[r2_buckets]]
+binding = "MAX_IMAGES"
+bucket_name = "max-images"
+
+[vars]
+# Your Supabase project (the anon key is public; it is only used to call /auth/v1/user and PostgREST as the caller)
+SUPABASE_URL = "https://your-project.supabase.co"
+SUPABASE_ANON_KEY = "your-anon-key"
+# Base URL that serves the bucket publicly: an R2 custom domain (recommended, e.g. https://images.example.com)
+# or this worker itself ending in /object (e.g. https://max-images.example.workers.dev/object)
+PUBLIC_URL = "https://images.example.com"
+# Comma-separated list of app origins allowed to call the worker
+ALLOWED_ORIGINS = "https://max.example.com,http://localhost:5173"
