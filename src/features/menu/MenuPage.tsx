@@ -8,7 +8,7 @@ import { errorMessage } from '@/lib/errors';
 import { deleteImage } from '@/lib/r2';
 import { hasErrors, v, type Errors } from '@/lib/validation';
 import { useQuery } from '@/hooks/useQuery';
-import { useRealtime } from '@/hooks/useRealtime';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
@@ -160,6 +160,7 @@ function CategoryModal({ category, onClose, onSaved }: { category: Category | 'n
   const [icon, setIcon] = useState('burger');
   const [sort, setSort] = useState('0');
   const [active, setActive] = useState(true);
+  const image = useImageField(editing?.image_url ?? null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -170,6 +171,7 @@ function CategoryModal({ category, onClose, onSaved }: { category: Category | 'n
     setIcon(editing?.icon ?? 'burger');
     setSort(String(editing?.sort_order ?? 0));
     setActive(editing?.is_active ?? true);
+    image.reset(editing?.image_url ?? null);
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
@@ -179,27 +181,33 @@ function CategoryModal({ category, onClose, onSaved }: { category: Category | 'n
     setError(err);
     if (err) return;
     setPending(true);
-    const row = { name_ar: nameAr.trim(), name_he: nameHe.trim(), icon, sort_order: Number(sort) || 0, is_active: active };
+    const row = { name_ar: nameAr.trim(), name_he: nameHe.trim(), icon, sort_order: Number(sort) || 0, is_active: active, image_url: image.url };
     const { error: e } = editing ? await supabase.from('categories').update(row).eq('id', editing.id) : await supabase.from('categories').insert(row);
     setPending(false);
     if (e) return toast.error(errorMessage(t, e));
+    await image.commit();
     toast.success(t('common.saved'));
     onSaved();
+  };
+  const cancel = () => {
+    void image.discard();
+    onClose();
   };
 
   return (
     <Modal
       open={category !== null}
-      onClose={onClose}
+      onClose={cancel}
       title={editing ? t('menu.editCategory') : t('menu.newCategory')}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button variant="ghost" onClick={cancel}>{t('common.cancel')}</Button>
           <Button variant="primary" loading={pending} onClick={() => void save()}>{t('common.save')}</Button>
         </>
       }
     >
       <div className="space-y-4">
+        <ImageUploader label={t('menu.categoryImage')} value={image.url} onChange={image.setUrl} folder="categories" />
         <div className="grid gap-4 sm:grid-cols-2">
           <TextInput label={t('common.nameAr')} value={nameAr} onChange={(e) => setNameAr(e.target.value)} error={error} required data-autofocus />
           <TextInput label={t('common.nameHe')} value={nameHe} onChange={(e) => setNameHe(e.target.value)} lang="he" />
@@ -240,7 +248,7 @@ export default function MenuPage() {
   const [editItem, setEditItem] = useState<MenuItem | 'new' | null>(null);
   const [editCat, setEditCat] = useState<Category | 'new' | null>(null);
 
-  useRealtime({ table: 'menu_items' }, () => void menu.refetch());
+  useLiveRefetch(['menu_items', 'categories', 'recipe_items'], menu.refetch);
 
   useEffect(() => {
     const id = params.get('edit');
@@ -323,7 +331,7 @@ export default function MenuPage() {
                     !c.is_active && 'opacity-50',
                   )}
                 >
-                  <CategoryIcon icon={c.icon} className="size-4" />
+                  {c.image_url ? <img src={c.image_url} alt="" className="size-6 rounded object-cover" /> : <CategoryIcon icon={c.icon} className="size-4" />}
                   <span className="truncate">{name(c)}</span>
                   <span className="num ms-auto text-xs opacity-80">{menu.data?.items.filter((i) => i.category_id === c.id).length}</span>
                 </button>

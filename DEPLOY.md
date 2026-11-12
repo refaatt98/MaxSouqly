@@ -1,53 +1,25 @@
-# نشر MAX — خطوة بخطوة (Supabase + Netlify)
+# MAX — حالة النشر / Deployment status
 
-مشروع Supabase: **Max Restaurant** (`yjytosfsktwrzsthlfji`). قاعدة البيانات فارغة حالياً — اتبع الخطوات بالترتيب.
+## ✅ تم إعداده بالكامل (Supabase: `yjytosfsktwrzsthlfji`)
+- قاعدة البيانات: كل الجداول + صلاحيات RLS + الدوال + التقارير + التحديث المباشر (Realtime) لكل الشاشات.
+- قائمة جاهزة: 6 أقسام، 33 منتجاً، 23 مادة خام بوصفات و3 موردين — كلها قابلة للتعديل من التطبيق.
+- حساب المالك: `refaat@gmail.com` (الهاتف 0599776682).
+- دوال Edge: `images` (رفع الصور إلى Cloudflare R2) و `pin-login` (الدخول السريع بالرمز).
+- مفاتيح R2 محفوظة كأسرار في Supabase فقط (ليست في الكود). الصور تُعرض من `https://pub-1400032e0dba4fcbac4eb18a30180e40.r2.dev`.
+- سياسة CORS على الـ bucket `max`: كل المصادر وكل الطرق (GET, HEAD, PUT, POST, DELETE).
+- التسجيل العام مغلق — الحسابات تُنشأ من داخل التطبيق فقط.
 
-## 1) قاعدة البيانات (مرة واحدة، دقيقة واحدة)
-1. افتح Supabase → مشروعك → **SQL Editor** → **New query**.
-2. انسخ محتوى الملف [`supabase/setup.sql`](supabase/setup.sql) بالكامل، الصقه، واضغط **Run**.
-   - ينشئ كل الجداول والصلاحيات (RLS) والدوال والتقارير + قائمة طعام ومخزون ووصفات جاهزة (يمكنك تعديلها أو حذفها من التطبيق).
-   - لا يحتوي على طلبات أو مستخدمين وهميين.
+## 🚀 Netlify (الخطوة الوحيدة المتبقية)
+1. Netlify → **Add new site → Import an existing project → GitHub** → `refaatt98/MaxSouqly`.
+2. اختر الفرع (`main` بعد الدمج، أو `claude/vibrant-shannon-3xw2ji`).
+3. اضغط **Deploy** — لا حاجة لأي متغيرات بيئة؛ كل شيء في `netlify.toml` والكود.
 
-## 2) حساب المالك (أنت)
-1. Supabase → **Authentication → Users → Add user → Create new user**.
-2. البريد: `refaat@gmail.com` · كلمة مرور من اختيارك · فعّل **Auto Confirm User**.
-3. **أول مستخدم يُنشأ يصبح المالك تلقائياً** (مع ملف موظف). رقم الهاتف تضيفه لاحقاً من شاشة الموظفين ← تعديل.
+## الاستخدام
+- **المنتجات والأقسام والصور والأسعار:** القائمة ← إضافة/تعديل صنف أو قسم، ارفع الصورة واضغط حفظ. تظهر فوراً في الكاشير بدون تحديث الصفحة.
+- **حسابات الموظفين (كل الأدوار):** الموظفين ← + إضافة مستخدم.
+- **تغيير كلمة المرور:** الإعدادات ← اللغة والواجهة.
 
-## 3) إعدادات تسجيل الدخول في Supabase
-- **Authentication → Sign In / Providers → Email**: أوقف **Allow new users to sign up** (الحسابات تُنشأ فقط من داخل التطبيق).
-- **Authentication → URL Configuration → Site URL**: ضع رابط موقعك على Netlify (بعد الخطوة 4).
-
-## 4) Netlify
-1. ادفع المستودع إلى GitHub (موجود: `refaatt98/MaxSouqly`، ادمج الفرع `claude/vibrant-shannon-3xw2ji` في `main`).
-2. Netlify → **Add new site → Import an existing project → GitHub** → اختر المستودع.
-3. الإعدادات تُقرأ تلقائياً من `netlify.toml` (أمر البناء `npm run build`، مجلد النشر `dist`، رابط Supabase والمفتاح العام موجودان فيه). اضغط **Deploy**.
-
-## 5) الدخول السريع بالرمز (PIN) — اختياري
-يحتاج دالة Edge واحدة. من جهازك:
-```bash
-npx supabase login
-npx supabase functions deploy pin-login --no-verify-jwt --project-ref yjytosfsktwrzsthlfji
-npx supabase secrets set ALLOWED_ORIGINS=https://YOUR-SITE.netlify.app --project-ref yjytosfsktwrzsthlfji
-```
-أو من لوحة Supabase: **Edge Functions → Deploy a new function → Via Editor**، الاسم `pin-login`، الصق [`supabase/functions/pin-login/index.ts`](supabase/functions/pin-login/index.ts)، وأوقف **Verify JWT**.
-بدون هذه الخطوة يعمل كل شيء بالبريد وكلمة المرور.
-
-## 6) إنشاء حسابات الموظفين (من التطبيق)
-سجّل الدخول كمالك ← **الموظفين** ← **+ إضافة مستخدم** (أو تبويب **الصلاحيات**): الاسم، البريد، كلمة مرور، الدور (مالك / مدير / كاشير / مطبخ / مسؤول مخزون)، الهاتف، ورمز PIN اختياري.
-من تبويب الصلاحيات يمكنك أيضاً تغيير الدور، تعطيل الحساب، أو تغيير كلمة مرور أي مستخدم. كل مستخدم يغيّر كلمة مروره من **الإعدادات ← اللغة والواجهة**.
-
-## 7) صور R2 (اختياري)
-رفع الصور يتطلب Cloudflare Worker (انظر README). بدونه يعمل كل شيء وتظهر صور القائمة الجاهزة؛ فقط رفع صور جديدة يعرض رسالة "خدمة رفع الصور غير مهيأة". بعد نشر الـ Worker أضف في Netlify: `VITE_R2_WORKER_URL` و `VITE_R2_PUBLIC_URL` ثم أعد النشر.
-
----
-
-# Deploying MAX (English summary)
-1. Supabase → SQL Editor → paste `supabase/setup.sql` → Run (empty project only).
-2. Authentication → Users → Add user `refaat@gmail.com` (auto-confirm). The first user becomes the **owner** automatically.
-3. Disable public sign-ups; set Site URL to your Netlify URL.
-4. Netlify → Import from GitHub → deploy (all settings in `netlify.toml`).
-5. Optional PIN login: `npx supabase functions deploy pin-login --no-verify-jwt --project-ref yjytosfsktwrzsthlfji`.
-6. Create staff accounts in the app: Employees → **+ إضافة مستخدم** (any role), reset passwords from the Permissions tab.
-7. Optional R2 uploads: deploy `/worker`, then set `VITE_R2_WORKER_URL` / `VITE_R2_PUBLIC_URL` in Netlify.
-
-`supabase/setup.sql` is generated from the migrations: `npm run db:setup-sql`.
+## Re-deploying backend changes (developers)
+`npm run db:setup-sql` regenerates `supabase/setup.sql` (fresh projects). For an existing project apply only new files in `supabase/migrations/`.
+Functions: `npx supabase functions deploy images --no-verify-jwt` and `pin-login --no-verify-jwt` (project ref `yjytosfsktwrzsthlfji`).
+R2 secrets used by `images`: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.

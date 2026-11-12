@@ -11,7 +11,12 @@ export function CategoryTabs({ categories, value, onChange }: { categories: Cate
   const { name } = useSettings();
   const tabs: { id: string | null; label: string; icon: React.ReactNode; key?: string }[] = [
     { id: null, label: t('pos.allCategories'), icon: <LayoutGrid className="size-6" /> },
-    ...categories.map((c, i) => ({ id: c.id, label: name(c), icon: <CategoryIcon icon={c.icon} className="size-6" />, key: i < 6 ? `F${i + 1}` : undefined })),
+    ...categories.map((c, i) => ({
+      id: c.id,
+      label: name(c),
+      icon: c.image_url ? <img src={c.image_url} alt="" className="size-8 rounded-btn object-cover" /> : <CategoryIcon icon={c.icon} className="size-6" />,
+      key: i < 6 ? `F${i + 1}` : undefined,
+    })),
   ];
   return (
     <div role="tablist" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">

@@ -8,7 +8,7 @@ import { errorMessage } from '@/lib/errors';
 import { percentChange } from '@/lib/format';
 import { parseISODate, satIndex } from '@/lib/dates';
 import { useQuery } from '@/hooks/useQuery';
-import { useRealtime } from '@/hooks/useRealtime';
+import { useLiveRefetch, useRealtime } from '@/hooks/useRealtime';
 import { useFormat } from '@/app/providers/SettingsProvider';
 import { useNotifications } from '@/app/providers/NotificationsProvider';
 import { StatCard } from '@/components/ui/StatCard';
@@ -108,6 +108,8 @@ export default function DashboardPage() {
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => void dash.refetch(), 800);
   });
+
+  useLiveRefetch(['expenses', 'purchase_orders', 'notifications'], dash.refetch, 800);
 
   const d = dash.data;
   const week = useMemo(

@@ -5,6 +5,7 @@ import { errorMessage } from '@/lib/errors';
 import { percentChange } from '@/lib/format';
 import { parseISODate, satIndex } from '@/lib/dates';
 import { useQuery } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
@@ -45,6 +46,7 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
   const top = useQuery(() => fetchTopItems(from, to, 10), [from, to]);
   const hourly = useQuery(() => fetchHourly(from, to), [from, to]);
   const cashiers = useQuery(() => fetchCashiers(from, to), [from, to]);
+  useLiveRefetch(['orders', 'payments'], () => Promise.all([sales.refetch(), top.refetch(), hourly.refetch(), cashiers.refetch()]), 1500);
   const s = sales.data;
   const days = s?.by_day.length ?? 1;
 
@@ -181,6 +183,7 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
   const { f } = useSettings();
   const dayLabel = useDayLabel();
   const profit = useQuery(() => fetchProfit(from, to), [from, to]);
+  useLiveRefetch(['orders', 'expenses'], profit.refetch, 1500);
   const p = profit.data;
   const days = p?.by_day.length ?? 1;
 
@@ -254,6 +257,7 @@ export function EmployeesReportTab({ from, to, register }: { from: string; to: s
   const { t } = useI18n();
   const { f } = useSettings();
   const rep = useQuery(() => fetchEmployeeReport(from, to), [from, to]);
+  useLiveRefetch(['attendance', 'work_shifts', 'employees_meta'], rep.refetch, 1500);
   const rows = useMemo(() => rep.data ?? [], [rep.data]);
 
   const spec = useMemo<ExportSpec | null>(

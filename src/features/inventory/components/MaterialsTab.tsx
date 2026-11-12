@@ -7,6 +7,7 @@ import { downloadCsv } from '@/lib/csv';
 import { deleteImage } from '@/lib/r2';
 import { hasErrors, v, type Errors } from '@/lib/validation';
 import { useQuery } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
@@ -202,6 +203,7 @@ function HistoryDrawer({ material, onClose }: { material: Ingredient | null; onC
     [material?.id],
     { enabled: material !== null },
   );
+  useLiveRefetch(material ? ['stock_movements'] : [], history.refetch);
   const tone = { sale: 'neutral', purchase: 'green', adjustment: 'blue', waste: 'red', void: 'gold' } as const;
   return (
     <Drawer open={material !== null} onClose={onClose} title={material ? t('inventory.historyTitle', { name: material.name_ar }) : ''}>

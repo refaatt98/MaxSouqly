@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/errors';
 import { round2 } from '@/lib/format';
 import { useQuery } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
@@ -246,6 +247,7 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
   const toast = useToast();
   const confirm = useConfirm();
   const orders = useQuery(fetchPurchaseOrders, []);
+  useLiveRefetch(['purchase_orders', 'purchase_order_items'], orders.refetch);
   const [edit, setEdit] = useState<PurchaseOrder | 'new' | null>(null);
   const supplierName = useMemo(() => new Map(suppliers.map((s) => [s.id, s.name])), [suppliers]);
 

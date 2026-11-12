@@ -7,6 +7,7 @@ import { downloadCsv } from '@/lib/csv';
 import { printA4Report } from '@/lib/print';
 import { presetRange } from '@/lib/dates';
 import { useQuery } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -35,6 +36,7 @@ export function InventoryReportsTab() {
     if (error) throw error;
     return fromJson<InventoryReport>(data);
   }, [range.from, range.to]);
+  useLiveRefetch(['stock_movements', 'ingredients'], report.refetch, 1500);
   const r = report.data;
   const waste = Number(r?.by_reason.find((x) => x.reason === 'waste')?.value ?? 0);
   const colors: Record<StockReason, string> = { sale: '#E11D2E', purchase: '#22C55E', adjustment: '#2563EB', waste: '#F59E0B', void: '#F5B301' };

@@ -7,6 +7,7 @@ import { errorMessage } from '@/lib/errors';
 import { downloadCsv } from '@/lib/csv';
 import { addDays, rangeToTimestamps, startOfMonth, startOfWeek, toISODate } from '@/lib/dates';
 import { useQuery } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useAuth, PROFILE_COLUMNS } from '@/app/providers/AuthProvider';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
@@ -38,6 +39,7 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
     if (error) throw error;
     return data;
   }, [from, to]);
+  useLiveRefetch(['work_shifts'], shifts.refetch);
   const [draft, setDraft] = useState<{ employee_id: string; date: string; start: string; end: string; notes: string; id?: string } | null>(null);
   const [pending, setPending] = useState(false);
   const active = employees.filter((e) => e.is_active);
@@ -383,6 +385,7 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
     if (error) throw error;
     return data;
   }, [from, to]);
+  useLiveRefetch(['attendance'], rows.refetch);
   const myOpen = (rows.data ?? []).find((a) => a.employee_id === me?.id && !a.clock_out);
 
   const clock = async (action: 'in' | 'out') => {
@@ -462,6 +465,7 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
     if (error) throw error;
     return data;
   }, [period]);
+  useLiveRefetch(['payroll'], rows.refetch);
   const names = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
   const [computing, setComputing] = useState(false);
   const [edit, setEdit] = useState<Payroll | null>(null);

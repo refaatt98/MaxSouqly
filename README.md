@@ -58,7 +58,10 @@ npx supabase secrets set ALLOWED_ORIGINS=https://your-app.netlify.app
   npx supabase gen types typescript --local > src/types/database.ts
   ```
 
-### Cloudflare R2 + Worker
+### Cloudflare R2
+رفع الصور يتم عبر دالة Edge باسم `images` (موجودة في `supabase/functions/images`) تكتب إلى R2 عبر S3 API — مفعّلة ومنشورة. مجلد `/worker` بديل اختياري (Cloudflare Worker بنفس الواجهة).
+
+#### (اختياري) Cloudflare Worker
 ```bash
 cd worker
 npm install

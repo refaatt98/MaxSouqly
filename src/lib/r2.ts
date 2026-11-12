@@ -1,7 +1,7 @@
 import { env } from './env';
 import { supabase } from './supabase';
 
-export type UploadFolder = 'menu' | 'ingredients' | 'avatars' | 'receipts' | 'branding';
+export type UploadFolder = 'menu' | 'categories' | 'ingredients' | 'avatars' | 'receipts' | 'branding';
 
 export class UploadError extends Error {
   constructor(public code: 'UPLOAD_TYPE' | 'UPLOAD_SIZE' | 'UPLOAD_FAILED' | 'UPLOAD_NOT_CONFIGURED' | 'FORBIDDEN') {
@@ -57,6 +57,7 @@ export async function uploadImage(blob: Blob, folder: UploadFolder, onProgress?:
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${env.r2WorkerUrl}/upload`);
     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('apikey', env.supabaseAnonKey);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
     };
@@ -90,7 +91,7 @@ export async function deleteImage(url: string | null | undefined): Promise<void>
     const token = await accessToken();
     await fetch(`${env.r2WorkerUrl}/object/${key.split('/').map(encodeURIComponent).join('/')}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, apikey: env.supabaseAnonKey },
     });
   } catch {
     /* ignore */

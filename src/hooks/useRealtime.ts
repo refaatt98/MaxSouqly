@@ -45,3 +45,30 @@ export function useRealtime<T extends TableName>(
     };
   }, [table, event, filter]);
 }
+
+/**
+ * Re-runs `refetch` (debounced) whenever any of the given tables changes — keeps a whole
+ * screen live without a page refresh. `tables` must be a stable list.
+ */
+export function useLiveRefetch(tables: TableName[], refetch: () => unknown, delayMs = 500): void {
+  const cb = useRef(refetch);
+  cb.current = refetch;
+  const key = tables.join(',');
+  useEffect(() => {
+    if (!isSupabaseConfigured || !key) return;
+    let timer: number | undefined;
+    const fire = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void cb.current(), delayMs);
+    };
+    let channel = supabase.channel(`live:${key}:${++channelSeq}`);
+    for (const table of key.split(',')) {
+      channel = channel.on('postgres_changes' as never, { event: '*', schema: 'public', table }, fire);
+    }
+    channel.subscribe();
+    return () => {
+      window.clearTimeout(timer);
+      void supabase.removeChannel(channel);
+    };
+  }, [key, delayMs]);
+}

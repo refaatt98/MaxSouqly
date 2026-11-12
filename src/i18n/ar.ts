@@ -402,6 +402,7 @@ export const ar = {
   'menu.newCategory': 'قسم جديد',
   'menu.category': 'القسم',
   'menu.icon': 'الأيقونة',
+  'menu.categoryImage': 'صورة القسم (اختياري — تظهر بدل الأيقونة)',
   'menu.description': 'الوصف',
   'menu.barcode': 'الباركود',
   'menu.available': 'متوفر للبيع',

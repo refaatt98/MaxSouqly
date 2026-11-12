@@ -5,6 +5,7 @@ import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/errors';
 import { useQuery } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
@@ -193,6 +194,7 @@ export function StocktakeTab({ ingredients, onChanged }: { ingredients: Ingredie
     if (error) throw error;
     return data;
   }, []);
+  useLiveRefetch(['stock_counts'], counts.refetch);
   const [open, setOpen] = useState<StockCount | null>(null);
   const [creating, setCreating] = useState(false);
 

@@ -384,6 +384,7 @@ export const he: Dictionary = {
   'menu.newCategory': 'קטגוריה חדשה',
   'menu.category': 'קטגוריה',
   'menu.icon': 'אייקון',
+  'menu.categoryImage': 'תמונת קטגוריה (אופציונלי — מוצגת במקום האייקון)',
   'menu.description': 'תיאור',
   'menu.barcode': 'ברקוד',
   'menu.available': 'זמין למכירה',

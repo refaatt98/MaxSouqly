@@ -5,6 +5,7 @@ import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/errors';
 import { useQuery } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { Card } from '@/components/ui/Card';
@@ -33,6 +34,7 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
     if (error) throw error;
     return data;
   }, []);
+  useLiveRefetch(['menu_items'], menu.refetch);
   const [selected, setSelected] = useState<MenuItem | null>(null);
   const [search, setSearch] = useState('');
   const [lines, setLines] = useState<Line[] | null>(null);

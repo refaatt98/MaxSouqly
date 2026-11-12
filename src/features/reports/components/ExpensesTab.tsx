@@ -7,6 +7,7 @@ import { deleteImage } from '@/lib/r2';
 import { toISODate } from '@/lib/dates';
 import { hasErrors, v, type Errors } from '@/lib/validation';
 import { useQuery } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
@@ -100,6 +101,7 @@ export function ExpensesTab({ from, to, register }: { from: string; to: string; 
     if (error) throw error;
     return data;
   }, [from, to]);
+  useLiveRefetch(['expenses'], expenses.refetch);
   const rows = useMemo(() => expenses.data ?? [], [expenses.data]);
   const total = rows.reduce((s, e) => s + Number(e.amount), 0);
   const byCategory = useMemo(() => {

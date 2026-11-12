@@ -6,6 +6,7 @@ import { errorMessage } from '@/lib/errors';
 import { toISODate } from '@/lib/dates';
 import { hasErrors, v, type Errors } from '@/lib/validation';
 import { useQuery, type QueryState } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
@@ -251,6 +252,7 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
   const toast = useToast();
   const confirm = useConfirm();
   const openAtt = useQuery(fetchOpenAttendance, []);
+  useLiveRefetch(['attendance'], openAtt.refetch);
   const [edit, setEdit] = useState<EmployeeRow | 'new' | null>(null);
   const [account, setAccount] = useState<EmployeeRow | null>(null);
   const [pinTarget, setPinTarget] = useState<{ id: string; name: string } | null>(null);

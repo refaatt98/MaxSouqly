@@ -9,7 +9,7 @@ import { enqueueOrder } from '@/lib/offlineQueue';
 import { printReceipt, receiptFromOrder, type ReceiptData } from '@/lib/print';
 import { playSuccess, unlockAudio } from '@/lib/sound';
 import { useQuery } from '@/hooks/useQuery';
-import { useRealtime } from '@/hooks/useRealtime';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useBarcodeScanner } from './hooks/useBarcodeScanner';
 import { useAuth } from '@/app/providers/AuthProvider';
@@ -42,11 +42,7 @@ export default function PosPage() {
 
   // ------------------------------------------------------------ catalog
   const catalog = useQuery(fetchCatalog, []);
-  const refetchTimer = useRef<number | undefined>(undefined);
-  useRealtime({ table: 'menu_items' }, () => {
-    window.clearTimeout(refetchTimer.current);
-    refetchTimer.current = window.setTimeout(() => void catalog.refetch(), 500);
-  });
+  useLiveRefetch(['menu_items', 'categories'], catalog.refetch);
 
   const [category, setCategory] = useState<string | null>(null);
   const [search, setSearch] = useState(() => params.get('q') ?? '');

@@ -2,6 +2,7 @@ import { useSearchParams, useNavigate } from 'react-router';
 import { CalendarDays, ChartColumn, Clock, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { useT } from '@/i18n';
 import { useQuery } from '@/hooks/useQuery';
+import { useLiveRefetch } from '@/hooks/useRealtime';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Tabs } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/Button';
@@ -19,6 +20,7 @@ export default function EmployeesPage() {
   const raw = params.get('tab') as Tab | null;
   const tab: Tab = raw && TABS.includes(raw) ? raw : 'list';
   const employees = useQuery(fetchEmployees, []);
+  useLiveRefetch(['employees_meta'], employees.refetch);
   const rows = employees.data ?? [];
 
   return (

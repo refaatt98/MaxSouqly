@@ -2283,6 +2283,59 @@ grant execute on function public.admin_create_user(text, text, text, public.app_
 grant execute on function public.admin_set_password(uuid, text) to authenticated;
 
 
+-- >>> 20261112000006_live_and_images.sql
+-- =====================================================================
+-- Category images + realtime on every table the UI shows,
+-- so all screens update live without refreshing.
+-- =====================================================================
+
+alter table public.categories add column if not exists image_url text;
+
+do $$
+declare
+  t text;
+begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    return;
+  end if;
+  foreach t in array array[
+    'orders', 'order_items', 'notifications', 'ingredients', 'restaurant_settings', 'menu_items',
+    'categories', 'recipe_items', 'suppliers', 'purchase_orders', 'purchase_order_items',
+    'stock_movements', 'stock_counts', 'stock_count_items', 'payments', 'cash_shifts',
+    'employees_meta', 'work_shifts', 'attendance', 'payroll', 'expenses'
+  ] loop
+    if not exists (
+      select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end;
+$$;
+
+
+-- >>> 20261112000007_hardening.sql
+-- =====================================================================
+-- Security hardening (from the Supabase security advisor)
+-- =====================================================================
+alter function public.payroll_net() set search_path = public;
+alter function public.check_recipe_unit() set search_path = public;
+alter function public.set_updated_at() set search_path = public;
+alter function public.unit_factor(public.unit_type, public.unit_type) set search_path = public;
+alter function public.menu_item_cost(uuid) set search_path = public;
+alter function public.local_date(timestamptz) set search_path = public;
+alter function public.range_start(date) set search_path = public;
+alter function public.range_end(date) set search_path = public;
+alter function public.check_range(date, date) set search_path = public;
+
+-- Trigger functions and internal helpers are never called directly by clients.
+revoke execute on function
+  public.handle_new_user(), public.log_initial_stock(), public.payroll_paid_expense(),
+  public.refresh_cost_from_ingredient(), public.refresh_cost_from_recipe(), public.refresh_po_total(),
+  public.require_role(public.app_role[])
+from public, anon, authenticated;
+
+
 -- >>> seed_catalog.sql
 -- =====================================================================
 -- MAX production starter catalog: settings, categories, 33 menu items,

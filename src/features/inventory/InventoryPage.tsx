@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router';
 import { BookOpen, Boxes, ChartColumn, ClipboardCheck, ShoppingBag, Truck } from 'lucide-react';
 import { useT } from '@/i18n';
 import { useQuery } from '@/hooks/useQuery';
-import { useRealtime } from '@/hooks/useRealtime';
+import { useLiveRefetch, useRealtime } from '@/hooks/useRealtime';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Tabs } from '@/components/ui/Tabs';
 import { fetchIngredients, fetchSuppliers, stockLevel } from './api';
@@ -31,6 +31,8 @@ export default function InventoryPage() {
     if (p.eventType === 'UPDATE') ingredients.setData((list = []) => list.map((i) => (i.id === p.new.id ? p.new : i)));
     else void ingredients.refetch();
   });
+
+  useLiveRefetch(['suppliers'], suppliers.refetch);
 
   const setTab = useCallback(
     (next: Tab) => {
