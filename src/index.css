@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ */
+/* MAX — "Premium Dark Fire" design tokens                             */
+/* ------------------------------------------------------------------ */
+@theme {
+  --color-bg: #0b0b0d;
+  --color-surface: #131316;
+  --color-card: #1a1a1f;
+  --color-elevated: #232329;
+  --color-line: rgb(255 255 255 / 0.06);
+  --color-line-strong: rgb(255 255 255 / 0.12);
+
+  --color-brand: #e11d2e;
+  --color-brand-hover: #f43f4e;
+  --color-brand-glow: rgb(225 29 46 / 0.35);
+  --color-gold: #f5b301;
+  --color-success: #22c55e;
+  --color-info: #2563eb;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  --color-fg: #f5f5f7;
+  --color-fg-2: #a1a1aa;
+  --color-fg-3: #71717a;
+
+  --radius-card: 12px;
+  --radius-panel: 16px;
+  --radius-btn: 10px;
+
+  --font-sans: 'IBM Plex Sans Arabic', 'Heebo', system-ui, 'Segoe UI', Tahoma, sans-serif;
+  --font-he: 'Heebo', 'IBM Plex Sans Arabic', system-ui, 'Segoe UI', Tahoma, sans-serif;
+
+  --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.03) inset, 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-panel: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 24px 48px -16px rgb(0 0 0 / 0.7);
+  --shadow-glow: 0 0 0 1px rgb(225 29 46 / 0.45), 0 10px 30px -8px rgb(225 29 46 / 0.55);
+  --shadow-glow-sm: 0 6px 18px -6px rgb(225 29 46 / 0.6);
+
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-pulse-red: pulse-red 1s ease-in-out 3;
+
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 0 0 rgb(225 29 46 / 0); }
+    50% { box-shadow: 0 0 0 6px rgb(225 29 46 / 0.35), 0 0 32px rgb(225 29 46 / 0.45); }
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg text-fg antialiased;
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+  }
+  html[lang='he'] body {
+    font-family: var(--font-he);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: rgb(225 29 46 / 0.4);
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.12) transparent;
+  }
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+@utility skeleton {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.04) 25%, rgb(255 255 255 / 0.09) 50%, rgb(255 255 255 / 0.04) 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@utility glass {
+  background: rgb(19 19 22 / 0.72);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
