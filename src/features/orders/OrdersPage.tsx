@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Ban, ChefHat, ClipboardList, Download, Printer, RotateCcw, Undo2 } from 'lucide-react';
+import { Ban, ChefHat, ClipboardList, Download, Pencil, Phone, Printer, RotateCcw, Search, Trash, Undo2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/errors';
@@ -12,22 +12,25 @@ import { useRealtime } from '@/hooks/useRealtime';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
+import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { EditOrderModal, type EditableOrder } from './components/EditOrderModal';
+import { cn } from '@/lib/cn';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { DataTable, type Column } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Select, TextInput, Textarea } from '@/components/ui/Input';
+import { Segmented } from '@/components/ui/Tabs';
 import { Drawer, Modal } from '@/components/ui/Modal';
 import { EmptyState, ErrorState } from '@/components/ui/EmptyState';
 import { SkeletonRows } from '@/components/ui/Skeleton';
-import { fromJson, type Order, type OrderFull, type OrderStatus, type OrderType, type PaymentMethod } from '@/types/models';
+import { fromJson, type Order, type OrderFull, type OrderType, type PaymentMethod } from '@/types/models';
 import { paymentKind, STATUS_TONE } from './meta';
 
 type OrderRow = Order & { cashier: { full_name: string } | null; payments: { method: PaymentMethod; amount: number }[] };
 
 const PAGE = 50;
-const STATUSES: OrderStatus[] = ['new', 'preparing', 'ready', 'served', 'cancelled', 'refunded'];
 const TYPES: OrderType[] = ['dine_in', 'takeaway', 'delivery'];
 
 interface Filters {
@@ -50,7 +53,9 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [editing, setEditing] = useState(false);
   const isManager = role === 'owner' || role === 'manager';
+  const removeRecord = useDeleteRecord();
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -131,6 +136,28 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
                 {t('orders.markServed')}
               </Button>
             )}
+            {!voided && ['new', 'preparing', 'ready'].includes(order.status) && (isManager || order.cashier_id === profile?.id) && (
+              <Button icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>
+                {t('orders.edit')}
+              </Button>
+            )}
+            {isManager && (
+              <Button
+                variant="ghost"
+                className="text-danger"
+                icon={<Trash className="size-4" />}
+                onClick={() =>
+                  void removeRecord('order', order.id, `#${order.order_number}`).then((ok) => {
+                    if (ok) {
+                      onChanged();
+                      onClose();
+                    }
+                  })
+                }
+              >
+                {t('del.button')}
+              </Button>
+            )}
             {isManager && !voided && (
               <div className="ms-auto flex gap-2">
                 <Button variant="danger" icon={<Ban className="size-4" />} onClick={() => setVoidMode('void')}>
@@ -162,25 +189,31 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
           {voided && order.void_reason && (
             <p className="rounded-card border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{t('orders.voidReason', { reason: order.void_reason })}</p>
           )}
-          {order.type === 'delivery' && (
+          {(order.customer_name || order.customer_phone || order.customer_address) && (
             <div className="rounded-card border border-line bg-card p-4 text-sm">
               <p className="mb-1 text-xs text-fg-3">{t('orders.customer')}</p>
-              <p className="font-semibold">{order.customer_name} · <span dir="ltr">{order.customer_phone}</span></p>
-              <p className="text-fg-2">{order.customer_address}</p>
+              <p className="text-fg">{order.customer_name}</p>
+              {order.customer_phone && (
+                <a href={`tel:${order.customer_phone}`} className="mt-1 inline-flex items-center gap-1.5 text-fg-2 hover:text-fg" dir="ltr">
+                  <Phone className="size-3.5" strokeWidth={1.5} /> {order.customer_phone}
+                </a>
+              )}
+              {order.customer_address && <p className="mt-1 text-fg-2">{order.customer_address}</p>}
             </div>
           )}
           <section>
             <h3 className="mb-2 text-sm font-semibold text-fg-3">{t('orders.items')}</h3>
             <ul className="divide-y divide-line rounded-card border border-line bg-card">
               {order.items.map((i) => (
-                <li key={i.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                <li key={i.id} className={cn('flex items-start justify-between gap-3 px-4 py-3', i.voided_at && 'text-fg-3')}>
                   <div>
-                    <p className="font-semibold">
+                    <p className={i.voided_at ? 'line-through' : 'text-fg'}>
                       <span className="num text-fg-3">{f.number(i.quantity)}×</span> {name({ name_ar: i.name_snapshot, name_he: i.name_he_snapshot })}
                     </p>
                     {i.notes && <p className="text-xs text-warning">• {i.notes}</p>}
+                    {i.voided_at && <p className="text-xs">{t('edit.cancelledLine')}{i.void_reason ? ` — ${i.void_reason}` : ''}</p>}
                   </div>
-                  <span className="num font-semibold">{f.money(Number(i.line_total))}</span>
+                  <span className={cn('num', i.voided_at && 'line-through')}>{f.money(Number(i.line_total))}</span>
                 </li>
               ))}
             </ul>
@@ -233,47 +266,100 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
         <p className="mb-3 text-sm text-fg-2">{voidMode === 'refund' ? t('orders.refundHint') : t('orders.voidHint')}</p>
         <Textarea label={t('orders.reason')} value={reason} onChange={(e) => { setReason(e.target.value); setReasonError(null); }} error={reasonError} required maxLength={300} data-autofocus />
       </Modal>
+      <EditOrderModal
+        order={
+          editing && order
+            ? ({
+                id: order.id,
+                order_number: order.order_number,
+                items: order.items.map((i) => ({
+                  id: i.id,
+                  menu_item_id: i.menu_item_id,
+                  name: i.name_snapshot,
+                  quantity: i.quantity,
+                  unit_price: Number(i.unit_price_snapshot),
+                  image_url: null,
+                  notes: i.notes,
+                  voided: Boolean(i.voided_at),
+                })),
+              } satisfies EditableOrder)
+            : null
+        }
+        onClose={() => setEditing(false)}
+        onChanged={(res) => {
+          if (res) setOrder(res);
+          else void load();
+          onChanged();
+        }}
+      />
     </Drawer>
   );
 }
+
+type Preset = 'today' | 'yesterday' | '7d' | '30d' | 'custom';
+type StatusChip = 'all' | 'active' | 'done' | 'void';
+
+function presetDates(p: Exclude<Preset, 'custom'>): { from: string; to: string } {
+  const now = new Date();
+  const day = (offset: number) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() + offset);
+    return toISODate(d);
+  };
+  if (p === 'today') return { from: day(0), to: day(0) };
+  if (p === 'yesterday') return { from: day(-1), to: day(-1) };
+  return { from: day(p === '7d' ? -6 : -29), to: day(0) };
+}
+
+type ListRow = OrderRow & { items: { name_snapshot: string; quantity: number; voided_at: string | null }[] };
 
 export default function OrdersPage() {
   const { t } = useI18n();
   const { f } = useSettings();
   const { role } = useAuth();
   const [params, setParams] = useSearchParams();
-  const today = toISODate(new Date());
-  const [filters, setFilters] = useState<Filters>(() => ({
-    from: today,
-    to: today,
-    status: params.get('active') ? 'active' : '',
-    type: '',
-    cashier: '',
-    payment: '',
-  }));
+  const [preset, setPreset] = useState<Preset>('today');
+  const [custom, setCustom] = useState(() => presetDates('today'));
+  const range = preset === 'custom' ? custom : presetDates(preset);
+  const [status, setStatus] = useState<StatusChip>(() => (params.get('active') ? 'active' : 'all'));
+  const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
+  const [more, setMore] = useState(false);
+  const [filters, setFilters] = useState<Pick<Filters, 'type' | 'cashier' | 'payment'>>({ type: '', cashier: '', payment: '' });
   const [limit, setLimit] = useState(PAGE);
   const selectedId = params.get('id');
   const isManager = role === 'owner' || role === 'manager';
 
-  const fetchOrders = useCallback(async (): Promise<OrderRow[]> => {
-    const { start, end } = rangeToTimestamps(filters.from, filters.to);
+  // search as you type (debounced)
+  useEffect(() => {
+    const id = window.setTimeout(() => setQuery(search.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [search]);
+
+  const fetchOrders = useCallback(async (): Promise<ListRow[]> => {
+    const { start, end } = rangeToTimestamps(range.from, range.to);
     const paymentsSel = filters.payment ? 'payments!inner(method, amount)' : 'payments(method, amount)';
     let q = supabase
       .from('orders')
-      .select(`*, cashier:profiles!orders_cashier_id_fkey(full_name), ${paymentsSel}`)
-      .gte('created_at', start)
-      .lt('created_at', end)
+      .select(`*, cashier:profiles!orders_cashier_id_fkey(full_name), ${paymentsSel}, items:order_items(name_snapshot, quantity, voided_at)`)
       .order('created_at', { ascending: false })
       .limit(limit);
-    if (filters.status === 'active') q = q.in('status', ['new', 'preparing', 'ready']);
-    else if (filters.status) q = q.eq('status', filters.status as OrderStatus);
+    // a search looks across all dates
+    if (query) {
+      const digits = query.replace(/[^0-9]/g, '');
+      const ors = [`customer_phone.ilike.%${query}%`, `customer_name.ilike.%${query}%`];
+      if (digits && digits.length <= 7) ors.push(`order_number.eq.${digits}`);
+      q = q.or(ors.join(','));
+    } else {
+      q = q.gte('created_at', start).lt('created_at', end);
+    }
     if (filters.type) q = q.eq('type', filters.type as OrderType);
     if (filters.cashier) q = q.eq('cashier_id', filters.cashier);
     if (filters.payment) q = q.eq('payments.method', filters.payment as PaymentMethod);
     const { data, error } = await q;
     if (error) throw error;
-    return data as unknown as OrderRow[];
-  }, [filters, limit]);
+    return data as unknown as ListRow[];
+  }, [range.from, range.to, query, filters, limit]);
 
   const orders = useQuery(fetchOrders, [fetchOrders]);
   const cashiers = useQuery(
@@ -292,10 +378,6 @@ export default function OrdersPage() {
     timer.current = window.setTimeout(() => void orders.refetch(), 700);
   });
 
-  const set = <K extends keyof Filters>(k: K, v: Filters[K]) => {
-    setLimit(PAGE);
-    setFilters((s) => ({ ...s, [k]: v }));
-  };
   const openOrder = (id: string | null) => {
     if (id) params.set('id', id);
     else params.delete('id');
@@ -303,66 +385,109 @@ export default function OrdersPage() {
     setParams(params, { replace: true });
   };
 
-  const rows = orders.data ?? [];
-  const total = rows.filter((o) => o.status !== 'cancelled' && o.status !== 'refunded').reduce((s, o) => s + Number(o.total), 0);
+  const all = orders.data ?? [];
+  const isVoid = (o: OrderRow) => o.status === 'cancelled' || o.status === 'refunded';
+  const isActive = (o: OrderRow) => ['new', 'preparing', 'ready'].includes(o.status);
+  const counts = { all: all.length, active: all.filter(isActive).length, done: all.filter((o) => o.status === 'served').length, void: all.filter(isVoid).length };
+  const rows = all.filter((o) => (status === 'all' ? true : status === 'active' ? isActive(o) : status === 'done' ? o.status === 'served' : isVoid(o)));
+  const valid = all.filter((o) => !isVoid(o));
+  const total = valid.reduce((s, o) => s + Number(o.total), 0);
+  const itemsText = (o: ListRow) =>
+    o.items
+      .filter((i) => !i.voided_at)
+      .map((i) => `${i.quantity}× ${i.name_snapshot}`)
+      .join('، ');
+  const payText = (o: OrderRow) => {
+    const k = paymentKind(o.payments.filter((p) => Number(p.amount) > 0).map((p) => p.method));
+    return k ? t(`payment.${k}`) : t('common.none');
+  };
 
-  const columns = useMemo<Column<OrderRow>[]>(
+  const columns = useMemo<Column<ListRow>[]>(
     () => [
-      { key: 'num', header: t('orders.number'), cell: (o) => <span className="num font-semibold">#{f.digits(o.order_number)}</span> },
-      { key: 'time', header: t('orders.createdAt'), cell: (o) => <span className="num text-fg-2">{f.dateTime(o.created_at)}</span> },
+      {
+        key: 'num',
+        header: t('orders.number'),
+        cell: (o) => (
+          <div>
+            <p className="mono text-fg">#{f.digits(o.order_number)}</p>
+            <p className="num text-xs text-fg-3">{query ? f.dateTime(o.created_at) : f.time(o.created_at)}</p>
+          </div>
+        ),
+      },
+      {
+        key: 'customer',
+        header: t('orders.customer'),
+        cell: (o) =>
+          o.customer_phone || o.customer_name ? (
+            <div>
+              <p className="text-fg">{o.customer_name || t('common.none')}</p>
+              {o.customer_phone && (
+                <a href={`tel:${o.customer_phone}`} onClick={(e) => e.stopPropagation()} className="num inline-flex items-center gap-1 text-xs text-fg-2 hover:text-fg" dir="ltr">
+                  <Phone className="size-3" strokeWidth={1.5} /> {o.customer_phone}
+                </a>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs text-fg-3">{t('orders.noPhone')}</span>
+          ),
+      },
+      {
+        key: 'items',
+        header: t('orders.itemsCol'),
+        hideBelow: 'lg',
+        cell: (o) => <p className="line-clamp-2 max-w-72 text-[13px] text-fg-2">{itemsText(o)}</p>,
+      },
       {
         key: 'type',
         header: t('orders.type'),
+        hideBelow: 'sm',
         cell: (o) => (
-          <span>
+          <span className="text-fg-2">
             {t(`order.type.${o.type}`)}
-            {o.table_no ? <span className="text-fg-3"> · {f.digits(o.table_no)}</span> : null}
+            {o.table_no ? ` · ${f.digits(o.table_no)}` : ''}
           </span>
         ),
       },
-      { key: 'cashier', header: t('orders.cashier'), cell: (o) => o.cashier?.full_name ?? t('common.none'), hideBelow: 'md' },
-      {
-        key: 'pay',
-        header: t('orders.payment'),
-        hideBelow: 'sm',
-        cell: (o) => {
-          const k = paymentKind(o.payments.map((p) => p.method));
-          return k ? t(`payment.${k}`) : t('common.none');
-        },
-      },
+      { key: 'cashier', header: t('orders.cashier'), cell: (o) => <span className="text-fg-2">{o.cashier?.full_name ?? t('common.none')}</span>, hideBelow: 'md' },
+      { key: 'pay', header: t('orders.payment'), hideBelow: 'md', cell: (o) => <span className="text-fg-2">{payText(o)}</span> },
       { key: 'status', header: t('common.status'), cell: (o) => <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge> },
-      { key: 'total', header: t('orders.total'), align: 'end', cell: (o) => <span className="num font-semibold">{f.money(Number(o.total))}</span> },
+      { key: 'total', header: t('orders.total'), align: 'end', cell: (o) => <span className={cn('num font-medium', isVoid(o) ? 'text-fg-3 line-through' : 'text-fg')}>{f.money(Number(o.total))}</span> },
     ],
-    [t, f],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, f, query],
   );
 
   const exportCsv = () =>
     downloadCsv(
-      `max-orders-${filters.from}_${filters.to}`,
-      [t('orders.number'), t('common.date'), t('orders.type'), t('pos.tableNo'), t('orders.cashier'), t('orders.payment'), t('common.status'), t('pos.subtotal'), t('pos.discount'), t('orders.total')],
+      `max-orders-${range.from}_${range.to}`,
+      [t('orders.number'), t('common.date'), t('orders.customer'), t('common.phone'), t('orders.itemsCol'), t('orders.type'), t('pos.tableNo'), t('orders.cashier'), t('orders.payment'), t('common.status'), t('pos.discount'), t('orders.total')],
       rows.map((o) => [
         o.order_number,
         new Date(o.created_at).toLocaleString('en-GB'),
+        o.customer_name,
+        o.customer_phone,
+        itemsText(o),
         t(`order.type.${o.type}`),
         o.table_no ?? '',
         o.cashier?.full_name ?? '',
-        (() => {
-          const k = paymentKind(o.payments.map((p) => p.method));
-          return k ? t(`payment.${k}`) : '';
-        })(),
+        payText(o),
         t(`order.status.${o.status}`),
-        Number(o.subtotal),
         Number(o.discount_amount),
         Number(o.total),
       ]),
     );
 
+  const chips: { key: StatusChip; label: string }[] = [
+    { key: 'all', label: t('common.all') },
+    { key: 'active', label: t('orders.statusActive') },
+    { key: 'done', label: t('orders.statusDone') },
+    { key: 'void', label: t('orders.statusVoid') },
+  ];
+
   return (
     <div>
       <PageHeader
         title={t('orders.title')}
-        icon={<ClipboardList className="size-6" />}
-        subtitle={`${t('orders.count', { count: f.number(rows.length) })} · ${f.money(total)}`}
         actions={
           <>
             <Button variant="ghost" icon={<RotateCcw className="size-4" />} onClick={() => void orders.refetch()}>{t('common.refresh')}</Button>
@@ -370,51 +495,142 @@ export default function OrdersPage() {
           </>
         }
       />
-      <Card className="mb-4 p-4">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <TextInput type="date" label={t('common.from')} value={filters.from} max={filters.to} onChange={(e) => e.target.value && set('from', e.target.value)} />
-          <TextInput type="date" label={t('common.to')} value={filters.to} min={filters.from} onChange={(e) => e.target.value && set('to', e.target.value)} />
-          <Select
-            label={t('common.status')}
-            value={filters.status}
-            onChange={(e) => set('status', e.target.value)}
-            placeholder={t('orders.allStatuses')}
-            options={[{ value: 'active', label: `${t('order.status.new')} / ${t('order.status.preparing')} / ${t('order.status.ready')}` }, ...STATUSES.map((s) => ({ value: s, label: t(`order.status.${s}`) }))]}
-          />
-          <Select label={t('orders.type')} value={filters.type} onChange={(e) => set('type', e.target.value)} placeholder={t('orders.allTypes')} options={TYPES.map((s) => ({ value: s, label: t(`order.type.${s}`) }))} />
-          {isManager && (
-            <Select
-              label={t('orders.cashier')}
-              value={filters.cashier}
-              onChange={(e) => set('cashier', e.target.value)}
-              placeholder={t('orders.allCashiers')}
-              options={(cashiers.data ?? []).map((c) => ({ value: c.id, label: c.full_name }))}
+
+      {/* summary */}
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          [t('reports.ordersCount'), f.number(valid.length)],
+          [t('reports.totalSales'), f.money(total)],
+          [t('reports.avgTicket'), f.money(valid.length ? total / valid.length : 0)],
+          [t('orders.statusVoid'), f.number(counts.void)],
+        ].map(([label, value]) => (
+          <Card key={label} className="px-4 py-3">
+            <p className="text-[13px] text-fg-2">{label}</p>
+            <p className="num mt-1 text-[22px] leading-tight font-medium text-fg">{value}</p>
+          </Card>
+        ))}
+      </div>
+
+      {/* search + dates */}
+      <Card className="mb-4 space-y-3 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-64 flex-1">
+            <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-fg-3" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('orders.search')}
+              aria-label={t('orders.search')}
+              className="h-11 w-full rounded-btn border border-line-strong bg-card ps-9 pe-3 text-sm placeholder:text-fg-3 focus:border-fg-3 focus:outline-none"
             />
-          )}
-          <Select
-            label={t('orders.payment')}
-            value={filters.payment}
-            onChange={(e) => set('payment', e.target.value)}
-            placeholder={t('orders.allPayments')}
-            options={[{ value: 'cash', label: t('payment.cash') }, { value: 'card', label: t('payment.card') }]}
+          </div>
+          <Segmented
+            layoutId="ord-range"
+            value={preset}
+            onChange={(p) => {
+              setPreset(p);
+              setLimit(PAGE);
+            }}
+            items={[
+              { key: 'today', label: t('reports.range.today') },
+              { key: 'yesterday', label: t('orders.range.yesterday') },
+              { key: '7d', label: t('reports.range.7d') },
+              { key: '30d', label: t('reports.range.30d') },
+              { key: 'custom', label: t('reports.range.custom') },
+            ]}
           />
         </div>
+        {preset === 'custom' && (
+          <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+            <TextInput type="date" label={t('common.from')} value={custom.from} max={custom.to} onChange={(e) => e.target.value && setCustom((c) => ({ ...c, from: e.target.value }))} />
+            <TextInput type="date" label={t('common.to')} value={custom.to} min={custom.from} onChange={(e) => e.target.value && setCustom((c) => ({ ...c, to: e.target.value }))} />
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => setStatus(c.key)}
+              className={cn(
+                'inline-flex h-9 items-center gap-2 rounded-btn border px-3 text-sm transition-colors',
+                status === c.key ? 'border-line-strong bg-elevated text-fg shadow-glow-sm' : 'border-line text-fg-2 hover:border-line-strong',
+              )}
+            >
+              {status === c.key && <span className="slash" aria-hidden />}
+              {c.label}
+              <span className="num text-xs text-fg-3">{f.number(counts[c.key])}</span>
+            </button>
+          ))}
+          <button type="button" onClick={() => setMore((m) => !m)} className="ms-auto text-sm text-fg-2 hover:text-fg">
+            {t('orders.moreFilters')}
+          </button>
+        </div>
+        {more && (
+          <div className="grid gap-3 border-t border-line pt-3 sm:grid-cols-3">
+            <Select label={t('orders.type')} value={filters.type} onChange={(e) => setFilters((s) => ({ ...s, type: e.target.value }))} placeholder={t('orders.allTypes')} options={TYPES.map((x) => ({ value: x, label: t(`order.type.${x}`) }))} />
+            {isManager && (
+              <Select
+                label={t('orders.cashier')}
+                value={filters.cashier}
+                onChange={(e) => setFilters((s) => ({ ...s, cashier: e.target.value }))}
+                placeholder={t('orders.allCashiers')}
+                options={(cashiers.data ?? []).map((c) => ({ value: c.id, label: c.full_name }))}
+              />
+            )}
+            <Select
+              label={t('orders.payment')}
+              value={filters.payment}
+              onChange={(e) => setFilters((s) => ({ ...s, payment: e.target.value }))}
+              placeholder={t('orders.allPayments')}
+              options={[{ value: 'cash', label: t('payment.cash') }, { value: 'card', label: t('payment.card') }]}
+            />
+          </div>
+        )}
       </Card>
+
       <Card className="overflow-hidden">
         {orders.error && !orders.data ? (
           <ErrorState message={errorMessage(t, orders.error)} onRetry={() => void orders.refetch()} retryLabel={t('common.retry')} />
         ) : (
-          <DataTable
-            columns={columns}
-            rows={rows}
-            rowKey={(o) => o.id}
-            loading={orders.loading && !orders.data}
-            onRowClick={(o) => openOrder(o.id)}
-            rowClassName={(o) => (o.status === 'cancelled' || o.status === 'refunded' ? 'opacity-60' : undefined)}
-            empty={<EmptyState icon={<ClipboardList className="size-7" />} title={t('orders.empty')} />}
-          />
+          <>
+            {/* phones: cards */}
+            <ul className="divide-y divide-line md:hidden">
+              {rows.map((o) => (
+                <li key={o.id}>
+                  <button type="button" onClick={() => openOrder(o.id)} className="w-full px-4 py-3 text-start">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="mono text-fg">#{f.digits(o.order_number)}</span>
+                      <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge>
+                    </div>
+                    <p className="mt-1 line-clamp-1 text-[13px] text-fg-2">{itemsText(o)}</p>
+                    <div className="mt-1 flex items-center justify-between text-xs text-fg-3">
+                      <span className="num">
+                        {f.time(o.created_at)} · {t(`order.type.${o.type}`)}
+                        {o.customer_phone ? ` · ` : ''}
+                        {o.customer_phone && <span dir="ltr">{o.customer_phone}</span>}
+                      </span>
+                      <span className={cn('num text-sm font-medium', isVoid(o) ? 'line-through' : 'text-fg')}>{f.money(Number(o.total))}</span>
+                    </div>
+                  </button>
+                </li>
+              ))}
+              {!orders.loading && rows.length === 0 && <EmptyState icon={<ClipboardList className="size-6" />} title={t('orders.empty')} />}
+            </ul>
+            <div className="hidden md:block">
+              <DataTable
+                columns={columns}
+                rows={rows}
+                rowKey={(o) => o.id}
+                loading={orders.loading && !orders.data}
+                onRowClick={(o) => openOrder(o.id)}
+                rowClassName={(o) => (isVoid(o) ? 'opacity-60' : undefined)}
+                empty={<EmptyState icon={<ClipboardList className="size-6" />} title={t('orders.empty')} />}
+              />
+            </div>
+          </>
         )}
-        {rows.length >= limit && (
+        {all.length >= limit && (
           <div className="border-t border-line p-3 text-center">
             <Button variant="ghost" onClick={() => setLimit((l) => l + PAGE)}>{t('common.loadMore')}</Button>
           </div>

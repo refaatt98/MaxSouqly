@@ -10,7 +10,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useConfirm } from '@/app/providers/ConfirmProvider';
+import { useDeleteRecord } from '@/app/providers/DeleteProvider';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -204,6 +204,9 @@ function HistoryDrawer({ material, onClose }: { material: Ingredient | null; onC
     { enabled: material !== null },
   );
   useLiveRefetch(material ? ['stock_movements'] : [], history.refetch);
+  const removeRecord = useDeleteRecord();
+  const { role } = useAuth();
+  const canDelete = role === 'owner' || role === 'manager' || role === 'inventory';
   const tone = { sale: 'neutral', purchase: 'green', adjustment: 'blue', waste: 'red', void: 'gold' } as const;
   return (
     <Drawer open={material !== null} onClose={onClose} title={material ? t('inventory.historyTitle', { name: material.name_ar }) : ''}>
@@ -227,6 +230,16 @@ function HistoryDrawer({ material, onClose }: { material: Ingredient | null; onC
                 </p>
                 <p className="num text-xs text-fg-3">{t('inventory.after')} {f.number(Number(m.quantity_after), 3)}</p>
               </div>
+              {canDelete && !m.ref_id && (m.reason === 'adjustment' || m.reason === 'waste') && (
+                <IconButton
+                  label={t('del.button')}
+                  size="sm"
+                  className="hover:text-danger"
+                  onClick={() => void removeRecord('stock_movement', m.id, material?.name_ar ?? '').then((ok) => ok && void history.refetch())}
+                >
+                  <Trash className="size-4" />
+                </IconButton>
+              )}
             </li>
           ))}
         </ul>
@@ -244,8 +257,7 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
   const t = useT();
   const { f, name } = useSettings();
   const { role } = useAuth();
-  const toast = useToast();
-  const confirm = useConfirm();
+  const removeRecord = useDeleteRecord();
   const [search, setSearch] = useState('');
   const [lowOnly, setLowOnly] = useState(initialLow);
   const [edit, setEdit] = useState<Ingredient | 'new' | null>(null);
@@ -262,11 +274,8 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
   const lowCount = (ingredients.data ?? []).filter((i) => i.is_active && stockLevel(i) !== 'ok').length;
 
   const remove = async (i: Ingredient) => {
-    if (!(await confirm({ title: t('common.delete'), body: i.name_ar, danger: true, confirmLabel: t('common.delete') }))) return;
-    const { error } = await supabase.from('ingredients').delete().eq('id', i.id);
-    if (error) return toast.error(errorMessage(t, error));
+    if (!(await removeRecord('ingredient', i.id, i.name_ar))) return;
     void deleteImage(i.image_url);
-    toast.success(t('common.deleted'));
     void ingredients.refetch();
   };
 

@@ -165,6 +165,21 @@ export function CartPanel(p: CartPanelProps) {
             error={p.showIssue && p.issue === 'table' ? t('errors.INVALID_TABLE') : null}
           />
         )}
+        {state.type !== 'delivery' && (
+          <div className="grid grid-cols-2 gap-2">
+            <TextInput placeholder={t('pos.nameOptional')} aria-label={t('pos.nameOptional')} value={state.customerName} onChange={(e) => dispatch({ type: 'field', field: 'customerName', value: e.target.value })} />
+            <TextInput
+              placeholder={t('pos.phoneOptional')}
+              aria-label={t('pos.phoneOptional')}
+              type="tel"
+              dir="ltr"
+              inputMode="tel"
+              value={state.customerPhone}
+              onChange={(e) => dispatch({ type: 'field', field: 'customerPhone', value: e.target.value })}
+              error={p.showIssue && p.issue === 'phone' ? t('validation.phone') : null}
+            />
+          </div>
+        )}
         {state.type === 'delivery' && (
           <div className="grid grid-cols-2 gap-2">
             <TextInput label={t('pos.customerName')} value={state.customerName} onChange={(e) => dispatch({ type: 'field', field: 'customerName', value: e.target.value })} />

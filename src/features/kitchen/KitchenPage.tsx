@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
-import { Armchair, ArrowRight, Bike, ChefHat, LogOut, Maximize, Minimize, Printer, ShoppingBag, StickyNote, Volume2, VolumeX } from 'lucide-react';
+import { Armchair, ArrowRight, Bike, ChefHat, LogOut, Maximize, Minimize, Pencil, Printer, ShoppingBag, StickyNote, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useI18n } from '@/i18n';
 import { errorMessage } from '@/lib/errors';
@@ -19,6 +19,8 @@ import { ConnectionPill, LiveClock } from '@/app/shell/TopBar';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ErrorState } from '@/components/ui/EmptyState';
 import type { KitchenStatus } from '@/types/models';
+import { FoodImage } from '@/components/ui/FoodImage';
+import { EditOrderModal, type EditableOrder } from '@/features/orders/components/EditOrderModal';
 import { advanceStatus, fetchActiveOrders, fetchKitchenOrder, nextStatus, prevStatus, type KitchenOrder } from './api';
 
 const COLUMNS: { status: KitchenStatus; label: 'kitchen.new' | 'kitchen.preparing' | 'kitchen.ready'; header: string; ring: string }[] = [
@@ -29,12 +31,13 @@ const COLUMNS: { status: KitchenStatus; label: 'kitchen.new' | 'kitchen.preparin
 
 const LONG_PRESS_MS = 600;
 
-function OrderCard({ order, now, fresh, onAdvance, onBack }: {
+function OrderCard({ order, now, fresh, onAdvance, onBack, onEdit }: {
   order: KitchenOrder;
   now: number;
   fresh: boolean;
   onAdvance: () => void;
   onBack: () => void;
+  onEdit: () => void;
 }) {
   const { t, lang } = useI18n();
   const { f, settings } = useSettings();
@@ -124,7 +127,7 @@ function OrderCard({ order, now, fresh, onAdvance, onBack }: {
                   type: order.type,
                   table_no: order.table_no,
                   notes: order.notes,
-                  items: order.items.map((i) => ({ name: i.name_snapshot, qty: i.quantity, unit_price: 0, notes: i.notes })),
+                  items: order.items.filter((i) => !i.voided_at).map((i) => ({ name: i.name_snapshot, qty: i.quantity, unit_price: 0, notes: i.notes })),
                   subtotal: 0,
                   discount_amount: 0,
                   total: 0,
@@ -140,16 +143,28 @@ function OrderCard({ order, now, fresh, onAdvance, onBack }: {
           >
             <Printer className="size-4" strokeWidth={1.5} />
           </button>
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="flex h-9 items-center gap-1.5 rounded-[6px] border border-paper-ink/20 px-2.5 text-sm text-paper-ink transition-colors hover:bg-black/5"
+          >
+            <Pencil className="size-4" strokeWidth={1.5} /> {t('edit.button')}
+          </button>
         </div>
       </header>
       <ul className="mt-4 space-y-2.5 border-t-2 border-dashed border-paper-ink/20 pt-3">
-        {order.items.map((i) => (
+        {order.items.filter((i) => !i.voided_at).map((i) => (
           <li key={i.id}>
-            <div className="flex items-start gap-3 text-xl font-medium">
+            <div className="flex items-center gap-3 text-xl font-medium">
               <span className="mono grid h-8 min-w-8 place-items-center rounded-[4px] border border-paper-ink/25 px-1.5 text-lg">{f.number(i.quantity)}</span>
-              <span className="pt-0.5">{lang === 'he' && i.name_he_snapshot ? i.name_he_snapshot : i.name_snapshot}</span>
+              <FoodImage src={i.menu_item?.image_url ?? null} alt="" className="size-11 shrink-0" />
+              <span>{lang === 'he' && i.name_he_snapshot ? i.name_he_snapshot : i.name_snapshot}</span>
             </div>
-            {i.notes && <p className="ms-11 mt-1 border-s-2 border-danger ps-2 text-base font-medium text-[#b4242c]">{i.notes}</p>}
+            {i.notes && <p className="ms-[100px] mt-1 border-s-2 border-danger ps-2 text-base font-medium text-[#b4242c]">{i.notes}</p>}
           </li>
         ))}
       </ul>
@@ -175,6 +190,7 @@ export default function KitchenPage() {
   const now = useNow(15_000);
   const orders = useQuery(fetchActiveOrders, []);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<string | null>(null);
   const [soundOn, setSoundOn] = useState(true);
   const [soundReady, setSoundReady] = useState(audioUnlocked());
   const [fullscreen, setFullscreen] = useState(Boolean(document.fullscreenElement));
@@ -236,6 +252,31 @@ export default function KitchenPage() {
       if (id) orders.setData((list = []) => list.filter((x) => x.id !== id));
     }
   });
+
+  // item edits (cancel / replace) update the ticket live on every kitchen screen
+  useRealtime({ table: 'order_items' }, (p) => {
+    const orderId = (p.new as { order_id?: string } | null)?.order_id ?? (p.old as { order_id?: string } | null)?.order_id;
+    if (orderId) void fetchKitchenOrder(orderId).then((o) => o && upsert(o));
+  });
+
+  const editingOrder: EditableOrder | null = useMemo(() => {
+    const o = (orders.data ?? []).find((x) => x.id === editing);
+    if (!o) return null;
+    return {
+      id: o.id,
+      order_number: o.order_number,
+      items: o.items.map((i) => ({
+        id: i.id,
+        menu_item_id: i.menu_item_id,
+        name: i.name_snapshot,
+        quantity: i.quantity,
+        unit_price: Number(i.unit_price_snapshot),
+        image_url: i.menu_item?.image_url ?? null,
+        notes: i.notes,
+        voided: Boolean(i.voided_at),
+      })),
+    };
+  }, [orders.data, editing]);
 
   const move = async (order: KitchenOrder, to: KitchenStatus | null) => {
     if (!to) return;
@@ -330,7 +371,7 @@ export default function KitchenPage() {
                   ) : (
                     <AnimatePresence mode="popLayout">
                       {grouped[col.status].map((o) => (
-                        <OrderCard key={o.id} order={o} now={now} fresh={fresh.has(o.id)} onAdvance={() => void move(o, nextStatus(o.status as KitchenStatus))} onBack={() => void move(o, prevStatus(o.status as KitchenStatus))} />
+                        <OrderCard key={o.id} order={o} now={now} fresh={fresh.has(o.id)} onAdvance={() => void move(o, nextStatus(o.status as KitchenStatus))} onBack={() => void move(o, prevStatus(o.status as KitchenStatus))} onEdit={() => setEditing(o.id)} />
                       ))}
                     </AnimatePresence>
                   )}
@@ -341,6 +382,16 @@ export default function KitchenPage() {
           </div>
         </LayoutGroup>
       )}
+      <EditOrderModal
+        order={editingOrder}
+        onClose={() => setEditing(null)}
+        onChanged={(res) => {
+          if (!res) {
+            setEditing(null);
+            void orders.refetch();
+          } else void fetchKitchenOrder(res.id).then((o) => o && upsert(o));
+        }}
+      />
     </div>
   );
 }

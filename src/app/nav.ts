@@ -1,4 +1,4 @@
-import { Boxes, ChartColumn, ChefHat, ClipboardList, LayoutDashboard, MonitorSmartphone, Settings, Users, UtensilsCrossed, type LucideIcon } from 'lucide-react';
+import { Boxes, ChartColumn, ChefHat, ClipboardList, LayoutDashboard, MonitorSmartphone, ScrollText, Settings, Users, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import type { TranslationKey } from '@/i18n';
 import type { AppRole } from '@/types/models';
 
@@ -18,6 +18,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/inventory', label: 'nav.inventory', icon: Boxes, roles: ['owner', 'manager', 'inventory'] },
   { path: '/employees', label: 'nav.employees', icon: Users, roles: ['owner', 'manager'] },
   { path: '/reports', label: 'nav.reports', icon: ChartColumn, roles: ['owner', 'manager'] },
+  { path: '/activity', label: 'nav.activity', icon: ScrollText, roles: ['owner', 'manager'] },
   { path: '/settings', label: 'nav.settings', icon: Settings, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'] },
 ];
 

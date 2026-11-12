@@ -47,15 +47,19 @@ export async function fetchOpenShift(userId: string): Promise<CashShift | null> 
   return data;
 }
 
+export const SHIFT_EVENT = 'max:shift-changed';
+
 export async function openShift(openingFloat: number): Promise<CashShift> {
   const { data, error } = await supabase.rpc('open_shift', { p_opening_float: openingFloat });
   if (error) throw error;
+  window.dispatchEvent(new CustomEvent(SHIFT_EVENT));
   return data;
 }
 
 export async function closeShift(countedCash: number, notes: string): Promise<ShiftReport> {
   const { data, error } = await supabase.rpc('close_shift', { p_counted_cash: countedCash, p_notes: notes });
   if (error) throw error;
+  window.dispatchEvent(new CustomEvent(SHIFT_EVENT));
   return fromJson<ShiftReport>(data);
 }
 

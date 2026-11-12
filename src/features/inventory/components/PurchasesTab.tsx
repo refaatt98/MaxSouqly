@@ -9,6 +9,7 @@ import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
+import { useDeleteRecord } from '@/app/providers/DeleteProvider';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
 import { DataTable, type Column } from '@/components/ui/Table';
@@ -242,10 +243,9 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
   onNewHandled: () => void;
   onChanged: () => void;
 }) {
+  const removeRecord = useDeleteRecord();
   const t = useT();
   const { f } = useSettings();
-  const toast = useToast();
-  const confirm = useConfirm();
   const orders = useQuery(fetchPurchaseOrders, []);
   useLiveRefetch(['purchase_orders', 'purchase_order_items'], orders.refetch);
   const [edit, setEdit] = useState<PurchaseOrder | 'new' | null>(null);
@@ -259,10 +259,10 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
   }, [newRequest, onNewHandled]);
 
   const removeDraft = async (po: PurchaseOrder) => {
-    if (!(await confirm({ title: t('common.delete'), body: t('po.number', { number: po.po_number }), danger: true }))) return;
-    const { error } = await supabase.from('purchase_orders').delete().eq('id', po.id);
-    if (error) return toast.error(errorMessage(t, error));
-    void orders.refetch();
+    if (await removeRecord('purchase_order', po.id, t('po.number', { number: po.po_number }))) {
+      void orders.refetch();
+      onChanged();
+    }
   };
 
   const columns: Column<PurchaseOrder>[] = [
@@ -276,12 +276,11 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
       key: 'actions',
       header: '',
       align: 'end',
-      cell: (p) =>
-        p.status === 'draft' ? (
-          <IconButton label={t('common.delete')} size="sm" className="hover:text-danger" onClick={(e) => { e.stopPropagation(); void removeDraft(p); }}>
-            <Trash className="size-4" />
-          </IconButton>
-        ) : null,
+      cell: (p) => (
+        <IconButton label={t('del.button')} size="sm" className="hover:text-danger" onClick={(e) => { e.stopPropagation(); void removeDraft(p); }}>
+          <Trash className="size-4" />
+        </IconButton>
+      ),
     },
   ];
 

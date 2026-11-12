@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ClipboardCheck, Search } from 'lucide-react';
+import { ClipboardCheck, Search, Trash } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
@@ -9,8 +9,9 @@ import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
+import { useDeleteRecord } from '@/app/providers/DeleteProvider';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Button, IconButton } from '@/components/ui/Button';
 import { DataTable, type Column } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
@@ -189,6 +190,7 @@ export function StocktakeTab({ ingredients, onChanged }: { ingredients: Ingredie
   const t = useT();
   const { f } = useSettings();
   const toast = useToast();
+  const removeRecord = useDeleteRecord();
   const counts = useQuery(async () => {
     const { data, error } = await supabase.from('stock_counts').select('*').order('created_at', { ascending: false }).limit(50);
     if (error) throw error;
@@ -212,6 +214,29 @@ export function StocktakeTab({ ingredients, onChanged }: { ingredients: Ingredie
     { key: 'date', header: t('common.date'), cell: (c) => <span className="num">{f.dateTime(c.created_at)}</span> },
     { key: 'status', header: t('common.status'), cell: (c) => <Badge tone={c.status === 'applied' ? 'green' : 'amber'}>{t(`count.status.${c.status}`)}</Badge> },
     { key: 'applied', header: t('count.apply'), hideBelow: 'sm', cell: (c) => (c.applied_at ? <span className="num text-fg-2">{f.dateTime(c.applied_at)}</span> : t('common.none')) },
+    {
+      key: 'x',
+      header: '',
+      align: 'end',
+      cell: (c) => (
+        <IconButton
+          label={t('del.button')}
+          size="sm"
+          className="hover:text-danger"
+          onClick={(e) => {
+            e.stopPropagation();
+            void removeRecord('stock_count', c.id, f.dateTime(c.created_at)).then((ok) => {
+              if (ok) {
+                void counts.refetch();
+                onChanged();
+              }
+            });
+          }}
+        >
+          <Trash className="size-4" />
+        </IconButton>
+      ),
+    },
   ];
 
   return (

@@ -12,6 +12,7 @@ import { AuthProvider } from '@/app/providers/AuthProvider';
 import { SettingsProvider } from '@/app/providers/SettingsProvider';
 import { ConnectionProvider } from '@/app/providers/ConnectionProvider';
 import { ConfirmProvider } from '@/app/providers/ConfirmProvider';
+import { DeleteProvider } from '@/app/providers/DeleteProvider';
 
 const root = createRoot(document.getElementById('root')!);
 
@@ -26,7 +27,9 @@ root.render(
               <SettingsProvider>
                 <ConnectionProvider>
                   <ConfirmProvider>
-                    <RouterProvider router={router} />
+                    <DeleteProvider>
+                      <RouterProvider router={router} />
+                    </DeleteProvider>
                   </ConfirmProvider>
                 </ConnectionProvider>
               </SettingsProvider>

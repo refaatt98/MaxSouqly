@@ -8,6 +8,7 @@ import { TopBar } from './TopBar';
 import { BottomNav } from './BottomNav';
 import { CommandPalette } from './CommandPalette';
 import { OfflineBanner } from './OfflineBanner';
+import { CashierShiftGate } from './CashierShiftGate';
 
 const COLLAPSE_KEY = 'max.sidebar.collapsed';
 
@@ -62,7 +63,9 @@ export function AppShell() {
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="h-full"
             >
-              <Outlet />
+              <CashierShiftGate>
+                <Outlet />
+              </CashierShiftGate>
             </motion.div>
           </main>
         </div>

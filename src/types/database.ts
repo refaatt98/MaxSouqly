@@ -216,6 +216,7 @@ export type Database = {
           user_id: string | null;
           created_at: string;
           updated_at: string;
+          payroll_id: string | null;
         };
         Insert: {
           id?: string;
@@ -227,6 +228,7 @@ export type Database = {
           user_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          payroll_id?: string | null;
         };
         Update: {
           id?: string;
@@ -238,8 +240,10 @@ export type Database = {
           user_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          payroll_id?: string | null;
         };
         Relationships: [
+          { foreignKeyName: "expenses_payroll_id_fkey"; columns: ["payroll_id"]; isOneToOne: false; referencedRelation: "payroll"; referencedColumns: ["id"] },
           { foreignKeyName: "expenses_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
@@ -392,6 +396,9 @@ export type Database = {
           kitchen_status: Database["public"]["Enums"]["kitchen_status"];
           created_at: string;
           updated_at: string;
+          voided_at: string | null;
+          void_reason: string | null;
+          voided_by: string | null;
         };
         Insert: {
           id?: string;
@@ -407,6 +414,9 @@ export type Database = {
           kitchen_status?: Database["public"]["Enums"]["kitchen_status"];
           created_at?: string;
           updated_at?: string;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          voided_by?: string | null;
         };
         Update: {
           id?: string;
@@ -422,10 +432,14 @@ export type Database = {
           kitchen_status?: Database["public"]["Enums"]["kitchen_status"];
           created_at?: string;
           updated_at?: string;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          voided_by?: string | null;
         };
         Relationships: [
           { foreignKeyName: "order_items_menu_item_id_fkey"; columns: ["menu_item_id"]; isOneToOne: false; referencedRelation: "menu_items"; referencedColumns: ["id"] },
           { foreignKeyName: "order_items_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "orders"; referencedColumns: ["id"] },
+          { foreignKeyName: "order_items_voided_by_fkey"; columns: ["voided_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
       orders: {
@@ -659,6 +673,7 @@ export type Database = {
           unit_cost: number;
           created_at: string;
           updated_at: string;
+          cost_before: number | null;
         };
         Insert: {
           id?: string;
@@ -668,6 +683,7 @@ export type Database = {
           unit_cost?: number;
           created_at?: string;
           updated_at?: string;
+          cost_before?: number | null;
         };
         Update: {
           id?: string;
@@ -677,6 +693,7 @@ export type Database = {
           unit_cost?: number;
           created_at?: string;
           updated_at?: string;
+          cost_before?: number | null;
         };
         Relationships: [
           { foreignKeyName: "purchase_order_items_ingredient_id_fkey"; columns: ["ingredient_id"]; isOneToOne: false; referencedRelation: "ingredients"; referencedColumns: ["id"] },
@@ -1056,6 +1073,7 @@ export type Database = {
       create_stock_count: { Args: { p_notes?: string }; Returns: string };
       current_user_role: { Args: Record<PropertyKey, never>; Returns: Database["public"]["Enums"]["app_role"] };
       dashboard_today: { Args: Record<PropertyKey, never>; Returns: Json };
+      delete_record: { Args: { p_entity: string; p_id: string; p_dry_run?: boolean }; Returns: Json };
       get_order: { Args: { p_order_id: string }; Returns: Json };
       has_role: { Args: { roles: Database["public"]["Enums"]["app_role"][] }; Returns: boolean };
       import_backup: { Args: { p_data: Json }; Returns: Json };
@@ -1069,6 +1087,7 @@ export type Database = {
       range_end: { Args: { p_to: string }; Returns: string };
       range_start: { Args: { p_from: string }; Returns: string };
       receive_purchase_order: { Args: { p_po_id: string }; Returns: Database["public"]["Tables"]["purchase_orders"]["Row"] };
+      replace_order_item: { Args: { p_item_id: string; p_menu_item_id: string; p_quantity: number; p_notes: string; p_reason: string }; Returns: Json };
       report_cashiers: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_employees: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_hourly: { Args: { p_from: string; p_to: string }; Returns: Json };
@@ -1076,13 +1095,13 @@ export type Database = {
       report_profit: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_sales: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_top_items: { Args: { p_from: string; p_to: string; p_limit?: number }; Returns: Json };
-      require_role: { Args: { roles: Database["public"]["Enums"]["app_role"][] }; Returns: Database["public"]["Enums"]["app_role"] };
       restaurant_tz: { Args: Record<PropertyKey, never>; Returns: string };
       set_pin: { Args: { p_user_id: string; p_pin: string }; Returns: undefined };
       shift_report: { Args: { p_shift_id: string }; Returns: Json };
       touch_last_login: { Args: Record<PropertyKey, never>; Returns: undefined };
       unit_factor: { Args: { p_from: Database["public"]["Enums"]["unit_type"]; p_to: Database["public"]["Enums"]["unit_type"] }; Returns: number };
       void_order: { Args: { p_order_id: string; p_reason: string; p_refund?: boolean }; Returns: Json };
+      void_order_item: { Args: { p_item_id: string; p_quantity: number; p_reason: string }; Returns: Json };
     };
     Enums: {
       app_role: "owner" | "manager" | "cashier" | "kitchen" | "inventory";

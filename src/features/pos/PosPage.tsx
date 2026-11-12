@@ -213,6 +213,7 @@ export default function PosPage() {
     if (issue === 'table') return toast.error(t('errors.INVALID_TABLE'));
     if (issue === 'delivery') return toast.error(t('errors.DELIVERY_DETAILS_REQUIRED'));
     if (issue === 'discount') return toast.error(t('errors.DISCOUNT_LIMIT', { detail: f.number(maxDiscount) }));
+    if (issue === 'phone') return toast.error(t('validation.phone'));
     setPayOpen(true);
   };
 

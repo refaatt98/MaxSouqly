@@ -98,6 +98,11 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={['owner', 'manager']} />,
             children: [{ index: true, lazy: page(() => import('@/features/reports/ReportsPage')) }],
           },
+          {
+            path: 'activity',
+            element: <RequireRole roles={['owner', 'manager']} />,
+            children: [{ index: true, lazy: page(() => import('@/features/activity/ActivityPage')) }],
+          },
           { path: 'settings', lazy: page(() => import('@/features/settings/SettingsPage')) },
           { path: '*', element: <NotFound /> },
         ],

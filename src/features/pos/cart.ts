@@ -113,7 +113,7 @@ export function cartTotals(state: CartState, vatPercent: number): CartTotals {
   };
 }
 
-export type CartIssue = 'empty' | 'table' | 'delivery' | 'discount';
+export type CartIssue = 'empty' | 'table' | 'delivery' | 'discount' | 'phone';
 
 export function validateCart(state: CartState, totals: CartTotals, maxDiscountPercent: number, tableCount: number): CartIssue | null {
   if (state.lines.length === 0) return 'empty';
@@ -124,6 +124,7 @@ export function validateCart(state: CartState, totals: CartTotals, maxDiscountPe
   if (state.type === 'delivery') {
     if (state.customerName.trim().length < 2 || !/^[0-9+\- ]{7,20}$/.test(state.customerPhone.trim()) || state.customerAddress.trim().length < 4) return 'delivery';
   }
+  if (state.type !== 'delivery' && state.customerPhone.trim() && !/^[0-9+\- ]{7,20}$/.test(state.customerPhone.trim())) return 'phone';
   if (totals.discountPercent > maxDiscountPercent + 0.001) return 'discount';
   return null;
 }
@@ -133,8 +134,8 @@ export function buildPayload(state: CartState, totals: CartTotals, payments: Ord
     client_ref: state.clientRef,
     type: state.type,
     table_no: state.type === 'dine_in' ? Number(state.tableNo) : null,
-    customer_name: state.type === 'delivery' ? state.customerName.trim() : '',
-    customer_phone: state.type === 'delivery' ? state.customerPhone.trim() : '',
+    customer_name: state.customerName.trim(),
+    customer_phone: state.customerPhone.trim(),
     customer_address: state.type === 'delivery' ? state.customerAddress.trim() : '',
     notes: state.notes.trim(),
     discount: totals.discount > 0 ? { type: state.discountType, value: Number(state.discountValue) } : null,

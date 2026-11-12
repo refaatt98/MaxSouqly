@@ -90,7 +90,7 @@ export function receiptFromOrder(o: OrderFull): ReceiptData {
     customer_phone: o.customer_phone,
     customer_address: o.customer_address,
     notes: o.notes,
-    items: o.items.map((i) => ({ name: i.name_snapshot, qty: i.quantity, unit_price: Number(i.unit_price_snapshot), notes: i.notes })),
+    items: o.items.filter((i) => !i.voided_at).map((i) => ({ name: i.name_snapshot, qty: i.quantity, unit_price: Number(i.unit_price_snapshot), notes: i.notes })),
     subtotal: Number(o.subtotal),
     discount_amount: Number(o.discount_amount),
     total: Number(o.total),
@@ -137,7 +137,7 @@ export function receiptHtml(
     .join('');
   const pays = r.payments
     .map(
-      (p) => `<div class="row"><span>${t(p.method === 'cash' ? 'payment.cash' : 'payment.card')}</span><span>${f.money(p.method === 'cash' && p.tendered ? p.tendered : p.amount)}</span></div>
+      (p) => `<div class="row"><span>${t(p.method === 'cash' ? 'payment.cash' : 'payment.card')}</span><span>${f.money(p.method === 'cash' && p.tendered && p.amount > 0 ? p.tendered : p.amount)}</span></div>
       ${p.method === 'cash' && p.change ? `<div class="row"><span>${t('receipt.change')}</span><span>${f.money(p.change)}</span></div>` : ''}`,
     )
     .join('');
@@ -297,6 +297,6 @@ export function printA4Report(
       }`,
     )
     .join('')}
-  <footer>MAX v1.0.0 — Powered by MAX</footer>`;
+  <footer>MAX v1.0.0 — Powered by Souqly</footer>`;
   return printHtml(body, A4_CSS, lang);
 }

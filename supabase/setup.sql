@@ -2336,6 +2336,729 @@ revoke execute on function
 from public, anon, authenticated;
 
 
+-- >>> 20261112000008_order_edits.sql
+-- =====================================================================
+-- Editing orders after they were sent: cancel an item (or part of its quantity),
+-- replace an item, or cancel the whole order from the kitchen.
+-- Stock is restored/deducted through recipes; money differences are recorded as
+-- payment adjustments (negative = refund to customer, positive = collect).
+-- =====================================================================
+
+alter table public.order_items
+  add column if not exists voided_at timestamptz,
+  add column if not exists void_reason text,
+  add column if not exists voided_by uuid references public.profiles (id) on delete set null;
+
+-- Who may edit an order: owner/manager always; kitchen while it is in the kitchen; a cashier on their own orders.
+create or replace function public.assert_can_edit_order(p_order public.orders)
+returns public.app_role
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_role public.app_role := public.require_role('owner', 'manager', 'kitchen', 'cashier');
+begin
+  if p_order.status in ('cancelled', 'refunded') then
+    raise exception 'ALREADY_VOIDED' using errcode = '22023';
+  end if;
+  if v_role in ('kitchen', 'cashier') and p_order.status not in ('new', 'preparing', 'ready') then
+    raise exception 'ORDER_CLOSED' using errcode = '22023';
+  end if;
+  if v_role = 'cashier' and p_order.cashier_id is distinct from auth.uid() then
+    raise exception 'FORBIDDEN' using errcode = '42501';
+  end if;
+  return v_role;
+end;
+$$;
+
+-- Moves stock for `p_qty` units of a menu item (positive restores, negative deducts).
+create or replace function public.move_item_stock(p_menu_item_id uuid, p_qty integer, p_reason public.stock_reason, p_order_id uuid, p_note text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_r record;
+begin
+  for v_r in
+    select ri.ingredient_id, ri.quantity * public.unit_factor(ri.unit, i.unit) as per_unit
+    from public.recipe_items ri join public.ingredients i on i.id = ri.ingredient_id
+    where ri.menu_item_id = p_menu_item_id
+  loop
+    perform public.apply_stock_change(v_r.ingredient_id, v_r.per_unit * p_qty, p_reason, p_order_id, p_note);
+  end loop;
+end;
+$$;
+
+-- Recomputes totals from the live items and records the money difference.
+create or replace function public.recalc_order(p_order_id uuid)
+returns numeric
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order public.orders;
+  v_sub numeric;
+  v_cost numeric;
+  v_disc numeric;
+  v_total numeric;
+  v_vat numeric;
+  v_paid numeric;
+  v_delta numeric;
+  v_method public.payment_method;
+begin
+  select * into v_order from public.orders where id = p_order_id for update;
+  select coalesce(sum(line_total), 0), coalesce(sum(unit_cost_snapshot * quantity), 0)
+    into v_sub, v_cost
+  from public.order_items where order_id = p_order_id and voided_at is null;
+  v_disc := case v_order.discount_type
+    when 'percent' then round(v_sub * v_order.discount_value / 100, 2)
+    when 'fixed' then least(v_order.discount_value, v_sub)
+    else 0 end;
+  v_total := v_sub - v_disc;
+  select vat_percent into v_vat from public.restaurant_settings limit 1;
+  update public.orders set
+    subtotal = v_sub, discount_amount = v_disc, total = v_total,
+    vat_amount = round(v_total * coalesce(v_vat, 0) / (100 + coalesce(v_vat, 0)), 2), cost_total = round(v_cost, 2)
+  where id = p_order_id;
+
+  select coalesce(sum(amount), 0) into v_paid from public.payments where order_id = p_order_id;
+  v_delta := round(v_total - v_paid, 2);
+  if abs(v_delta) >= 0.01 then
+    -- refunds/extra charges use cash when the order had cash, otherwise the original method
+    select method into v_method from public.payments where order_id = p_order_id and amount > 0
+    order by (method = 'cash') desc, amount desc limit 1;
+    insert into public.payments (order_id, method, amount, tendered, change_given)
+    values (p_order_id, coalesce(v_method, 'cash'), v_delta, null, 0);
+  end if;
+  return v_delta;
+end;
+$$;
+
+-- Cancel `p_quantity` units of one order line.
+create or replace function public.void_order_item(p_item_id uuid, p_quantity integer, p_reason text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_item public.order_items;
+  v_order public.orders;
+  v_qty integer;
+  v_delta numeric := 0;
+begin
+  select * into v_item from public.order_items where id = p_item_id for update;
+  if not found or v_item.voided_at is not null then
+    raise exception 'NOT_FOUND' using errcode = 'P0002';
+  end if;
+  select * into v_order from public.orders where id = v_item.order_id for update;
+  perform public.assert_can_edit_order(v_order);
+  if char_length(trim(coalesce(p_reason, ''))) < 2 then
+    raise exception 'REASON_REQUIRED' using errcode = '22023';
+  end if;
+  v_qty := least(coalesce(p_quantity, v_item.quantity), v_item.quantity);
+  if v_qty < 1 then
+    raise exception 'INVALID_QUANTITY' using errcode = '22023';
+  end if;
+
+  if v_item.menu_item_id is not null then
+    perform public.move_item_stock(v_item.menu_item_id, v_qty, 'void', v_order.id, 'إلغاء صنف #' || v_order.order_number);
+  end if;
+
+  if v_qty = v_item.quantity then
+    update public.order_items set voided_at = now(), void_reason = trim(p_reason), voided_by = auth.uid() where id = v_item.id;
+  else
+    -- keep the cancelled part as its own struck-through line for the history
+    update public.order_items set quantity = quantity - v_qty, line_total = unit_price_snapshot * (quantity - v_qty) where id = v_item.id;
+    insert into public.order_items (order_id, menu_item_id, name_snapshot, name_he_snapshot, unit_price_snapshot, unit_cost_snapshot,
+      quantity, line_total, notes, kitchen_status, voided_at, void_reason, voided_by, created_at)
+    values (v_item.order_id, v_item.menu_item_id, v_item.name_snapshot, v_item.name_he_snapshot, v_item.unit_price_snapshot,
+      v_item.unit_cost_snapshot, v_qty, v_item.unit_price_snapshot * v_qty, v_item.notes, v_item.kitchen_status,
+      now(), trim(p_reason), auth.uid(), v_item.created_at);
+  end if;
+
+  if not exists (select 1 from public.order_items where order_id = v_order.id and voided_at is null) then
+    -- nothing left: the whole order is cancelled
+    update public.orders set status = 'cancelled', void_reason = trim(p_reason), voided_by = auth.uid(), voided_at = now() where id = v_order.id;
+    update public.order_items set kitchen_status = 'served' where order_id = v_order.id;
+  end if;
+  v_delta := public.recalc_order(v_order.id);
+
+  insert into public.notifications (type, title, body, ref_id, target_roles)
+  values ('void', 'تعديل الطلب #' || v_order.order_number, 'إلغاء ' || v_qty || '× ' || v_item.name_snapshot || ' — ' || trim(p_reason),
+          v_order.id, '{owner,manager,cashier}');
+  perform public.write_audit('void_order_item', 'order', v_order.id,
+    jsonb_build_object('order_number', v_order.order_number, 'item', v_item.name_snapshot, 'quantity', v_qty, 'reason', trim(p_reason), 'delta', v_delta));
+  return public.order_json(v_order.id) || jsonb_build_object('money_delta', v_delta);
+end;
+$$;
+
+-- Replace a whole line with another menu item.
+create or replace function public.replace_order_item(p_item_id uuid, p_menu_item_id uuid, p_quantity integer, p_notes text, p_reason text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_item public.order_items;
+  v_order public.orders;
+  v_menu public.menu_items;
+  v_qty integer := coalesce(p_quantity, 1);
+  v_cost numeric;
+  v_delta numeric;
+begin
+  select * into v_item from public.order_items where id = p_item_id for update;
+  if not found or v_item.voided_at is not null then
+    raise exception 'NOT_FOUND' using errcode = 'P0002';
+  end if;
+  select * into v_order from public.orders where id = v_item.order_id for update;
+  perform public.assert_can_edit_order(v_order);
+  if char_length(trim(coalesce(p_reason, ''))) < 2 then
+    raise exception 'REASON_REQUIRED' using errcode = '22023';
+  end if;
+  if v_qty < 1 or v_qty > 999 then
+    raise exception 'INVALID_QUANTITY' using errcode = '22023';
+  end if;
+  select * into v_menu from public.menu_items where id = p_menu_item_id;
+  if not found then
+    raise exception 'MENU_ITEM_NOT_FOUND' using errcode = 'P0002';
+  end if;
+  if not v_menu.is_available then
+    raise exception 'ITEM_UNAVAILABLE:%', v_menu.name_ar using errcode = '22023';
+  end if;
+
+  -- old line out (stock back)
+  if v_item.menu_item_id is not null then
+    perform public.move_item_stock(v_item.menu_item_id, v_item.quantity, 'void', v_order.id, 'استبدال صنف #' || v_order.order_number);
+  end if;
+  update public.order_items set voided_at = now(), void_reason = 'استبدال: ' || trim(p_reason), voided_by = auth.uid() where id = v_item.id;
+
+  -- new line in (stock out)
+  v_cost := public.menu_item_cost(v_menu.id);
+  insert into public.order_items (order_id, menu_item_id, name_snapshot, name_he_snapshot, unit_price_snapshot, unit_cost_snapshot,
+    quantity, line_total, notes, kitchen_status)
+  values (v_order.id, v_menu.id, v_menu.name_ar, v_menu.name_he, v_menu.price, v_cost, v_qty, v_menu.price * v_qty,
+    left(coalesce(p_notes, ''), 200), case when v_order.status = 'new' then 'new' else 'preparing' end::public.kitchen_status);
+  perform public.move_item_stock(v_menu.id, -v_qty, 'sale', v_order.id, '#' || v_order.order_number);
+
+  -- a new dish means the order is cooking again
+  if v_order.status = 'ready' then
+    update public.orders set status = 'preparing', ready_at = null where id = v_order.id;
+    update public.order_items set kitchen_status = 'preparing' where order_id = v_order.id and voided_at is null;
+  end if;
+  v_delta := public.recalc_order(v_order.id);
+
+  insert into public.notifications (type, title, body, ref_id, target_roles)
+  values ('void', 'تعديل الطلب #' || v_order.order_number,
+          'استبدال ' || v_item.name_snapshot || ' بـ ' || v_qty || '× ' || v_menu.name_ar || ' — ' || trim(p_reason),
+          v_order.id, '{owner,manager,cashier}');
+  perform public.write_audit('replace_order_item', 'order', v_order.id,
+    jsonb_build_object('order_number', v_order.order_number, 'from', v_item.name_snapshot, 'to', v_menu.name_ar, 'quantity', v_qty, 'reason', trim(p_reason), 'delta', v_delta));
+  return public.order_json(v_order.id) || jsonb_build_object('money_delta', v_delta);
+end;
+$$;
+
+-- Whole-order cancel: now also allowed for the kitchen (and the cashier on their own order) while it is
+-- still in the kitchen; refunds of served orders stay manager-only. Stock restore uses the net movements,
+-- so items cancelled earlier are not restored twice.
+create or replace function public.void_order(p_order_id uuid, p_reason text, p_refund boolean default false)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order public.orders;
+  v_role public.app_role;
+  v_mv record;
+begin
+  if char_length(trim(coalesce(p_reason, ''))) < 2 then
+    raise exception 'REASON_REQUIRED' using errcode = '22023';
+  end if;
+  select * into v_order from public.orders where id = p_order_id for update;
+  if not found then
+    raise exception 'NOT_FOUND' using errcode = 'P0002';
+  end if;
+  v_role := public.assert_can_edit_order(v_order);
+  if p_refund and v_role not in ('owner', 'manager') then
+    raise exception 'FORBIDDEN' using errcode = '42501';
+  end if;
+
+  update public.orders
+  set status = case when p_refund then 'refunded'::public.order_status else 'cancelled'::public.order_status end,
+      void_reason = trim(p_reason), voided_by = auth.uid(), voided_at = now()
+  where id = p_order_id;
+  update public.order_items set kitchen_status = 'served' where order_id = p_order_id;
+
+  if not p_refund then
+    for v_mv in
+      select ingredient_id, sum(change) as qty from public.stock_movements
+      where ref_id = p_order_id and reason in ('sale', 'void') group by ingredient_id having sum(change) <> 0
+    loop
+      perform public.apply_stock_change(v_mv.ingredient_id, -v_mv.qty, 'void', p_order_id, 'إلغاء #' || v_order.order_number);
+    end loop;
+  end if;
+
+  insert into public.notifications (type, title, body, ref_id, target_roles)
+  values ('void', case when p_refund then 'استرجاع الطلب #' else 'إلغاء الطلب #' end || v_order.order_number,
+          trim(p_reason), p_order_id, '{owner,manager,cashier}');
+  perform public.write_audit(case when p_refund then 'refund_order' else 'void_order' end, 'order', p_order_id,
+    jsonb_build_object('order_number', v_order.order_number, 'total', v_order.total, 'reason', trim(p_reason)));
+  return public.order_json(p_order_id);
+end;
+$$;
+
+-- Top-selling items must ignore cancelled lines
+create or replace function public.report_top_items(p_from date, p_to date, p_limit integer default 10)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  perform public.require_role('owner', 'manager');
+  perform public.check_range(p_from, p_to);
+  return coalesce((
+    select jsonb_agg(x order by x.qty desc)
+    from (
+      select oi.menu_item_id, max(oi.name_snapshot) as name, max(oi.name_he_snapshot) as name_he,
+        sum(oi.quantity)::integer as qty, sum(oi.line_total) as revenue,
+        sum(oi.unit_cost_snapshot * oi.quantity) as cost,
+        (select image_url from public.menu_items m where m.id = oi.menu_item_id) as image_url
+      from public.order_items oi join public.orders o on o.id = oi.order_id
+      where o.created_at >= public.range_start(p_from) and o.created_at < public.range_end(p_to)
+        and o.status not in ('cancelled', 'refunded') and oi.voided_at is null
+      group by oi.menu_item_id
+      order by sum(oi.quantity) desc
+      limit greatest(1, least(coalesce(p_limit, 10), 100))
+    ) x
+  ), '[]'::jsonb);
+end;
+$$;
+
+revoke execute on function public.assert_can_edit_order(public.orders), public.move_item_stock(uuid, integer, public.stock_reason, uuid, text),
+  public.recalc_order(uuid) from public, anon, authenticated;
+grant execute on function public.void_order_item(uuid, integer, text), public.replace_order_item(uuid, uuid, integer, text, text),
+  public.void_order(uuid, text, boolean), public.report_top_items(date, date, integer) to authenticated;
+
+
+-- >>> 20261112000009_delete_with_rollback.sql
+-- =====================================================================
+-- Delete anything with full rollback, "as if it never happened".
+--   delete_record(entity, id, dry_run)
+--   dry_run = true  → returns the list of effects (for the confirmation dialog), changes nothing
+--   dry_run = false → performs the rollback + delete and returns the same list
+-- Effects: [{ t: 'stock', name, unit, change } | { t: 'cost', name, from, to } | { t: 'money', what, amount }
+--           | { t: 'rows', what, count } | { t: 'note', what }]
+-- =====================================================================
+
+-- remember the cost before a purchase so a received PO can be undone exactly
+alter table public.purchase_order_items add column if not exists cost_before numeric(12, 4);
+-- link the automatic salary expense to its payroll row
+alter table public.expenses add column if not exists payroll_id uuid references public.payroll (id) on delete cascade;
+
+create or replace function public.receive_purchase_order(p_po_id uuid)
+returns public.purchase_orders
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_po public.purchase_orders;
+  v_line record;
+  v_ing public.ingredients;
+  v_new_cost numeric;
+begin
+  perform public.require_role('owner', 'manager', 'inventory');
+  select * into v_po from public.purchase_orders where id = p_po_id for update;
+  if not found then
+    raise exception 'NOT_FOUND' using errcode = 'P0002';
+  end if;
+  if v_po.status not in ('draft', 'sent') then
+    raise exception 'PO_NOT_RECEIVABLE' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.purchase_order_items where purchase_order_id = p_po_id) then
+    raise exception 'EMPTY_ORDER' using errcode = '22023';
+  end if;
+  for v_line in select * from public.purchase_order_items where purchase_order_id = p_po_id loop
+    select * into v_ing from public.ingredients where id = v_line.ingredient_id for update;
+    update public.purchase_order_items set cost_before = v_ing.cost_per_unit where id = v_line.id;
+    if greatest(v_ing.quantity, 0) + v_line.quantity > 0 then
+      v_new_cost := (greatest(v_ing.quantity, 0) * v_ing.cost_per_unit + v_line.quantity * v_line.unit_cost)
+                    / (greatest(v_ing.quantity, 0) + v_line.quantity);
+    else
+      v_new_cost := v_line.unit_cost;
+    end if;
+    perform public.apply_stock_change(v_line.ingredient_id, v_line.quantity, 'purchase', p_po_id, 'أمر شراء #' || v_po.po_number);
+    if v_line.unit_cost > 0 then
+      update public.ingredients set cost_per_unit = round(v_new_cost, 4) where id = v_line.ingredient_id;
+    end if;
+  end loop;
+  update public.purchase_orders set status = 'received', received_at = now(), received_by = auth.uid(), sent_at = coalesce(sent_at, now())
+  where id = p_po_id returning * into v_po;
+  perform public.write_audit('receive_po', 'purchase_order', p_po_id, jsonb_build_object('total', v_po.total));
+  return v_po;
+end;
+$$;
+
+create or replace function public.payroll_paid_expense()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'paid' and old.status <> 'paid' and new.net_amount > 0 then
+    insert into public.expenses (category, amount, note, expense_date, user_id, payroll_id)
+    values ('salaries', new.net_amount,
+            'راتب ' || (select full_name from public.employees_meta where id = new.employee_id) || ' — ' || to_char(new.period_month, 'YYYY-MM'),
+            current_date, auth.uid(), new.id);
+  elsif new.status = 'draft' and old.status = 'paid' then
+    delete from public.expenses where payroll_id = new.id;
+  end if;
+  return null;
+end;
+$$;
+
+-- Effects of reversing all stock movements that reference p_ref (optionally one movement only).
+create or replace function public.movement_effects(p_ref uuid, p_movement uuid default null)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object('t', 'stock', 'name', i.name_ar, 'unit', i.unit, 'change', round(-x.total, 3))), '[]'::jsonb)
+  from (
+    select ingredient_id, sum(change) as total from public.stock_movements
+    where (p_movement is null and ref_id = p_ref) or id = p_movement
+    group by ingredient_id having sum(change) <> 0
+  ) x join public.ingredients i on i.id = x.ingredient_id
+$$;
+
+-- Reverses (and deletes) the movements: stock goes back to what it would have been.
+create or replace function public.undo_movements(p_ref uuid, p_movement uuid default null)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v record;
+begin
+  for v in
+    select ingredient_id, sum(change) as total from public.stock_movements
+    where (p_movement is null and ref_id = p_ref) or id = p_movement
+    group by ingredient_id
+  loop
+    update public.ingredients set quantity = quantity - v.total where id = v.ingredient_id;
+  end loop;
+  delete from public.stock_movements where (p_movement is null and ref_id = p_ref) or id = p_movement;
+end;
+$$;
+
+create or replace function public.refresh_shift_totals(p_shift_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.cash_shifts s set
+    cash_sales = x.cash, card_sales = x.card, expected_cash = s.opening_float + x.cash
+  from (
+    select coalesce(sum(p.amount) filter (where p.method = 'cash'), 0) cash, coalesce(sum(p.amount) filter (where p.method = 'card'), 0) card
+    from public.payments p join public.orders o on o.id = p.order_id
+    where o.shift_id = p_shift_id and o.status not in ('cancelled', 'refunded')
+  ) x
+  where s.id = p_shift_id and s.closed_at is not null;
+end;
+$$;
+
+create or replace function public.delete_record(p_entity text, p_id uuid, p_dry_run boolean default true)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_role public.app_role := public.require_role('owner', 'manager', 'inventory');
+  v_fx jsonb := '[]'::jsonb;
+  v_n integer;
+  v_order public.orders;
+  v_po public.purchase_orders;
+  v_line record;
+  v_ing public.ingredients;
+  v_mv public.stock_movements;
+  v_pay public.payroll;
+  v_exp public.expenses;
+  v_emp public.employees_meta;
+  v_child uuid;
+begin
+  if v_role = 'inventory' and p_entity not in ('purchase_order', 'stock_count', 'stock_movement', 'ingredient', 'supplier') then
+    raise exception 'FORBIDDEN' using errcode = '42501';
+  end if;
+
+  case p_entity
+  -- ---------------------------------------------------------------- order
+  when 'order' then
+    select * into v_order from public.orders where id = p_id for update;
+    if not found then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    v_fx := public.movement_effects(p_id);
+    if v_order.status not in ('cancelled', 'refunded') then
+      v_fx := v_fx || jsonb_build_object('t', 'money', 'what', 'sales', 'amount', -v_order.total);
+    end if;
+    select count(*) into v_n from public.payments where order_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'payments', 'count', v_n); end if;
+    if v_order.shift_id is not null and exists (select 1 from public.cash_shifts where id = v_order.shift_id and closed_at is not null) then
+      v_fx := v_fx || jsonb_build_object('t', 'note', 'what', 'shift_recalc');
+    end if;
+    if not p_dry_run then
+      perform public.undo_movements(p_id);
+      delete from public.notifications where ref_id = p_id;
+      delete from public.orders where id = p_id; -- items + payments cascade
+      if v_order.shift_id is not null then perform public.refresh_shift_totals(v_order.shift_id); end if;
+    end if;
+
+  -- ------------------------------------------------------- purchase order
+  when 'purchase_order' then
+    select * into v_po from public.purchase_orders where id = p_id for update;
+    if not found then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    if v_po.status = 'received' then
+      v_fx := public.movement_effects(p_id);
+      for v_line in
+        select poi.cost_before, i.name_ar, i.cost_per_unit from public.purchase_order_items poi
+        join public.ingredients i on i.id = poi.ingredient_id
+        where poi.purchase_order_id = p_id and poi.cost_before is not null and poi.cost_before <> i.cost_per_unit
+      loop
+        v_fx := v_fx || jsonb_build_object('t', 'cost', 'name', v_line.name_ar, 'from', v_line.cost_per_unit, 'to', v_line.cost_before);
+      end loop;
+    end if;
+    select count(*) into v_n from public.purchase_order_items where purchase_order_id = p_id;
+    v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'po_lines', 'count', v_n);
+    if not p_dry_run then
+      if v_po.status = 'received' then
+        update public.ingredients i set cost_per_unit = poi.cost_before
+        from public.purchase_order_items poi
+        where poi.purchase_order_id = p_id and poi.ingredient_id = i.id and poi.cost_before is not null;
+        perform public.undo_movements(p_id);
+      end if;
+      delete from public.purchase_orders where id = p_id;
+    end if;
+
+  -- ----------------------------------------------------------- stock count
+  when 'stock_count' then
+    if not exists (select 1 from public.stock_counts where id = p_id) then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    v_fx := public.movement_effects(p_id);
+    if not p_dry_run then
+      perform public.undo_movements(p_id);
+      delete from public.stock_counts where id = p_id;
+    end if;
+
+  -- -------------------------------------------- single adjustment / waste
+  when 'stock_movement' then
+    select * into v_mv from public.stock_movements where id = p_id;
+    if not found then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    if v_mv.ref_id is not null then
+      -- belongs to an order / purchase / stocktake: delete that instead
+      raise exception 'DELETE_PARENT' using errcode = '22023';
+    end if;
+    v_fx := public.movement_effects(null, p_id);
+    if not p_dry_run then perform public.undo_movements(null, p_id); end if;
+
+  -- --------------------------------------------------------------- expense
+  when 'expense' then
+    select * into v_exp from public.expenses where id = p_id;
+    if not found then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    v_fx := jsonb_build_array(jsonb_build_object('t', 'money', 'what', 'expenses', 'amount', -v_exp.amount));
+    if v_exp.payroll_id is not null then v_fx := v_fx || jsonb_build_object('t', 'note', 'what', 'payroll_unpaid'); end if;
+    if not p_dry_run then
+      if v_exp.payroll_id is not null then
+        update public.payroll set status = 'draft', paid_at = null where id = v_exp.payroll_id; -- trigger removes the expense
+      end if;
+      delete from public.expenses where id = p_id;
+    end if;
+
+  -- --------------------------------------------------------------- payroll
+  when 'payroll' then
+    select * into v_pay from public.payroll where id = p_id;
+    if not found then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    if v_pay.status = 'paid' then
+      v_fx := jsonb_build_array(jsonb_build_object('t', 'money', 'what', 'expenses', 'amount', -v_pay.net_amount));
+    end if;
+    if not p_dry_run then delete from public.payroll where id = p_id; end if; -- its expense cascades
+
+  -- --------------------------------------------------------------- catalog
+  when 'menu_item' then
+    if not exists (select 1 from public.menu_items where id = p_id) then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    select count(*) into v_n from public.recipe_items where menu_item_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'recipe_items', 'count', v_n); end if;
+    v_fx := v_fx || jsonb_build_object('t', 'note', 'what', 'history_kept');
+    if not p_dry_run then delete from public.menu_items where id = p_id; end if;
+
+  when 'category' then
+    if not exists (select 1 from public.categories where id = p_id) then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    select count(*) into v_n from public.menu_items where category_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'menu_items', 'count', v_n); end if;
+    if not p_dry_run then
+      delete from public.menu_items where category_id = p_id;
+      delete from public.categories where id = p_id;
+    end if;
+
+  when 'ingredient' then
+    select * into v_ing from public.ingredients where id = p_id;
+    if not found then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    select count(*) into v_n from public.recipe_items where ingredient_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'recipe_items', 'count', v_n); end if;
+    select count(*) into v_n from public.purchase_order_items where ingredient_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'po_lines', 'count', v_n); end if;
+    select count(*) into v_n from public.stock_movements where ingredient_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'movements', 'count', v_n); end if;
+    if not p_dry_run then
+      delete from public.recipe_items where ingredient_id = p_id;
+      delete from public.purchase_order_items where ingredient_id = p_id;
+      delete from public.ingredients where id = p_id;
+    end if;
+
+  when 'supplier' then
+    if not exists (select 1 from public.suppliers where id = p_id) then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    select count(*) into v_n from public.purchase_orders where supplier_id = p_id;
+    if v_n > 0 then
+      v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'purchase_orders', 'count', v_n);
+      for v_child in select id from public.purchase_orders where supplier_id = p_id and status = 'received' loop
+        v_fx := v_fx || public.movement_effects(v_child);
+      end loop;
+    end if;
+    if not p_dry_run then
+      for v_child in select id from public.purchase_orders where supplier_id = p_id loop
+        perform public.delete_record('purchase_order', v_child, false);
+      end loop;
+      delete from public.suppliers where id = p_id;
+    end if;
+
+  -- ------------------------------------------------------------------ staff
+  when 'employee' then
+    select * into v_emp from public.employees_meta where id = p_id;
+    if not found then raise exception 'NOT_FOUND' using errcode = 'P0002'; end if;
+    select count(*) into v_n from public.attendance where employee_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'attendance', 'count', v_n); end if;
+    select count(*) into v_n from public.work_shifts where employee_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'work_shifts', 'count', v_n); end if;
+    select count(*) into v_n from public.payroll where employee_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'rows', 'what', 'payroll', 'count', v_n); end if;
+    if v_emp.profile_id is not null then
+      if v_emp.profile_id = auth.uid() then raise exception 'CANNOT_DEMOTE_SELF' using errcode = '22023'; end if;
+      v_fx := v_fx || jsonb_build_object('t', 'note', 'what', 'account_disabled');
+    end if;
+    if not p_dry_run then
+      if v_emp.profile_id is not null then update public.profiles set is_active = false, pin_hash = null where id = v_emp.profile_id; end if;
+      delete from public.employees_meta where id = p_id;
+    end if;
+
+  when 'attendance' then
+    delete from public.attendance where id = p_id and not p_dry_run;
+  when 'work_shift' then
+    delete from public.work_shifts where id = p_id and not p_dry_run;
+
+  when 'cash_shift' then
+    select count(*) into v_n from public.orders where shift_id = p_id;
+    if v_n > 0 then v_fx := v_fx || jsonb_build_object('t', 'note', 'what', 'orders_unlinked'); end if;
+    if not p_dry_run then delete from public.cash_shifts where id = p_id; end if;
+
+  else
+    raise exception 'INVALID_ENTITY' using errcode = '22023';
+  end case;
+
+  if not p_dry_run then
+    perform public.write_audit('delete', p_entity, p_id, jsonb_build_object('effects', v_fx));
+  end if;
+  return v_fx;
+end;
+$$;
+
+revoke execute on function public.movement_effects(uuid, uuid), public.undo_movements(uuid, uuid), public.refresh_shift_totals(uuid)
+  from public, anon, authenticated;
+grant execute on function public.delete_record(text, uuid, boolean) to authenticated;
+
+
+-- >>> 20261112000010_activity_log.sql
+-- =====================================================================
+-- Activity log: every change is recorded in audit_log (who, when, what changed).
+-- Business functions already write explicit entries (voids, shifts, deletes, receipts…);
+-- these triggers add every direct create/edit/delete and every sale.
+-- =====================================================================
+
+create or replace function public.audit_row()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_new jsonb := case when tg_op <> 'DELETE' then to_jsonb(new) end;
+  v_old jsonb := case when tg_op <> 'INSERT' then to_jsonb(old) end;
+  v_skip text[] := array['created_at', 'updated_at', 'quantity', 'cost_cache', 'total', 'pin_hash', 'read_by', 'last_login_at'];
+  v_details jsonb;
+  v_label text;
+begin
+  if tg_op = 'UPDATE' then
+    select jsonb_object_agg(key, jsonb_build_object('from', v_old -> key, 'to', value)) into v_details
+    from jsonb_each(v_new)
+    where key <> all (v_skip) and (v_old -> key) is distinct from value;
+    if v_details is null then
+      return null; -- only noise columns changed (e.g. stock quantity from a sale)
+    end if;
+  end if;
+  v_label := coalesce(v_new, v_old) ->> 'name_ar';
+  v_label := coalesce(v_label, coalesce(v_new, v_old) ->> 'full_name', coalesce(v_new, v_old) ->> 'name', coalesce(v_new, v_old) ->> 'note');
+  insert into public.audit_log (user_id, action, entity, entity_id, details)
+  values (auth.uid(), lower(tg_op), tg_table_name, ((coalesce(v_new, v_old)) ->> 'id')::uuid,
+          jsonb_build_object('label', v_label, 'changes', coalesce(v_details, '{}'::jsonb)));
+  return null;
+end;
+$$;
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array[
+    'menu_items', 'categories', 'ingredients', 'recipe_items', 'suppliers', 'expenses', 'employees_meta',
+    'restaurant_settings', 'attendance', 'work_shifts', 'payroll', 'purchase_orders'
+  ] loop
+    execute format('drop trigger if exists %I on public.%I', t || '_audit', t);
+    execute format('create trigger %I after insert or update or delete on public.%I for each row execute function public.audit_row()', t || '_audit', t);
+  end loop;
+end;
+$$;
+
+-- every sale
+create or replace function public.audit_sale()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.audit_log (user_id, action, entity, entity_id, details)
+  values (auth.uid(), 'sale', 'order', new.id,
+          jsonb_build_object('order_number', new.order_number, 'total', new.total, 'type', new.type, 'customer_phone', new.customer_phone));
+  return null;
+end;
+$$;
+drop trigger if exists orders_audit_sale on public.orders;
+create trigger orders_audit_sale after insert on public.orders for each row execute function public.audit_sale();
+
+revoke execute on function public.audit_row(), public.audit_sale() from public, anon, authenticated;
+
+
 -- >>> seed_catalog.sql
 -- =====================================================================
 -- MAX production starter catalog: settings, categories, 33 menu items,

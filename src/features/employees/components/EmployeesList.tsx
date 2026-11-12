@@ -10,7 +10,7 @@ import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useConfirm } from '@/app/providers/ConfirmProvider';
+import { useDeleteRecord } from '@/app/providers/DeleteProvider';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
 import { DataTable, type Column } from '@/components/ui/Table';
@@ -248,9 +248,9 @@ export function PinModal({ target, onClose }: { target: { id: string; name: stri
 export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow[]> }) {
   const t = useT();
   const { f } = useSettings();
-  const { role } = useAuth();
+  const { role, profile } = useAuth();
   const toast = useToast();
-  const confirm = useConfirm();
+  const removeRecord = useDeleteRecord();
   const openAtt = useQuery(fetchOpenAttendance, []);
   useLiveRefetch(['attendance'], openAtt.refetch);
   const [edit, setEdit] = useState<EmployeeRow | 'new' | null>(null);
@@ -267,11 +267,7 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
   };
 
   const remove = async (e: EmployeeRow) => {
-    if (!(await confirm({ title: t('common.delete'), body: t('employees.deleteConfirm', { name: e.full_name }), danger: true, confirmLabel: t('common.delete') }))) return;
-    const { error } = await supabase.from('employees_meta').delete().eq('id', e.id);
-    if (error) return toast.error(errorMessage(t, error));
-    toast.success(t('common.deleted'));
-    void employees.refetch();
+    if (await removeRecord('employee', e.id, e.full_name)) void employees.refetch();
   };
 
   const columns: Column<EmployeeRow>[] = [
@@ -331,7 +327,7 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
             role === 'owner' && <IconButton label={t('employees.createAccount')} size="sm" onClick={() => setAccount(e)}><UserPlus className="size-4" /></IconButton>
           )}
           <IconButton label={t('common.edit')} size="sm" onClick={() => setEdit(e)}><Pencil className="size-4" /></IconButton>
-          {!e.profile && <IconButton label={t('common.delete')} size="sm" className="hover:text-danger" onClick={() => void remove(e)}><Trash className="size-4" /></IconButton>}
+          {e.profile?.id !== profile?.id && <IconButton label={t('common.delete')} size="sm" className="hover:text-danger" onClick={() => void remove(e)}><Trash className="size-4" /></IconButton>}
         </div>
       ),
     },

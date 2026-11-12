@@ -198,10 +198,18 @@ export default function LoginPage() {
       {/* Brand side */}
       <div className="pattern relative hidden overflow-hidden border-s border-line bg-surface lg:block">
         <div className="relative flex h-full flex-col items-center justify-center p-12 text-center">
+          {/* Real photo at public/images/login-burger.jpg; falls back to the drawing if missing */}
           <motion.img
-            src="/images/hero-burger.svg"
+            src="/images/login-burger.jpg"
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (!img.src.endsWith('.svg')) {
+                img.src = '/images/hero-burger.svg';
+                img.className = 'w-[min(400px,72%)]';
+              }
+            }}
             alt=""
-            className="w-[min(400px,72%)]"
+            className="aspect-square w-[min(420px,76%)] rounded-[28px] object-cover shadow-[0_24px_60px_-24px_rgba(31,27,22,0.45)]"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}

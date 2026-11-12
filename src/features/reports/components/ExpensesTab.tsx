@@ -10,7 +10,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useConfirm } from '@/app/providers/ConfirmProvider';
+import { useDeleteRecord } from '@/app/providers/DeleteProvider';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
 import { DataTable, type Column } from '@/components/ui/Table';
@@ -91,8 +91,7 @@ function ExpenseModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
 export function ExpensesTab({ from, to, register }: { from: string; to: string; register: RegisterExport }) {
   const t = useT();
   const { f } = useSettings();
-  const toast = useToast();
-  const confirm = useConfirm();
+  const removeRecord = useDeleteRecord();
   const [adding, setAdding] = useState(false);
   const [viewing, setViewing] = useState<string | null>(null);
   const expenses = useQuery(async () => {
@@ -127,9 +126,7 @@ export function ExpensesTab({ from, to, register }: { from: string; to: string; 
   useEffect(() => register(spec), [register, spec]);
 
   const remove = async (e: Expense) => {
-    if (!(await confirm({ title: t('common.delete'), body: `${t(`expense.${e.category}`)} — ${f.money(Number(e.amount))}`, danger: true }))) return;
-    const { error } = await supabase.from('expenses').delete().eq('id', e.id);
-    if (error) return toast.error(errorMessage(t, error));
+    if (!(await removeRecord('expense', e.id, `${t(`expense.${e.category}`)} — ${f.money(Number(e.amount))}`))) return;
     void deleteImage(e.receipt_url);
     void expenses.refetch();
   };

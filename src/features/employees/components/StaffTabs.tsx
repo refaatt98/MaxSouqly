@@ -12,6 +12,7 @@ import { useAuth, PROFILE_COLUMNS } from '@/app/providers/AuthProvider';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
+import { useDeleteRecord } from '@/app/providers/DeleteProvider';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
 import { DataTable, type Column } from '@/components/ui/Table';
@@ -374,7 +375,6 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
   const { f } = useSettings();
   const { profile, role } = useAuth();
   const toast = useToast();
-  const confirm = useConfirm();
   const [from, setFrom] = useState(() => toISODate(addDays(new Date(), -6)));
   const [to, setTo] = useState(() => toISODate(new Date()));
   const names = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
@@ -394,10 +394,52 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
     toast.success(action === 'in' ? t('employees.clockedIn') : t('employees.clockedOut'));
     void rows.refetch();
   };
-  const remove = async (a: Attendance) => {
-    if (!(await confirm({ title: t('common.delete'), danger: true }))) return;
-    const { error } = await supabase.from('attendance').delete().eq('id', a.id);
+  const removeRecord = useDeleteRecord();
+  const manager = role === 'owner' || role === 'manager';
+  const [entry, setEntry] = useState<{ id: string | null; employee: string; day: string; inAt: string; outAt: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const hhmm = (iso: string) => {
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+  const openNew = () => {
+    const now = new Date();
+    setEntry({ id: null, employee: '', day: toISODate(now), inAt: hhmm(now.toISOString()), outAt: '' });
+  };
+  const openEdit = (a: Attendance) => {
+    if (!manager) return;
+    setEntry({ id: a.id, employee: a.employee_id, day: toISODate(new Date(a.clock_in)), inAt: hhmm(a.clock_in), outAt: a.clock_out ? hhmm(a.clock_out) : '' });
+  };
+  const saveEntry = async () => {
+    if (!entry) return;
+    if (!entry.employee) return toast.error(t('common.required'));
+    const inAt = new Date(`${entry.day}T${entry.inAt}`);
+    let outAt: Date | null = null;
+    if (entry.outAt) {
+      outAt = new Date(`${entry.day}T${entry.outAt}`);
+      if (outAt.getTime() === inAt.getTime()) return toast.error(t('att.outBeforeIn'));
+      if (outAt < inAt) outAt = addDays(outAt, 1); // overnight shift
+    }
+    const row = { employee_id: entry.employee, clock_in: inAt.toISOString(), clock_out: outAt ? outAt.toISOString() : null };
+    setSaving(true);
+    const { error } = entry.id ? await supabase.from('attendance').update(row).eq('id', entry.id) : await supabase.from('attendance').insert(row);
+    setSaving(false);
     if (error) return toast.error(errorMessage(t, error));
+    toast.success(t('common.saved'));
+    setEntry(null);
+    void rows.refetch();
+  };
+  const clockOutNow = async (a: Attendance) => {
+    const { error } = await supabase.from('attendance').update({ clock_out: new Date().toISOString() }).eq('id', a.id);
+    if (error) return toast.error(errorMessage(t, error));
+    toast.success(t('employees.clockedOut'));
+    void rows.refetch();
+  };
+  const clockInNow = async (employeeId: string) => {
+    const { error } = await supabase.from('attendance').insert({ employee_id: employeeId });
+    if (error) return toast.error(errorMessage(t, error));
+    toast.success(t('employees.clockedIn'));
+    setEntry(null);
     void rows.refetch();
   };
 
@@ -405,10 +447,50 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
   const columns: Column<Attendance>[] = [
     { key: 'emp', header: t('employees.shiftEmployee'), cell: (a) => <span className="font-semibold">{names.get(a.employee_id)?.full_name ?? t('common.unknown')}</span> },
     { key: 'in', header: t('employees.clockInAt'), cell: (a) => <span className="num">{f.dateTime(a.clock_in)}</span> },
-    { key: 'out', header: t('employees.clockOutAt'), cell: (a) => (a.clock_out ? <span className="num">{f.time(a.clock_out)}</span> : <Badge tone="blue">{t('employees.stillOnClock')}</Badge>) },
+    {
+      key: 'out',
+      header: t('employees.clockOutAt'),
+      cell: (a) =>
+        a.clock_out ? (
+          <span className="num">{f.time(a.clock_out)}</span>
+        ) : manager ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<LogOut className="size-4 rtl:-scale-x-100" />}
+            onClick={(e) => {
+              e.stopPropagation();
+              void clockOutNow(a);
+            }}
+          >
+            {t('att.nowOut')}
+          </Button>
+        ) : (
+          <Badge tone="blue">{t('employees.stillOnClock')}</Badge>
+        ),
+    },
     { key: 'dur', header: t('employees.duration'), align: 'end', cell: (a) => <span className="num font-semibold">{f.number(hoursBetween(a.clock_in, a.clock_out), 1)} {t('common.hoursShort')}</span> },
-    ...(role === 'owner' || role === 'manager'
-      ? [{ key: 'x', header: '', align: 'end' as const, cell: (a: Attendance) => <IconButton label={t('common.delete')} size="sm" className="hover:text-danger" onClick={() => void remove(a)}><Trash className="size-4" /></IconButton> }]
+    ...(manager
+      ? [
+          {
+            key: 'x',
+            header: '',
+            align: 'end' as const,
+            cell: (a: Attendance) => (
+              <IconButton
+                label={t('del.button')}
+                size="sm"
+                className="hover:text-danger"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void removeRecord('attendance', a.id, names.get(a.employee_id)?.full_name ?? '').then((ok) => ok && void rows.refetch());
+                }}
+              >
+                <Trash className="size-4" />
+              </IconButton>
+            ),
+          },
+        ]
       : []),
   ];
 
@@ -431,6 +513,11 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
       <div className="flex flex-wrap items-end gap-3">
         <TextInput type="date" label={t('common.from')} value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} />
         <TextInput type="date" label={t('common.to')} value={to} min={from} onChange={(e) => e.target.value && setTo(e.target.value)} />
+        {manager && (
+          <Button variant="primary" className="mb-0.5" onClick={openNew}>
+            {t('att.add')}
+          </Button>
+        )}
         <span className="num ms-auto pb-3 text-sm text-fg-2">{t('employees.hours')}: <b className="text-fg">{f.number(totalHours, 1)}</b></span>
         <Button
           className="mb-0.5"
@@ -446,8 +533,50 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
         </Button>
       </div>
       <Card className="overflow-hidden">
-        <DataTable columns={columns} rows={rows.data ?? []} rowKey={(a) => a.id} loading={rows.loading && !rows.data} empty={<EmptyState icon={<CalendarDays className="size-7" />} title={t('employees.attendanceEmpty')} />} />
+        <DataTable
+          columns={columns}
+          rows={rows.data ?? []}
+          rowKey={(a) => a.id}
+          onRowClick={manager ? openEdit : undefined}
+          loading={rows.loading && !rows.data}
+          empty={<EmptyState icon={<CalendarDays className="size-7" />} title={t('employees.attendanceEmpty')} />}
+        />
       </Card>
+      <Modal
+        open={entry !== null}
+        onClose={() => setEntry(null)}
+        size="sm"
+        title={entry?.id ? t('att.editTitle') : t('att.title')}
+        footer={
+          <>
+            {entry && !entry.id && entry.employee && !(rows.data ?? []).some((a) => a.employee_id === entry.employee && !a.clock_out) && (
+              <Button variant="secondary" className="me-auto" icon={<LogIn className="size-4 rtl:-scale-x-100" />} onClick={() => void clockInNow(entry.employee)}>
+                {t('att.nowIn')}
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setEntry(null)}>{t('common.cancel')}</Button>
+            <Button variant="primary" loading={saving} onClick={() => void saveEntry()}>{t('common.save')}</Button>
+          </>
+        }
+      >
+        {entry && (
+          <div className="space-y-3">
+            <Select
+              label={t('employees.shiftEmployee')}
+              value={entry.employee}
+              disabled={entry.id !== null}
+              placeholder="—"
+              onChange={(e) => setEntry({ ...entry, employee: e.target.value })}
+              options={employees.filter((e) => e.is_active || e.id === entry.employee).map((e) => ({ value: e.id, label: e.full_name }))}
+            />
+            <TextInput type="date" label={t('att.day')} value={entry.day} onChange={(e) => e.target.value && setEntry({ ...entry, day: e.target.value })} />
+            <div className="grid grid-cols-2 gap-3">
+              <TextInput type="time" label={t('att.in')} value={entry.inAt} onChange={(e) => e.target.value && setEntry({ ...entry, inAt: e.target.value })} />
+              <TextInput type="time" label={t('att.out')} hint={t('att.outHint')} value={entry.outAt} onChange={(e) => setEntry({ ...entry, outAt: e.target.value })} />
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -458,6 +587,7 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
   const { f } = useSettings();
   const toast = useToast();
   const confirm = useConfirm();
+  const removeRecord = useDeleteRecord();
   const [month, setMonth] = useState(() => toISODate(startOfMonth(new Date())).slice(0, 7));
   const period = `${month}-01`;
   const rows = useQuery(async () => {
@@ -518,15 +648,26 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
       key: 'act',
       header: '',
       align: 'end',
-      cell: (p) =>
-        p.status === 'draft' ? (
-          <div className="flex justify-end gap-1">
-            <Button size="sm" variant="ghost" onClick={() => setEdit(p)}>{t('common.edit')}</Button>
-            <Button size="sm" variant="success" icon={<HandCoins className="size-4" />} onClick={() => void markPaid(p)}>{t('employees.markPaid')}</Button>
-          </div>
-        ) : (
-          <span className="num text-xs text-fg-3">{p.paid_at ? f.date(p.paid_at) : ''}</span>
-        ),
+      cell: (p) => (
+        <div className="flex items-center justify-end gap-1">
+          {p.status === 'draft' ? (
+            <>
+              <Button size="sm" variant="ghost" onClick={() => setEdit(p)}>{t('common.edit')}</Button>
+              <Button size="sm" variant="success" icon={<HandCoins className="size-4" />} onClick={() => void markPaid(p)}>{t('employees.markPaid')}</Button>
+            </>
+          ) : (
+            <span className="num text-xs text-fg-3">{p.paid_at ? f.date(p.paid_at) : ''}</span>
+          )}
+          <IconButton
+            label={t('del.button')}
+            size="sm"
+            className="hover:text-danger"
+            onClick={() => void removeRecord('payroll', p.id, names.get(p.employee_id)?.full_name ?? '').then((ok) => ok && void rows.refetch())}
+          >
+            <Trash className="size-4" />
+          </IconButton>
+        </div>
+      ),
     },
   ];
 

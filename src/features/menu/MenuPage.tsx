@@ -11,7 +11,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useConfirm } from '@/app/providers/ConfirmProvider';
+import { useDeleteRecord } from '@/app/providers/DeleteProvider';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -26,13 +26,16 @@ import { ImageUploader, useImageField } from '@/components/ui/ImageUploader';
 import type { Category, MenuItem } from '@/types/models';
 
 async function fetchMenu() {
-  const [cats, items] = await Promise.all([
+  const [cats, items, recipes] = await Promise.all([
     supabase.from('categories').select('*').order('sort_order').order('name_ar'),
     supabase.from('menu_items').select('*').order('sort_order').order('name_ar'),
+    supabase.from('recipe_items').select('menu_item_id'),
   ]);
   if (cats.error) throw cats.error;
   if (items.error) throw items.error;
-  return { categories: cats.data, items: items.data };
+  // recipe_items may be hidden from some roles; a missing set just hides the badge
+  const withRecipe = recipes.error ? null : new Set(recipes.data.map((r) => r.menu_item_id));
+  return { categories: cats.data, items: items.data, withRecipe };
 }
 
 type ItemField = 'name_ar' | 'name_he' | 'price' | 'category_id' | 'description' | 'barcode' | 'sort_order';
@@ -239,7 +242,7 @@ export default function MenuPage() {
   const t = useT();
   const { f, name } = useSettings();
   const toast = useToast();
-  const confirm = useConfirm();
+  const removeRecord = useDeleteRecord();
   const [params, setParams] = useSearchParams();
   const menu = useQuery(fetchMenu, []);
   const [category, setCategory] = useState<string | null>(null);
@@ -267,7 +270,7 @@ export default function MenuPage() {
   }, [menu.data, category, search]);
 
   const toggleAvailable = async (item: MenuItem) => {
-    menu.setData((d) => ({ categories: d?.categories ?? [], items: (d?.items ?? []).map((i) => (i.id === item.id ? { ...i, is_available: !i.is_available } : i)) }));
+    menu.setData((d) => ({ categories: d?.categories ?? [], withRecipe: d?.withRecipe ?? null, items: (d?.items ?? []).map((i) => (i.id === item.id ? { ...i, is_available: !i.is_available } : i)) }));
     const { error } = await supabase.from('menu_items').update({ is_available: !item.is_available }).eq('id', item.id);
     if (error) {
       toast.error(errorMessage(t, error));
@@ -276,18 +279,13 @@ export default function MenuPage() {
   };
 
   const removeItem = async (item: MenuItem) => {
-    if (!(await confirm({ title: t('common.delete'), body: t('menu.deleteItemConfirm', { name: item.name_ar }), danger: true, confirmLabel: t('common.delete') }))) return;
-    const { error } = await supabase.from('menu_items').delete().eq('id', item.id);
-    if (error) return toast.error(errorMessage(t, error));
+    if (!(await removeRecord('menu_item', item.id, item.name_ar))) return;
     void deleteImage(item.image_url);
-    toast.success(t('common.deleted'));
     void menu.refetch();
   };
 
   const removeCategory = async (c: Category) => {
-    if (!(await confirm({ title: t('common.delete'), body: t('menu.deleteCategoryConfirm', { name: c.name_ar }), danger: true, confirmLabel: t('common.delete') }))) return;
-    const { error } = await supabase.from('categories').delete().eq('id', c.id);
-    if (error) return toast.error(errorMessage(t, error));
+    if (!(await removeRecord('category', c.id, c.name_ar))) return;
     if (category === c.id) setCategory(null);
     toast.success(t('common.deleted'));
     void menu.refetch();
@@ -359,6 +357,9 @@ export default function MenuPage() {
                         <span className="num text-[17px] font-medium text-fg">{f.money(Number(i.price))}</span>
                         <span className={cn('num text-xs', margin >= 40 ? 'text-fg-3' : 'text-danger')}>{t('menu.margin')} {f.percent(margin)}</span>
                       </div>
+                      {menu.data?.withRecipe && !menu.data.withRecipe.has(i.id) && (
+                        <p className="mt-1.5 text-xs text-warning">{t('menu.noRecipe')}</p>
+                      )}
                       <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
                         <Toggle checked={i.is_available} onChange={() => void toggleAvailable(i)} />
                         <div className="flex">

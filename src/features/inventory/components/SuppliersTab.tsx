@@ -6,7 +6,7 @@ import { errorMessage } from '@/lib/errors';
 import { hasErrors, v, type Errors } from '@/lib/validation';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useConfirm } from '@/app/providers/ConfirmProvider';
+import { useDeleteRecord } from '@/app/providers/DeleteProvider';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -80,16 +80,11 @@ function SupplierModal({ supplier, onClose, onSaved }: { supplier: Supplier | 'n
 export function SuppliersTab({ suppliers, ingredients }: { suppliers: QueryState<Supplier[]>; ingredients: Ingredient[] }) {
   const t = useT();
   const { f } = useSettings();
-  const toast = useToast();
-  const confirm = useConfirm();
+  const removeRecord = useDeleteRecord();
   const [edit, setEdit] = useState<Supplier | 'new' | null>(null);
 
   const remove = async (s: Supplier) => {
-    if (!(await confirm({ title: t('common.delete'), body: s.name, danger: true, confirmLabel: t('common.delete') }))) return;
-    const { error } = await supabase.from('suppliers').delete().eq('id', s.id);
-    if (error) return toast.error(errorMessage(t, error));
-    toast.success(t('common.deleted'));
-    void suppliers.refetch();
+    if (await removeRecord('supplier', s.id, s.name)) void suppliers.refetch();
   };
 
   return (
