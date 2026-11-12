@@ -24,7 +24,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       <div className={cn('flex h-16 items-center border-b border-line', collapsed ? 'justify-center' : 'justify-between ps-5 pe-3')}>
         {collapsed ? <span className="inline-block h-5 w-1.5 -skew-x-12 rounded-[2px] bg-brand" aria-label="MAX" /> : <BrandMark />}
         {!collapsed && (
-          <button type="button" onClick={onToggle} className="grid size-9 place-items-center rounded-btn text-fg-3 hover:bg-white/5 hover:text-fg" aria-label={t('nav.collapse')} title={t('nav.collapse')}>
+          <button type="button" onClick={onToggle} className="grid size-9 place-items-center rounded-btn text-fg-3 hover:bg-black/5 hover:text-fg" aria-label={t('nav.collapse')} title={t('nav.collapse')}>
             <PanelRightClose className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
           </button>
         )}
@@ -32,7 +32,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
 
       <nav className="no-scrollbar flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {collapsed && (
-          <button type="button" onClick={onToggle} className="mb-2 grid h-10 w-full place-items-center rounded-btn text-fg-3 hover:bg-white/5 hover:text-fg" aria-label={t('nav.expand')} title={t('nav.expand')}>
+          <button type="button" onClick={onToggle} className="mb-2 grid h-10 w-full place-items-center rounded-btn text-fg-3 hover:bg-black/5 hover:text-fg" aria-label={t('nav.expand')} title={t('nav.expand')}>
             <PanelRightOpen className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
           </button>
         )}
@@ -46,7 +46,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
               cn(
                 'relative flex h-10 items-center gap-2.5 rounded-btn text-sm transition-colors',
                 collapsed ? 'justify-center' : 'ps-4 pe-3',
-                isActive ? 'bg-elevated font-medium text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-white/[0.04] hover:text-fg',
+                isActive ? 'bg-elevated font-medium text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-black/[0.04] hover:text-fg',
               )
             }
           >
@@ -79,7 +79,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
           type="button"
           onClick={() => void signOut()}
           title={t('nav.logout')}
-          className={cn('flex h-10 w-full items-center gap-2.5 rounded-btn text-sm text-fg-3 transition-colors hover:bg-white/[0.04] hover:text-fg', collapsed ? 'justify-center' : 'px-3')}
+          className={cn('flex h-10 w-full items-center gap-2.5 rounded-btn text-sm text-fg-3 transition-colors hover:bg-black/[0.04] hover:text-fg', collapsed ? 'justify-center' : 'px-3')}
         >
           <LogOut className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
           {!collapsed && t('nav.logout')}

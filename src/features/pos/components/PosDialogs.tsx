@@ -153,7 +153,7 @@ export function SuccessOverlay({ info, onDone }: { info: SuccessInfo | null; onD
     <AnimatePresence>
       {info && (
         <motion.div
-          className="fixed inset-0 z-[58] grid place-items-center bg-black/70 p-6"
+          className="fixed inset-0 z-[58] grid place-items-center bg-black/45 p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

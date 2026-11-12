@@ -105,7 +105,7 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
                     const date = toISODate(d);
                     const list = cell(e.id, date);
                     return (
-                      <td key={date} className={cn('h-16 border-b border-s border-line p-1 align-top', date === today && 'bg-white/[0.02]')}>
+                      <td key={date} className={cn('h-16 border-b border-s border-line p-1 align-top', date === today && 'bg-black/[0.02]')}>
                         <div className="flex h-full flex-col gap-1">
                           {list.map((s) => (
                             <button
@@ -123,7 +123,7 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
                               type="button"
                               aria-label={t('employees.addShift')}
                               onClick={() => setDraft({ employee_id: e.id, date, start: '10:00', end: '18:00', notes: '' })}
-                              className="h-full min-h-10 w-full rounded-btn text-lg text-transparent transition-colors hover:bg-white/5 hover:text-fg-3"
+                              className="h-full min-h-10 w-full rounded-btn text-lg text-transparent transition-colors hover:bg-black/5 hover:text-fg-3"
                             >
                               +
                             </button>

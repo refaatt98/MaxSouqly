@@ -83,7 +83,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
         >
-          <div className="absolute inset-0 bg-black/60" onClick={close} aria-hidden />
+          <div className="absolute inset-0 bg-black/35" onClick={close} aria-hidden />
           <motion.div
             ref={ref}
             role="dialog"
@@ -111,7 +111,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
                     type="button"
                     onClick={onClose}
                     aria-label={t('common.close')}
-                    className="grid size-10 shrink-0 place-items-center rounded-btn text-fg-3 hover:bg-white/5 hover:text-fg"
+                    className="grid size-10 shrink-0 place-items-center rounded-btn text-fg-3 hover:bg-black/5 hover:text-fg"
                   >
                     <X className="size-5" />
                   </button>
@@ -144,7 +144,7 @@ export function Drawer({ open, onClose, title, children, footer, width = 'max-w-
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-black/55" onClick={onClose} aria-hidden />
+          <div className="absolute inset-0 bg-black/35" onClick={onClose} aria-hidden />
           <motion.aside
             ref={ref}
             role="dialog"
@@ -164,7 +164,7 @@ export function Drawer({ open, onClose, title, children, footer, width = 'max-w-
                 type="button"
                 onClick={onClose}
                 aria-label={t('common.close')}
-                className="grid size-10 place-items-center rounded-btn text-fg-3 hover:bg-white/5 hover:text-fg"
+                className="grid size-10 place-items-center rounded-btn text-fg-3 hover:bg-black/5 hover:text-fg"
               >
                 <X className="size-5" />
               </button>

@@ -356,7 +356,7 @@ export default function PosPage() {
               }}
               placeholder={t('pos.search')}
               aria-label={t('pos.search')}
-              className="h-12 w-full rounded-btn border border-line-strong bg-surface ps-11 pe-11 text-base placeholder:text-fg-3 focus:border-fg-3 focus:ring-2 focus:ring-white/10 focus:outline-none"
+              className="h-12 w-full rounded-btn border border-line-strong bg-surface ps-11 pe-11 text-base placeholder:text-fg-3 focus:border-fg-3 focus:ring-2 focus:ring-black/10 focus:outline-none"
             />
             <ScanBarcode className="pointer-events-none absolute end-3.5 top-1/2 size-5 -translate-y-1/2 text-fg-3" />
           </div>

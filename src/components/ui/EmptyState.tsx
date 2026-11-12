@@ -23,7 +23,7 @@ export function ErrorState({ message, onRetry, retryLabel }: { message: string; 
     <div role="alert" className="flex flex-col items-center gap-3 px-6 py-12 text-center">
       <p className="text-sm text-danger">{message}</p>
       {onRetry && (
-        <button type="button" onClick={onRetry} className="rounded-btn border border-line-strong px-4 py-2 text-sm text-fg hover:bg-white/5">
+        <button type="button" onClick={onRetry} className="rounded-btn border border-line-strong px-4 py-2 text-sm text-fg hover:bg-black/5">
           {retryLabel}
         </button>
       )}

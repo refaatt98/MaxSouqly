@@ -40,7 +40,7 @@ export function InventoryReportsTab() {
   const r = report.data;
   const waste = Number(r?.by_reason.find((x) => x.reason === 'waste')?.value ?? 0);
   // one meaning per color: waste is the figure that matters
-  const colors: Record<StockReason, string> = { sale: '#5c5750', purchase: '#4cc38a', adjustment: '#5c5750', waste: '#e5484d', void: '#5c5750' };
+  const colors: Record<StockReason, string> = { sale: '#b3aa9c', purchase: '#4cc38a', adjustment: '#b3aa9c', waste: '#e5484d', void: '#b3aa9c' };
 
   const exportCsv = () =>
     r &&

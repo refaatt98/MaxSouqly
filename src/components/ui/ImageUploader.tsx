@@ -105,7 +105,7 @@ export function ImageUploader({ value, onChange, folder, label, shape = 'square'
         >
           {shown ? <img src={shown} alt="" className="size-full object-contain p-1" /> : <ImagePlus className="size-8 text-fg-3" />}
           {progress !== null && (
-            <span className="absolute inset-0 grid place-items-center bg-black/60 text-xs font-semibold">
+            <span className="absolute inset-0 grid place-items-center bg-black/35 text-xs font-semibold">
               <LoaderCircle className="mb-1 size-5 animate-spin" />
               {t('upload.uploading', { progress })}
             </span>

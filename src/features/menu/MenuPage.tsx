@@ -314,7 +314,7 @@ export default function MenuPage() {
             <button
               type="button"
               onClick={() => setCategory(null)}
-              className={cn('flex h-10 w-full items-center gap-2.5 rounded-btn px-3 text-sm transition-colors', category === null ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-white/[0.04]')}
+              className={cn('flex h-10 w-full items-center gap-2.5 rounded-btn px-3 text-sm transition-colors', category === null ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-black/[0.04]')}
             >
               <UtensilsCrossed className="size-4" /> {t('common.all')}
               <span className="mono ms-auto text-xs text-fg-3">{menu.data?.items.length ?? 0}</span>
@@ -326,7 +326,7 @@ export default function MenuPage() {
                   onClick={() => setCategory(c.id)}
                   className={cn(
                     'flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-btn px-3 text-sm transition-colors',
-                    category === c.id ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-white/[0.04]',
+                    category === c.id ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-black/[0.04]',
                     !c.is_active && 'opacity-50',
                   )}
                 >

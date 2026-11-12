@@ -59,7 +59,7 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
       className="mb-2 touch-pan-y rounded-card border border-line bg-card p-2.5"
     >
       <div className="flex items-center gap-3">
-        <FoodImage src={line.item.image_url} alt="" className="size-14 shrink-0 rounded-btn bg-white/[0.03]" />
+        <FoodImage src={line.item.image_url} alt="" className="size-14 shrink-0 rounded-btn bg-black/[0.03]" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-fg">{name(line.item)}</p>
           <p className="num text-xs text-fg-3">{f.money(Number(line.item.price))}</p>

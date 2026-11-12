@@ -164,7 +164,7 @@ export function ExpensesTab({ from, to, register }: { from: string; to: string; 
         <CardHeader title={t('reports.expensesByCategory')} />
         <div className="p-5">
           {byCategory.length ? (
-            <ShareBars format={f.money} items={byCategory.map(([c, a]) => ({ label: t(`expense.${c}`), value: a, color: '#5c5750' }))} />
+            <ShareBars format={f.money} items={byCategory.map(([c, a]) => ({ label: t(`expense.${c}`), value: a, color: '#b3aa9c' }))} />
           ) : (
             <p className="text-sm text-fg-3">{t('reports.expensesEmpty')}</p>
           )}

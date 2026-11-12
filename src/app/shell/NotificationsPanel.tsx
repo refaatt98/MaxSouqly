@@ -77,9 +77,9 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
                 <button
                   type="button"
                   onClick={() => openItem(n)}
-                  className={cn('flex w-full items-start gap-3 border-b border-line px-4 py-3 text-start transition-colors hover:bg-white/[0.04]', isUnread(n) && 'bg-white/[0.02]')}
+                  className={cn('flex w-full items-start gap-3 border-b border-line px-4 py-3 text-start transition-colors hover:bg-black/[0.04]', isUnread(n) && 'bg-black/[0.02]')}
                 >
-                  <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-btn bg-white/5">{icon[n.type]}</span>
+                  <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-btn bg-black/5">{icon[n.type]}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm text-fg">{n.title}</span>
                     {n.body && <span className="block truncate text-xs text-fg-3">{n.body}</span>}

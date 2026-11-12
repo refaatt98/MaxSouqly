@@ -196,7 +196,7 @@ export default function LoginPage() {
       </div>
 
       {/* Brand side */}
-      <div className="relative hidden overflow-hidden border-s border-line bg-surface lg:block">
+      <div className="pattern relative hidden overflow-hidden border-s border-line bg-surface lg:block">
         <div className="relative flex h-full flex-col items-center justify-center p-12 text-center">
           <motion.img
             src="/images/hero-burger.svg"

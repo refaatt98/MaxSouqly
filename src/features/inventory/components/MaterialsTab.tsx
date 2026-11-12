@@ -279,7 +279,7 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
           {i.image_url ? (
             <img src={i.image_url} alt="" className="size-10 rounded-btn object-cover" />
           ) : (
-            <span className="grid size-10 place-items-center rounded-btn bg-white/5 text-fg-3"><Boxes className="size-5" /></span>
+            <span className="grid size-10 place-items-center rounded-btn bg-black/5 text-fg-3"><Boxes className="size-5" /></span>
           )}
           <div>
             <p className="text-fg">{name(i)}</p>

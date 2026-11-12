@@ -127,7 +127,7 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
                     label: t(`payment.${p.method}`),
                     value: Number(p.amount),
                     icon: p.method === 'cash' ? <Banknote className="size-4" /> : <CreditCard className="size-4" />,
-                    color: p.method === 'cash' ? '#aaa398' : '#5c5750',
+                    color: p.method === 'cash' ? '#7b7266' : '#b3aa9c',
                   }))}
                 />
                 <div>
@@ -157,8 +157,8 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
                       <span className="num text-fg">{f.money(Number(i.revenue))}</span>
                     </div>
                     <div className="mt-1 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
-                        <div className={cn('h-full rounded-full', idx === 0 ? 'bg-brand' : 'bg-[#5c5750]')} style={{ width: `${(i.qty / max) * 100}%` }} />
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/5">
+                        <div className={cn('h-full rounded-full', idx === 0 ? 'bg-brand' : 'bg-[#b3aa9c]')} style={{ width: `${(i.qty / max) * 100}%` }} />
                       </div>
                       <span className="num text-xs text-fg-3">{f.number(i.qty)} {t('reports.sold')}</span>
                     </div>
@@ -240,7 +240,7 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
           <div className="p-5">
             {p ? (
               p.expenses_by_category.length ? (
-                <ShareBars format={f.money} items={p.expenses_by_category.map((e) => ({ label: t(`expense.${e.category}`), value: Number(e.amount), color: '#5c5750' }))} />
+                <ShareBars format={f.money} items={p.expenses_by_category.map((e) => ({ label: t(`expense.${e.category}`), value: Number(e.amount), color: '#b3aa9c' }))} />
               ) : (
                 <EmptyState icon={<Receipt className="size-7" />} title={t('reports.expensesEmpty')} />
               )

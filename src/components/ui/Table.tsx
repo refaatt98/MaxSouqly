@@ -54,7 +54,7 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, loading, empty
               onClick={onRowClick ? () => onRowClick(r) : undefined}
               onKeyDown={onRowClick ? (e) => { if (e.key === 'Enter') onRowClick(r); } : undefined}
               tabIndex={onRowClick ? 0 : undefined}
-              className={cn('group transition-colors', onRowClick && 'cursor-pointer hover:bg-white/[0.03] focus-visible:bg-white/[0.05]', rowClassName?.(r))}
+              className={cn('group transition-colors', onRowClick && 'cursor-pointer hover:bg-black/[0.03] focus-visible:bg-black/[0.05]', rowClassName?.(r))}
             >
               {columns.map((c) => (
                 <td

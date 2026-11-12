@@ -273,7 +273,7 @@ export default function KitchenPage() {
   };
 
   return (
-    <div className="flex h-dvh flex-col bg-bg">
+    <div className="pattern flex h-dvh flex-col bg-bg">
       <header className="flex h-16 shrink-0 items-center gap-4 border-b border-line bg-surface px-5">
         <BrandMark />
         <h1 className="flex items-center gap-2 text-lg font-medium">

@@ -132,7 +132,7 @@ export function LineChart({ data, format, formatAxis, height = 260, className, e
           </defs>
           {geo.ticks.map((tk) => (
             <g key={tk.v}>
-              <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(239,233,222,0.07)" />
+              <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(31,27,22,0.08)" />
               <text x={width - 4} y={tk.y + 4} textAnchor="end" className="mono fill-fg-3 text-[11px]">
                 {(formatAxis ?? format)(tk.v)}
               </text>
@@ -164,10 +164,10 @@ export function LineChart({ data, format, formatAxis, height = 260, className, e
               transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             />
           )}
-          {tip && <line x1={tip.x} x2={tip.x} y1={PAD.top} y2={PAD.top + geo.innerH} stroke="rgba(239,233,222,0.14)" />}
+          {tip && <line x1={tip.x} x2={tip.x} y1={PAD.top} y2={PAD.top + geo.innerH} stroke="rgba(31,27,22,0.16)" />}
           {geo.pts.map((p, i) =>
             p ? (
-              <circle key={i} cx={p[0]} cy={p[1]} r={tip?.index === i ? 4.5 : 3} fill="#1b1a18" stroke="#E11D2E" strokeWidth={2} />
+              <circle key={i} cx={p[0]} cy={p[1]} r={tip?.index === i ? 4.5 : 3} fill="#fdfbf7" stroke="#E11D2E" strokeWidth={2} />
             ) : null,
           )}
         </svg>
@@ -216,7 +216,7 @@ export function BarChart({ data, format, formatAxis, height = 260, className, hi
         <svg width={width} height={height} className="overflow-visible" onPointerLeave={() => setTip(null)} role="img">
           {ticks.map((tk) => (
             <g key={tk.v}>
-              <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(239,233,222,0.07)" />
+              <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(31,27,22,0.08)" />
               <text x={width - 4} y={tk.y + 4} textAnchor="end" className="mono fill-fg-3 text-[11px]">
                 {(formatAxis ?? format)(tk.v)}
               </text>
@@ -233,7 +233,7 @@ export function BarChart({ data, format, formatAxis, height = 260, className, hi
                   x={x}
                   width={barW}
                   rx={Math.min(3, barW / 2)}
-                  fill={i === accentIndex ? '#E11D2E' : tip?.index === i ? '#5c5750' : '#3d3a36'}
+                  fill={i === accentIndex ? '#E11D2E' : tip?.index === i ? '#b3aa9c' : '#d6cfc3'}
                   initial={reduce ? false : { y: PAD.top + innerH, height: 0 }}
                   animate={{ y: PAD.top + innerH - h, height: h }}
                   transition={{ duration: 0.5, delay: reduce ? 0 : Math.min(i * 0.02, 0.3), ease: [0.22, 1, 0.36, 1] }}
@@ -274,7 +274,7 @@ export function RingGauge({ value, size = 180, stroke = 16, label, sublabel, for
   return (
     <div className="relative grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(239,233,222,0.07)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(31,27,22,0.08)" strokeWidth={stroke} />
         <motion.circle
           cx={size / 2}
           cy={size / 2}
@@ -335,7 +335,7 @@ export function Heatmap({ rows, cols, value, format, rowLabel, colLabel }: {
                     title={`${rowLabel(r)} ${colLabel(c)} — ${format(v)}`}
                     className="h-7 min-w-7 rounded-[4px]"
                     style={{
-                      background: v ? `rgba(225,29,46,${0.1 + a * 0.8})` : 'rgba(239,233,222,0.03)',
+                      background: v ? `rgba(225,29,46,${0.1 + a * 0.8})` : 'rgba(31,27,22,0.04)',
                     }}
                   />
                 );
@@ -366,10 +366,10 @@ export function ShareBars({ items, format }: { items: { label: string; value: nu
                 {format(it.value)} <span className="text-xs font-normal text-fg-3">· {pct.toFixed(0)}%</span>
               </span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+            <div className="h-1.5 overflow-hidden rounded-full bg-black/[0.05]">
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: it.color ?? '#5c5750' }}
+                style={{ background: it.color ?? '#b3aa9c' }}
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}

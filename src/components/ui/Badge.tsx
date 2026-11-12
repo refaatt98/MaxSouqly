@@ -4,11 +4,11 @@ import { cn } from '@/lib/cn';
 export type Tone = 'neutral' | 'red' | 'green' | 'gold' | 'blue' | 'amber';
 
 const tones: Record<Tone, string> = {
-  neutral: 'bg-white/[0.04] text-fg-2 border-line',
-  red: 'bg-danger/10 text-[#f08a8d] border-danger/20',
+  neutral: 'bg-black/[0.04] text-fg-2 border-line',
+  red: 'bg-danger/10 text-[#b91c1c] border-danger/20',
   green: 'bg-success/10 text-success border-success/20',
   gold: 'bg-warning/10 text-warning border-warning/20',
-  blue: 'bg-white/[0.04] text-fg-2 border-line',
+  blue: 'bg-black/[0.04] text-fg-2 border-line',
   amber: 'bg-warning/10 text-warning border-warning/20',
 };
 
@@ -35,7 +35,7 @@ export function CountBadge({ count, className, alert = false }: { count: number;
     <span
       className={cn(
         'mono inline-grid min-w-5 place-items-center rounded-[6px] px-1.5 text-[11px] leading-5 font-medium',
-        alert ? 'bg-brand text-white' : 'bg-white/[0.06] text-fg-2',
+        alert ? 'bg-brand text-white' : 'bg-black/[0.06] text-fg-2',
         className,
       )}
     >

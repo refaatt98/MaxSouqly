@@ -73,7 +73,7 @@ function QuickAction({ icon, label, count, onClick, to }: {
       {count !== undefined && count > 0 && <span className="mono text-[13px] text-fg-2">{count}</span>}
     </>
   );
-  const cls = 'flex h-12 items-center gap-2.5 rounded-btn px-3 transition-colors hover:bg-white/[0.04]';
+  const cls = 'flex h-12 items-center gap-2.5 rounded-btn px-3 transition-colors hover:bg-black/[0.04]';
   return to ? (
     <Link to={to} className={cls}>
       {inner}
@@ -216,7 +216,7 @@ export default function DashboardPage() {
             <QuickAction to="/reports" icon={<ChartColumn className="size-[18px]" strokeWidth={1.5} />} label={t('dashboard.quickReports')} />
           </div>
           {d && d.low_stock_count > 0 && (
-            <button type="button" onClick={() => navigate('/inventory?low=1')} className="mx-2 mb-2 flex h-12 w-[calc(100%-1rem)] items-center gap-2.5 rounded-btn px-3 text-sm transition-colors hover:bg-white/[0.04]">
+            <button type="button" onClick={() => navigate('/inventory?low=1')} className="mx-2 mb-2 flex h-12 w-[calc(100%-1rem)] items-center gap-2.5 rounded-btn px-3 text-sm transition-colors hover:bg-black/[0.04]">
               <span className="size-2 rounded-full bg-warning" aria-hidden />
               <span className="flex-1 text-start text-fg">{t('dashboard.lowStock')}</span>
               <span className="mono text-[13px] text-warning">{f.number(d.low_stock_count)}</span>
@@ -233,7 +233,7 @@ export default function DashboardPage() {
               <ul>
                 {recent.data.map((o) => (
                   <li key={o.id}>
-                    <Link to={`/orders?id=${o.id}`} className="flex items-center gap-3 rounded-btn px-2 py-2.5 hover:bg-white/[0.04]">
+                    <Link to={`/orders?id=${o.id}`} className="flex items-center gap-3 rounded-btn px-2 py-2.5 hover:bg-black/[0.04]">
                       <span className="mono min-w-14 text-[13px] text-fg-2">#{f.digits(o.order_number)}</span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm text-fg">{t(`order.type.${o.type}`)}{o.table_no ? ` · ${t('order.table', { table: f.digits(o.table_no) })}` : ''}</span>
