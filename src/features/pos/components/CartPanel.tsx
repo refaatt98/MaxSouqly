@@ -250,7 +250,6 @@ export function CartPanel(p: CartPanelProps) {
         <div className="flex items-end justify-between pt-1">
           <div>
             <p className="text-sm text-fg-2">{t('pos.grandTotal')}</p>
-            <p className="text-[11px] text-fg-3">{t('pos.vatIncluded', { rate: f.number(p.vatPercent) })}</p>
           </div>
           <motion.p key={totals.total} initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className="num text-[30px] leading-none font-medium text-fg">
             {f.money(totals.total)}
