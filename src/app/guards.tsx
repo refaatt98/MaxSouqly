@@ -12,7 +12,7 @@ export function FullScreenLoader() {
     <div className="grid min-h-dvh place-items-center bg-bg" role="status" aria-label={t('app.loading')}>
       <div className="flex flex-col items-center gap-5">
         <BrandMark size="lg" />
-        <div className="h-1 w-40 overflow-hidden rounded-full bg-black/5">
+        <div className="h-1 w-40 overflow-hidden rounded-full bg-fg/5">
           <div className="skeleton h-full w-full" />
         </div>
       </div>

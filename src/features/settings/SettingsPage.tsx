@@ -373,7 +373,7 @@ function AboutTab() {
   return (
     <Card className="relative overflow-hidden p-8">
       <div className="relative flex flex-col items-start gap-6 md:flex-row md:items-center">
-        <img src="/images/hero-burger.svg" alt="" className="w-36" />
+        <img src="/images/login-burger.webp" alt="" className="w-40 drop-shadow-[0_16px_18px_rgba(0,0,0,0.45)]" />
         <div className="flex-1">
           <BrandMark size="lg" withSlogan />
           <p className="mt-4 max-w-xl text-fg-2">{t('settings.aboutBody')}</p>

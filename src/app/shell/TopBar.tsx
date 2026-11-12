@@ -58,7 +58,7 @@ export function TopBar({ onOpenCommand }: { onOpenCommand: () => void }) {
             <Command className="size-3" />K
           </kbd>
         </button>
-        <button type="button" onClick={onOpenCommand} className="grid size-10 place-items-center rounded-btn text-fg-2 hover:bg-black/5 lg:hidden" aria-label={t('topbar.commandHint')}>
+        <button type="button" onClick={onOpenCommand} className="grid size-10 place-items-center rounded-btn text-fg-2 hover:bg-fg/5 lg:hidden" aria-label={t('topbar.commandHint')}>
           <Search className="size-5" />
         </button>
         <ConnectionPill />
@@ -68,7 +68,7 @@ export function TopBar({ onOpenCommand }: { onOpenCommand: () => void }) {
             onClick={() => setPanelOpen((v) => !v)}
             aria-label={t('topbar.notifications')}
             aria-expanded={panelOpen}
-            className="relative grid size-10 place-items-center rounded-btn text-fg-2 transition-colors hover:bg-black/5 hover:text-fg"
+            className="relative grid size-10 place-items-center rounded-btn text-fg-2 transition-colors hover:bg-fg/5 hover:text-fg"
           >
             <Bell className="size-[18px]" strokeWidth={1.5} />
             <CountBadge count={unread} alert className="absolute -end-1 -top-1" />

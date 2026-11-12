@@ -157,7 +157,7 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
                       <span className="num text-fg">{f.money(Number(i.revenue))}</span>
                     </div>
                     <div className="mt-1 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/5">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-fg/5">
                         <div className={cn('h-full rounded-full', idx === 0 ? 'bg-brand' : 'bg-[#b3aa9c]')} style={{ width: `${(i.qty / max) * 100}%` }} />
                       </div>
                       <span className="num text-xs text-fg-3">{f.number(i.qty)} {t('reports.sold')}</span>

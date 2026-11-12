@@ -111,7 +111,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
                     type="button"
                     onClick={onClose}
                     aria-label={t('common.close')}
-                    className="grid size-10 shrink-0 place-items-center rounded-btn text-fg-3 hover:bg-black/5 hover:text-fg"
+                    className="grid size-10 shrink-0 place-items-center rounded-btn text-fg-3 hover:bg-fg/5 hover:text-fg"
                   >
                     <X className="size-5" />
                   </button>
@@ -164,7 +164,7 @@ export function Drawer({ open, onClose, title, children, footer, width = 'max-w-
                 type="button"
                 onClick={onClose}
                 aria-label={t('common.close')}
-                className="grid size-10 place-items-center rounded-btn text-fg-3 hover:bg-black/5 hover:text-fg"
+                className="grid size-10 place-items-center rounded-btn text-fg-3 hover:bg-fg/5 hover:text-fg"
               >
                 <X className="size-5" />
               </button>

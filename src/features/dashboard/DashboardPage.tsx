@@ -203,7 +203,7 @@ export default function DashboardPage() {
                 <MonitorSmartphone className="size-4" /> {t('dashboard.heroCta')}
               </Link>
             </div>
-            <img src="/images/hero-burger.svg" alt="" className="w-36 shrink-0 sm:w-44" />
+            <img src="/images/login-burger.webp" alt="" className="w-36 shrink-0 drop-shadow-[0_16px_18px_rgba(0,0,0,0.45)] sm:w-48" />
           </div>
         </motion.div>
 

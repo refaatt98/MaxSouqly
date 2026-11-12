@@ -131,7 +131,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                         }}
                         className={cn('flex h-12 w-full items-center gap-3 rounded-btn px-3 text-start text-sm', i === active ? 'bg-elevated text-fg' : 'text-fg-2')}
                       >
-                        <span className="grid size-8 place-items-center rounded-btn bg-black/5">{e.icon}</span>
+                        <span className="grid size-8 place-items-center rounded-btn bg-fg/5">{e.icon}</span>
                         <span className="flex-1 truncate">{e.label}</span>
                         {e.hint && <span className="num text-xs text-fg-3">{e.hint}</span>}
                         {i === active && <CornerDownLeft className="size-4 text-fg-3" />}

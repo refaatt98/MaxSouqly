@@ -124,7 +124,7 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
                               type="button"
                               aria-label={t('employees.addShift')}
                               onClick={() => setDraft({ employee_id: e.id, date, start: '10:00', end: '18:00', notes: '' })}
-                              className="h-full min-h-10 w-full rounded-btn text-lg text-transparent transition-colors hover:bg-black/5 hover:text-fg-3"
+                              className="h-full min-h-10 w-full rounded-btn text-lg text-transparent transition-colors hover:bg-fg/5 hover:text-fg-3"
                             >
                               +
                             </button>
