@@ -16,6 +16,7 @@ export type Database = {
           notes: string;
           created_at: string;
           updated_at: string;
+          absent: boolean;
         };
         Insert: {
           id?: string;
@@ -25,6 +26,7 @@ export type Database = {
           notes?: string;
           created_at?: string;
           updated_at?: string;
+          absent?: boolean;
         };
         Update: {
           id?: string;
@@ -34,6 +36,7 @@ export type Database = {
           notes?: string;
           created_at?: string;
           updated_at?: string;
+          absent?: boolean;
         };
         Relationships: [
           { foreignKeyName: "attendance_employee_id_fkey"; columns: ["employee_id"]; isOneToOne: false; referencedRelation: "employees_meta"; referencedColumns: ["id"] },
@@ -1287,14 +1290,19 @@ export type Database = {
       cost_data: { Args: Record<PropertyKey, never>; Returns: Json };
       create_stock_count: { Args: { p_notes?: string }; Returns: string };
       current_user_role: { Args: Record<PropertyKey, never>; Returns: Database["public"]["Enums"]["app_role"] };
+      daily_report: { Args: { p_date?: string }; Returns: Json };
+      dashboard_extra: { Args: Record<PropertyKey, never>; Returns: Json };
       dashboard_today: { Args: Record<PropertyKey, never>; Returns: Json };
       delete_record: { Args: { p_entity: string; p_id: string; p_dry_run?: boolean }; Returns: Json };
+      delete_records: { Args: { p_entity: string; p_ids: string[]; p_dry_run?: boolean }; Returns: Json };
       find_customers: { Args: { p_query: string }; Returns: Json };
       get_order: { Args: { p_order_id: string }; Returns: Json };
       has_perm: { Args: { p: string }; Returns: boolean };
       has_role: { Args: { roles: Database["public"]["Enums"]["app_role"][] }; Returns: boolean };
       import_backup: { Args: { p_data: Json }; Returns: Json };
+      inventory_insights: { Args: { p_days?: number }; Returns: Json };
       is_manager: { Args: Record<PropertyKey, never>; Returns: boolean };
+      kiosk_absent: { Args: { p_employee_id: string; p_date?: string }; Returns: Json };
       kiosk_clock: { Args: { p_employee_id: string; p_action: string }; Returns: Json };
       local_date: { Args: { p_ts: string }; Returns: string };
       log_pos_cancel: { Args: { p_reason: string; p_items: number; p_total: number }; Returns: undefined };
@@ -1307,15 +1315,22 @@ export type Database = {
       po_item_costs: { Args: { p_po_id: string }; Returns: Json };
       range_end: { Args: { p_to: string }; Returns: string };
       range_start: { Args: { p_from: string }; Returns: string };
+      receive_goods: { Args: { p_lines: Json; p_supplier_id: string; p_date: string; p_notes?: string }; Returns: string };
       receive_purchase_order: { Args: { p_po_id: string }; Returns: Database["public"]["Tables"]["purchase_orders"]["Row"] };
       record_advance: { Args: { p_employee_id: string; p_amount: number; p_note?: string }; Returns: string };
       replace_order_item: { Args: { p_item_id: string; p_menu_item_id: string; p_quantity: number; p_notes: string; p_reason: string }; Returns: Json };
+      report_cash: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_cashiers: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_employees: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_hourly: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_inventory: { Args: { p_from: string; p_to: string }; Returns: Json };
+      report_orders: { Args: { p_from: string; p_to: string }; Returns: Json };
+      report_payments: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_profit: { Args: { p_from: string; p_to: string }; Returns: Json };
+      report_purchases: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_sales: { Args: { p_from: string; p_to: string }; Returns: Json };
+      report_staff: { Args: { p_from: string; p_to: string }; Returns: Json };
+      report_tax: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_top_items: { Args: { p_from: string; p_to: string; p_limit?: number }; Returns: Json };
       require_perm: { Args: { p: string }; Returns: undefined };
       restaurant_tz: { Args: Record<PropertyKey, never>; Returns: string };

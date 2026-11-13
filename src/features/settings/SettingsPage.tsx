@@ -19,6 +19,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Tabs } from '@/components/ui/Tabs';
 import { PrintersTab } from './PrintersTab';
+import { InstallCard } from '@/app/shell/InstallCard';
 import { Button } from '@/components/ui/Button';
 import { TextInput, Textarea } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
@@ -395,7 +396,10 @@ function AboutTab() {
           <p className="mono mt-4 text-sm text-fg-3">{t('app.version')}</p>
         </div>
       </div>
-      <div className="relative mt-8 grid gap-4 md:grid-cols-2">
+      <div className="relative mt-8">
+        <InstallCard />
+      </div>
+      <div className="relative mt-4 grid gap-4 md:grid-cols-2">
         <div className="rounded-card border border-line bg-surface p-4">
           <p className="mb-3 text-sm text-fg-3">{t('settings.shortcuts')}</p>
           <ul className="space-y-2 text-sm">

@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useCosts } from '@/hooks/useCosts';
+import { useAuth } from '@/app/providers/AuthProvider';
 import { usePermissions } from '@/app/providers/PermissionsProvider';
 import { errorMessage } from '@/lib/errors';
 import { useQuery } from '@/hooks/useQuery';
@@ -11,10 +12,10 @@ import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
-import { DataTable, type Column } from '@/components/ui/Table';
+import { DataTable, type Column, BulkBar, useSelection } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { TextInput } from '@/components/ui/Input';
@@ -194,15 +195,22 @@ function CountEditor({ count, ingredients, onClose, onChanged }: { count: StockC
   );
 }
 
+type Counted = StockCount & { creator?: { full_name: string } | null; approver?: { full_name: string } | null };
+
 export function StocktakeTab({ ingredients, onChanged }: { ingredients: Ingredient[]; onChanged: () => void }) {
   const t = useT();
+  const { role } = useAuth();
   const { f } = useSettings();
   const toast = useToast();
   const removeRecord = useDeleteRecord();
   const counts = useQuery(async () => {
-    const { data, error } = await supabase.from('stock_counts').select('*').order('created_at', { ascending: false }).limit(50);
+    const { data, error } = await supabase
+      .from('stock_counts')
+      .select('*, creator:profiles!stock_counts_created_by_fkey(full_name), approver:profiles!stock_counts_applied_by_fkey(full_name)')
+      .order('created_at', { ascending: false })
+      .limit(50);
     if (error) throw error;
-    return data;
+    return data as unknown as (StockCount & { creator: { full_name: string } | null; approver: { full_name: string } | null })[];
   }, []);
   useLiveRefetch(['stock_counts'], counts.refetch);
   const [open, setOpen] = useState<StockCount | null>(null);
@@ -221,7 +229,20 @@ export function StocktakeTab({ ingredients, onChanged }: { ingredients: Ingredie
   const columns: Column<StockCount>[] = [
     { key: 'date', header: t('common.date'), cell: (c) => <span className="num">{f.dateTime(c.created_at)}</span> },
     { key: 'status', header: t('common.status'), cell: (c) => <Badge tone={c.status === 'applied' ? 'green' : 'amber'}>{t(`count.status.${c.status}`)}</Badge> },
-    { key: 'applied', header: t('count.apply'), hideBelow: 'sm', cell: (c) => (c.applied_at ? <span className="num text-fg-2">{f.dateTime(c.applied_at)}</span> : t('common.none')) },
+    { key: 'by', header: t('count.enteredBy'), hideBelow: 'sm', cell: (c) => <span className="text-fg-2">{(c as Counted).creator?.full_name ?? '—'}</span> },
+    {
+      key: 'applied',
+      header: t('count.apply'),
+      hideBelow: 'sm',
+      cell: (c) =>
+        c.applied_at ? (
+          <span className="text-fg-2">
+            <span className="num">{f.dateTime(c.applied_at)}</span> · {(c as Counted).approver?.full_name ?? ''}
+          </span>
+        ) : (
+          t('common.none')
+        ),
+    },
     {
       key: 'x',
       header: '',
@@ -247,13 +268,23 @@ export function StocktakeTab({ ingredients, onChanged }: { ingredients: Ingredie
     },
   ];
 
+  const sel6 = useSelection((counts.data ?? []).map((x) => x.id));
+  const removeMany6 = useDeleteMany();
+  const bulkDelete6 = () =>
+    void removeMany6('stock_count', [...sel6.ids]).then((ok) => {
+      if (ok) {
+        sel6.clear();
+        void counts.refetch(); onChanged();
+      }
+    });
+
   return (
     <>
       <div className="mb-4 flex justify-end">
         <Button variant="primary" loading={creating} onClick={() => void start()}>{t('count.new')}</Button>
       </div>
       <Card className="overflow-hidden">
-        <DataTable
+        <DataTable selection={role !== 'cashier' ? sel6 : undefined}
           columns={columns}
           rows={counts.data ?? []}
           rowKey={(c) => c.id}
@@ -262,6 +293,7 @@ export function StocktakeTab({ ingredients, onChanged }: { ingredients: Ingredie
           empty={<EmptyState icon={<ClipboardCheck className="size-7" />} title={t('count.empty')} />}
         />
       </Card>
+      {role !== 'cashier' && <BulkBar selection={sel6} onDelete={bulkDelete6} />}
       <CountEditor
         count={open}
         ingredients={ingredients}

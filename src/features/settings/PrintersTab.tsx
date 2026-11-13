@@ -16,6 +16,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Select, TextInput } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { BulkBar, SelectBox, useSelection } from '@/components/ui/Table';
+import { cn } from '@/lib/cn';
 import type { Printer } from '@/types/models';
 
 type Form = { name: string; kind: 'kitchen' | 'receipt'; connection: 'wifi' | 'bluetooth' | 'usb'; address: string; paper_width: '80' | '58'; is_active: boolean };
@@ -68,6 +70,15 @@ export function PrintersTab() {
     void list.refetch();
   };
 
+  const prSel = useSelection((list.data ?? []).map((p) => p.id));
+  const bulkDelete = async () => {
+    if (!(await confirm({ title: t('printers.deleteMany', { count: prSel.count }), body: t('printers.deleteBody'), danger: true }))) return;
+    const { error } = await supabase.from('printers').delete().in('id', [...prSel.ids]);
+    if (error) return toast.error(errorMessage(t, error));
+    prSel.clear();
+    void list.refetch();
+  };
+
   const testPrint = (p: Printer) =>
     void printHtml(
       `<div style="text-align:center;font-size:22px;font-weight:800">MAX</div><hr><div style="text-align:center;font-size:18px">${p.name}</div><div style="text-align:center">${t('printers.testLine')}</div><div style="text-align:center">${new Date().toLocaleString()}</div>`,
@@ -100,7 +111,8 @@ export function PrintersTab() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {(list.data ?? []).map((p) => (
-            <Card key={p.id} className="flex items-center gap-3 p-4">
+            <Card key={p.id} className={cn('flex items-center gap-3 p-4', prSel.has(p.id) && 'border-brand/60 bg-brand/[0.06]')}>
+              <SelectBox checked={prSel.has(p.id)} onChange={(on) => prSel.toggle(p.id, on)} label={`${t('bulk.selectRow')} ${p.name}`} />
               <PrinterIcon className="size-6 shrink-0 text-fg-3" strokeWidth={1.5} />
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-2 text-fg">
@@ -118,6 +130,7 @@ export function PrintersTab() {
           ))}
         </div>
       )}
+      <BulkBar selection={prSel} onDelete={() => void bulkDelete()} />
       <Modal
         open={edit !== null}
         onClose={() => setEdit(null)}

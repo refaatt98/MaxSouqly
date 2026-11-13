@@ -10,12 +10,12 @@ import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useCosts } from '@/hooks/useCosts';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
-import { DataTable, type Column } from '@/components/ui/Table';
+import { DataTable, SelectBox, type Column, BulkBar, useSelection } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Drawer, Modal } from '@/components/ui/Modal';
 import { Select, TextInput } from '@/components/ui/Input';
@@ -210,9 +210,30 @@ function HistoryDrawer({ material, onClose }: { material: Ingredient | null; onC
   const removeRecord = useDeleteRecord();
   const { role } = useAuth();
   const canDelete = role === 'owner' || role === 'manager' || role === 'inventory';
+  const deletable = (history.data ?? []).filter((m) => !m.ref_id && (m.reason === 'adjustment' || m.reason === 'waste'));
+  const mvSel = useSelection(deletable.map((m) => m.id));
+  const removeMany = useDeleteMany();
   const tone = { sale: 'neutral', purchase: 'green', adjustment: 'blue', waste: 'red', void: 'gold' } as const;
   return (
     <Drawer open={material !== null} onClose={onClose} title={material ? t('inventory.historyTitle', { name: material.name_ar }) : ''}>
+      {canDelete && mvSel.count > 0 && (
+        <div className="mb-3 flex justify-end">
+          <Button
+            size="sm"
+            variant="danger"
+            icon={<Trash className="size-4" />}
+            onClick={() =>
+              void removeMany('stock_movement', [...mvSel.ids]).then((ok) => {
+                if (!ok) return;
+                mvSel.clear();
+                void history.refetch();
+              })
+            }
+          >
+            {t('bulk.delete')} ({f.number(mvSel.count)})
+          </Button>
+        </div>
+      )}
       {history.loading ? (
         <SkeletonRows rows={8} />
       ) : (history.data ?? []).length === 0 ? (
@@ -221,6 +242,9 @@ function HistoryDrawer({ material, onClose }: { material: Ingredient | null; onC
         <ul className="divide-y divide-line">
           {(history.data ?? []).map((m) => (
             <li key={m.id} className="flex items-center gap-3 py-3">
+              {canDelete && !m.ref_id && (m.reason === 'adjustment' || m.reason === 'waste') && (
+                <SelectBox checked={mvSel.has(m.id)} onChange={(on) => mvSel.toggle(m.id, on)} label={t('bulk.selectRow')} />
+              )}
               <Badge tone={tone[m.reason]}>{t(`inventory.reason.${m.reason}`)}</Badge>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm">{m.note || t('common.none')}</p>
@@ -311,6 +335,8 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
       ),
     },
     { key: 'min', header: t('inventory.minQty'), hideBelow: 'sm', cell: (i) => <span className="num text-fg-2">{f.number(Number(i.min_quantity), 3)}</span> },
+    { key: 'sup', header: t('inventory.supplier'), hideBelow: 'lg', cell: (i) => <span className="text-fg-2">{(i.supplier_id && supplierName.get(i.supplier_id)) || '—'}</span> },
+    { key: 'upd', header: t('inventory.lastUpdate'), hideBelow: 'md', cell: (i) => <span className="num text-xs text-fg-3">{f.dateTime(i.updated_at)}</span> },
     ...(costs.allowed
       ? ([
           { key: 'cost', header: t('inventory.costPerUnit'), hideBelow: 'md', cell: (i: Ingredient) => <span className="num text-fg-2">{f.money(costs.ingredient(i.id) ?? 0)}</span> },
@@ -356,6 +382,16 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
       ]),
     );
 
+  const sel7 = useSelection((rows).map((x) => x.id));
+  const removeMany7 = useDeleteMany();
+  const bulkDelete7 = () =>
+    void removeMany7('ingredient', [...sel7.ids]).then((ok) => {
+      if (ok) {
+        sel7.clear();
+        void ingredients.refetch();
+      }
+    });
+
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -371,7 +407,7 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
         {ingredients.error && !ingredients.data ? (
           <ErrorState message={errorMessage(t, ingredients.error)} onRetry={() => void ingredients.refetch()} retryLabel={t('common.retry')} />
         ) : (
-          <DataTable
+          <DataTable selection={(role === 'owner' || role === 'manager') ? sel7 : undefined}
             columns={columns}
             rows={rows}
             rowKey={(i) => i.id}
@@ -382,6 +418,7 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
           />
         )}
       </Card>
+      {(role === 'owner' || role === 'manager') && <BulkBar selection={sel7} onDelete={bulkDelete7} />}
       <MaterialModal material={edit} suppliers={suppliers} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); void ingredients.refetch(); }} />
       <AdjustModal material={adjust} onClose={() => setAdjust(null)} onSaved={() => { setAdjust(null); void ingredients.refetch(); }} />
       <HistoryDrawer material={history} onClose={() => setHistory(null)} />

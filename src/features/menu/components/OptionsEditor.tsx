@@ -10,6 +10,7 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { Select, TextInput } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
 import type { MenuItemOption, Printer } from '@/types/models';
+import { SelectBox, useSelection } from '@/components/ui/Table';
 
 /** Extras a customer can add to one menu item (cheese, sauce…), each with its own price. Saved as you go. */
 export function OptionsEditor({ menuItemId }: { menuItemId: string }) {
@@ -44,6 +45,13 @@ export function OptionsEditor({ menuItemId }: { menuItemId: string }) {
       void list.refetch();
     }
   };
+  const sel = useSelection((list.data ?? []).map((o) => o.id));
+  const removeSelected = async () => {
+    const { error } = await supabase.from('menu_item_options').delete().in('id', [...sel.ids]);
+    if (error) return toast.error(errorMessage(t, error));
+    sel.clear();
+    void list.refetch();
+  };
   const remove = async (o: MenuItemOption) => {
     const { error } = await supabase.from('menu_item_options').delete().eq('id', o.id);
     if (error) return toast.error(errorMessage(t, error));
@@ -52,11 +60,19 @@ export function OptionsEditor({ menuItemId }: { menuItemId: string }) {
 
   return (
     <section className="rounded-card border border-line bg-card p-3">
-      <h3 className="text-sm text-fg">{t('opts.title')}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm text-fg">{t('opts.title')}</h3>
+        {sel.count > 0 && (
+          <Button size="sm" variant="danger" icon={<Trash className="size-3.5" />} onClick={() => void removeSelected()}>
+            {t('bulk.delete')} ({f.number(sel.count)})
+          </Button>
+        )}
+      </div>
       <p className="mb-3 text-xs text-fg-3">{t('opts.hint')}</p>
       <ul className="space-y-2">
         {(list.data ?? []).map((o) => (
           <li key={o.id} className="flex items-center gap-2">
+            <SelectBox checked={sel.has(o.id)} onChange={(on) => sel.toggle(o.id, on)} label={`${t('bulk.selectRow')} ${o.name_ar}`} />
             <input
               defaultValue={o.name_ar}
               aria-label={t('common.name')}

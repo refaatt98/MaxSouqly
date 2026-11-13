@@ -10,10 +10,10 @@ import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
-import { DataTable, type Column } from '@/components/ui/Table';
+import { DataTable, type Column, BulkBar, useSelection } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Modal } from '@/components/ui/Modal';
@@ -32,7 +32,7 @@ function EmployeeModal({ employee, onClose, onSaved }: { employee: EmployeeRow |
   const toast = useToast();
   const editing = employee !== null && employee !== 'new' ? employee : null;
   const avatar = useImageField(editing?.avatar_url ?? null);
-  const [form, setForm] = useState<Record<Field, string>>({ full_name: '', position: '', phone: '', salary_type: 'monthly', salary_amount: '0', hire_date: toISODate(new Date()) });
+  const [form, setForm] = useState<Record<Field, string>>({ full_name: '', position: '', phone: '', salary_type: 'daily', salary_amount: '0', hire_date: toISODate(new Date()) });
   const [active, setActive] = useState(true);
   const [errors, setErrors] = useState<Errors<Field>>({});
   const [pending, setPending] = useState(false);
@@ -43,7 +43,7 @@ function EmployeeModal({ employee, onClose, onSaved }: { employee: EmployeeRow |
       full_name: editing?.full_name ?? '',
       position: editing?.position ?? '',
       phone: editing?.phone ?? '',
-      salary_type: editing?.salary_type ?? 'monthly',
+      salary_type: editing?.salary_type ?? 'daily',
       salary_amount: String(editing?.salary_amount ?? 0),
       hire_date: editing?.hire_date ?? toISODate(new Date()),
     });
@@ -110,9 +110,10 @@ function EmployeeModal({ employee, onClose, onSaved }: { employee: EmployeeRow |
           value={form.salary_type}
           onChange={(e) => set('salary_type', e.target.value)}
           options={[
-            { value: 'monthly', label: t('employees.salary.monthly') },
             { value: 'daily', label: t('employees.salary.daily') },
             { value: 'hourly', label: t('employees.salary.hourly') },
+            // older records only: the system pays by the day or by the hour
+            ...(form.salary_type === 'monthly' ? [{ value: 'monthly', label: t('employees.salary.monthly') }] : []),
           ]}
         />
         <TextInput
@@ -337,6 +338,16 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
     },
   ];
 
+  const sel1 = useSelection((employees.data ?? []).map((x) => x.id));
+  const removeMany1 = useDeleteMany();
+  const bulkDelete1 = () =>
+    void removeMany1('employee', [...sel1.ids]).then((ok) => {
+      if (ok) {
+        sel1.clear();
+        void employees.refetch();
+      }
+    });
+
   return (
     <>
       <div className="mb-4 flex justify-end gap-2">
@@ -347,7 +358,7 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
         {employees.error && !employees.data ? (
           <ErrorState message={errorMessage(t, employees.error)} onRetry={() => void employees.refetch()} retryLabel={t('common.retry')} />
         ) : (
-          <DataTable
+          <DataTable selection={(role === 'owner' || role === 'manager') ? sel1 : undefined} canSelect={(e) => e.profile?.id !== profile?.id}
             columns={columns}
             rows={employees.data ?? []}
             rowKey={(e) => e.id}
@@ -357,6 +368,7 @@ export function EmployeesList({ employees }: { employees: QueryState<EmployeeRow
           />
         )}
       </Card>
+      {(role === 'owner' || role === 'manager') && <BulkBar selection={sel1} onDelete={bulkDelete1} />}
       <EmployeeModal employee={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); void employees.refetch(); }} />
       <AccountModal employee={account} onClose={() => setAccount(null)} onSaved={() => { setAccount(null); void employees.refetch(); }} />
       <PinModal target={pinTarget} onClose={() => setPinTarget(null)} />

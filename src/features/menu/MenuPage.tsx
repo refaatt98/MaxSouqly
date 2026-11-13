@@ -13,7 +13,8 @@ import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteMany, useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { BulkBar, SelectBox, useSelection } from '@/components/ui/Table';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -306,6 +307,23 @@ export default function MenuPage() {
     void menu.refetch();
   };
 
+  const itemSel = useSelection(items.map((i) => i.id));
+  const catSel = useSelection((menu.data?.categories ?? []).map((c) => c.id));
+  const removeMany = useDeleteMany();
+  const bulkItems = () =>
+    void removeMany('menu_item', [...itemSel.ids]).then((ok) => {
+      if (!ok) return;
+      itemSel.clear();
+      void menu.refetch();
+    });
+  const bulkCategories = () =>
+    void removeMany('category', [...catSel.ids]).then((ok) => {
+      if (!ok) return;
+      if (category && catSel.has(category)) setCategory(null);
+      catSel.clear();
+      void menu.refetch();
+    });
+
   const removeCategory = async (c: Category) => {
     if (!(await removeRecord('category', c.id, c.name_ar))) return;
     if (category === c.id) setCategory(null);
@@ -340,7 +358,8 @@ export default function MenuPage() {
               <span className="mono ms-auto text-xs text-fg-3">{menu.data?.items.length ?? 0}</span>
             </button>
             {(menu.data?.categories ?? []).map((c) => (
-              <div key={c.id} className="group flex items-center">
+              <div key={c.id} className={cn('group flex items-center gap-1 rounded-btn ps-2', catSel.has(c.id) && 'bg-brand/[0.06]')}>
+                <SelectBox checked={catSel.has(c.id)} onChange={(on) => catSel.toggle(c.id, on)} label={`${t('bulk.selectRow')} ${name(c)}`} />
                 <button
                   type="button"
                   onClick={() => setCategory(c.id)}
@@ -360,7 +379,20 @@ export default function MenuPage() {
             ))}
           </Card>
           <div>
-            <TextInput icon={<Search className="size-4" />} placeholder={t('common.search')} value={search} onChange={(e) => setSearch(e.target.value)} className="mb-4" aria-label={t('common.search')} />
+            <div className="mb-4 flex items-center gap-3">
+              <TextInput icon={<Search className="size-4" />} placeholder={t('common.search')} value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1" aria-label={t('common.search')} />
+              {items.length > 0 && (
+                <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-fg-2">
+                  <SelectBox
+                    checked={items.every((i) => itemSel.has(i.id))}
+                    indeterminate={items.some((i) => itemSel.has(i.id))}
+                    onChange={(on) => itemSel.setAll(items.map((i) => i.id), on)}
+                    label={t('bulk.selectAll')}
+                  />
+                  {t('bulk.selectAll')}
+                </label>
+              )}
+            </div>
             {menu.loading && !menu.data ? (
               <SkeletonGrid count={8} />
             ) : items.length === 0 ? (
@@ -371,7 +403,10 @@ export default function MenuPage() {
                   const cost = costs.menuItem(i.id);
                   const margin = cost !== null && Number(i.price) > 0 ? ((Number(i.price) - cost) / Number(i.price)) * 100 : null;
                   return (
-                    <Card key={i.id} className={cn('flex flex-col p-3', !i.is_available && 'opacity-60')}>
+                    <Card key={i.id} className={cn('relative flex flex-col p-3', !i.is_available && 'opacity-60', itemSel.has(i.id) && 'border-brand/60 bg-brand/[0.06]')}>
+                      <span className="absolute start-4 top-4 z-[1] grid size-7 place-items-center rounded-btn bg-card/90">
+                        <SelectBox checked={itemSel.has(i.id)} onChange={(on) => itemSel.toggle(i.id, on)} label={`${t('bulk.selectRow')} ${name(i)}`} />
+                      </span>
                       <button type="button" onClick={() => setEditItem(i)} className="text-start">
                         <FoodImage src={i.image_url} alt="" className="aspect-[4/3] w-full rounded-btn" />
                         <p className="mt-2 truncate text-fg">{name(i)}</p>
@@ -398,6 +433,7 @@ export default function MenuPage() {
           </div>
         </div>
       )}
+      {catSel.count > 0 ? <BulkBar selection={catSel} onDelete={bulkCategories} /> : <BulkBar selection={itemSel} onDelete={bulkItems} />}
       <ItemModal
         printers={menu.data?.printers ?? []}
         item={editItem}

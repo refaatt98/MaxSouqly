@@ -6,7 +6,9 @@ import { errorMessage } from '@/lib/errors';
 import { hasErrors, v, type Errors } from '@/lib/validation';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteMany, useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { BulkBar, SelectBox, useSelection } from '@/components/ui/Table';
+import { cn } from '@/lib/cn';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -80,6 +82,14 @@ function SupplierModal({ supplier, onClose, onSaved }: { supplier: Supplier | 'n
 export function SuppliersTab({ suppliers, ingredients }: { suppliers: QueryState<Supplier[]>; ingredients: Ingredient[] }) {
   const t = useT();
   const { f } = useSettings();
+  const supSel = useSelection((suppliers.data ?? []).map((x) => x.id));
+  const removeMany = useDeleteMany();
+  const bulkDelete = () =>
+    void removeMany('supplier', [...supSel.ids]).then((ok) => {
+      if (!ok) return;
+      supSel.clear();
+      void suppliers.refetch();
+    });
   const removeRecord = useDeleteRecord();
   const [edit, setEdit] = useState<Supplier | 'new' | null>(null);
 
@@ -101,7 +111,8 @@ export function SuppliersTab({ suppliers, ingredients }: { suppliers: QueryState
           {(suppliers.data ?? []).map((s) => {
             const count = ingredients.filter((i) => i.supplier_id === s.id).length;
             return (
-              <Card key={s.id} className="p-5">
+              <Card key={s.id} className={cn('relative p-5', supSel.has(s.id) && 'border-brand/60 bg-brand/[0.06]')}>
+                <SelectBox className="absolute end-3 bottom-3" checked={supSel.has(s.id)} onChange={(on) => supSel.toggle(s.id, on)} label={`${t('bulk.selectRow')} ${s.name}`} />
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <span className="grid size-10 place-items-center rounded-btn border border-line bg-elevated text-fg-3"><Truck className="size-[1.125rem]" strokeWidth={1.5} /></span>
@@ -127,6 +138,7 @@ export function SuppliersTab({ suppliers, ingredients }: { suppliers: QueryState
           })}
         </div>
       )}
+      <BulkBar selection={supSel} onDelete={bulkDelete} />
       <SupplierModal supplier={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); void suppliers.refetch(); }} />
     </>
   );

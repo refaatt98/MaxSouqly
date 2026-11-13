@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Info, Trash } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/errors';
@@ -24,20 +24,52 @@ type Effect =
 
 interface Pending {
   entity: DeletableEntity;
-  id: string;
+  ids: string[];
   name: string;
   effects: Effect[] | null;
   resolve: (deleted: boolean) => void;
 }
 
 type DeleteFn = (entity: DeletableEntity, id: string, name: string) => Promise<boolean>;
+type DeleteManyFn = (entity: DeletableEntity, ids: string[]) => Promise<boolean>;
 
-const DeleteContext = createContext<DeleteFn | null>(null);
+const DeleteContext = createContext<{ one: DeleteFn; many: DeleteManyFn } | null>(null);
 
-async function run(entity: DeletableEntity, id: string, dryRun: boolean): Promise<Effect[]> {
-  const { data, error } = await supabase.rpc('delete_record', { p_entity: entity, p_id: id, p_dry_run: dryRun });
+async function run(entity: DeletableEntity, ids: string[], dryRun: boolean): Promise<Effect[]> {
+  if (ids.length === 1) {
+    const { data, error } = await supabase.rpc('delete_record', { p_entity: entity, p_id: ids[0], p_dry_run: dryRun });
+    if (error) throw error;
+    return (data ?? []) as unknown as Effect[];
+  }
+  // several at once: one transaction, all or nothing
+  const { data, error } = await supabase.rpc('delete_records', { p_entity: entity, p_ids: ids, p_dry_run: dryRun });
   if (error) throw error;
-  return (data ?? []) as unknown as Effect[];
+  return mergeEffects(((data as { effects?: Effect[] } | null)?.effects ?? []) as Effect[]);
+}
+
+/** Combine the effects of many records into one list (stock per material, money per kind, rows per kind). */
+function mergeEffects(list: Effect[]): Effect[] {
+  const stock = new Map<string, Extract<Effect, { t: 'stock' }>>();
+  const money = new Map<string, number>();
+  const rows = new Map<string, number>();
+  const notes = new Set<string>();
+  const costs: Effect[] = [];
+  for (const e of list) {
+    if (e.t === 'stock') {
+      const cur = stock.get(e.name);
+      stock.set(e.name, cur ? { ...cur, change: Number(cur.change) + Number(e.change) } : { ...e, change: Number(e.change) });
+    } else if (e.t === 'money') money.set(e.what, (money.get(e.what) ?? 0) + Number(e.amount));
+    else if (e.t === 'rows') rows.set(e.what, (rows.get(e.what) ?? 0) + Number(e.count));
+    else if (e.t === 'note') notes.add(e.what);
+    else costs.push(e);
+  }
+  return [
+    ...[...stock.values()].filter((e) => Math.abs(e.change) > 0.0005),
+    ...costs,
+    ...[...money.entries()].map(([what, amount]) => ({ t: 'money' as const, what: what as 'sales' | 'expenses', amount })),
+    ...[...rows.entries()].map(([what, count]) => ({ t: 'rows' as const, what, count })),
+    ...[...notes].map((what) => ({ t: 'note' as const, what })),
+  ];
 }
 
 /**
@@ -52,13 +84,14 @@ export function DeleteProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const current = useRef<Pending | null>(null);
 
-  const remove = useCallback<DeleteFn>(
-    (entity, id, name) =>
+  const start = useCallback(
+    (entity: DeletableEntity, ids: string[], name: string) =>
       new Promise<boolean>((resolve) => {
-        const p: Pending = { entity, id, name, effects: null, resolve };
+        if (ids.length === 0) return resolve(false);
+        const p: Pending = { entity, ids, name, effects: null, resolve };
         current.current = p;
         setPending(p);
-        run(entity, id, true)
+        run(entity, ids, true)
           .then((effects) => {
             if (current.current === p) setPending({ ...p, effects });
           })
@@ -71,6 +104,9 @@ export function DeleteProvider({ children }: { children: ReactNode }) {
       }),
     [t, toast],
   );
+  const remove = useCallback<DeleteFn>((entity, id, name) => start(entity, [id], name), [start]);
+  const removeMany = useCallback<DeleteManyFn>((entity, ids) => start(entity, ids, t('bulk.items', { count: f.number(ids.length) })), [start, t, f]);
+  const api = useMemo(() => ({ one: remove, many: removeMany }), [remove, removeMany]);
 
   const close = (deleted: boolean) => {
     pending?.resolve(deleted);
@@ -82,7 +118,7 @@ export function DeleteProvider({ children }: { children: ReactNode }) {
     if (!pending) return;
     setBusy(true);
     try {
-      await run(pending.entity, pending.id, false);
+      await run(pending.entity, pending.ids, false);
       toast.success(t('del.done'));
       close(true);
     } catch (err) {
@@ -116,7 +152,7 @@ export function DeleteProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DeleteContext.Provider value={remove}>
+    <DeleteContext.Provider value={api}>
       {children}
       <Modal
         open={pending !== null}
@@ -175,5 +211,12 @@ export function DeleteProvider({ children }: { children: ReactNode }) {
 export function useDeleteRecord(): DeleteFn {
   const ctx = useContext(DeleteContext);
   if (!ctx) throw new Error('useDeleteRecord must be used inside DeleteProvider');
-  return ctx;
+  return ctx.one;
+}
+
+/** Delete several records of one kind with one combined preview; all or nothing. */
+export function useDeleteMany(): DeleteManyFn {
+  const ctx = useContext(DeleteContext);
+  if (!ctx) throw new Error('useDeleteMany must be used inside DeleteProvider');
+  return ctx.many;
 }

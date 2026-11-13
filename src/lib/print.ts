@@ -15,7 +15,7 @@ function escapeHtml(s: string | number | null | undefined): string {
 const FONT_LINK =
   '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Heebo:wght@400;600;700&display=swap">';
 
-export function printHtml(body: string, css: string, lang = 'ar'): Promise<void> {
+export function printHtml(body: string, css: string, lang = 'ar', title = 'MAX'): Promise<void> {
   return new Promise((resolve) => {
     const iframe = document.createElement('iframe');
     iframe.setAttribute('aria-hidden', 'true');
@@ -30,7 +30,7 @@ export function printHtml(body: string, css: string, lang = 'ar'): Promise<void>
     }
     doc.open();
     doc.write(
-      `<!doctype html><html lang="${lang}" dir="rtl"><head><meta charset="utf-8">${FONT_LINK}<style>${css}</style></head><body>${body}</body></html>`,
+      `<!doctype html><html lang="${lang}" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>${FONT_LINK}<style>${css}</style></head><body>${body}</body></html>`,
     );
     doc.close();
 
@@ -320,7 +320,7 @@ export function printA4Report(
   title: string,
   meta: string[],
   sections: ReportSection[],
-  ctx: { settings: Settings | null },
+  ctx: { settings: Settings | null; title?: string },
   lang = 'ar',
 ): Promise<void> {
   const body = `
@@ -342,5 +342,5 @@ export function printA4Report(
     )
     .join('')}
   <footer>MAX v1.0.0 — Powered by Souqly</footer>`;
-  return printHtml(body, A4_CSS, lang);
+  return printHtml(body, A4_CSS, lang, ctx.title ?? title);
 }

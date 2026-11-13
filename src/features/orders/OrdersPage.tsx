@@ -15,12 +15,12 @@ import { useRealtime } from '@/hooks/useRealtime';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { EditOrderModal, type EditableOrder } from './components/EditOrderModal';
 import { cn } from '@/lib/cn';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
-import { DataTable, type Column } from '@/components/ui/Table';
+import { DataTable, type Column, BulkBar, SelectBox, useSelection } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Select, TextInput, Textarea } from '@/components/ui/Input';
@@ -45,7 +45,7 @@ interface Filters {
   payment: string;
 }
 
-function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null; onClose: () => void; onChanged: () => void }) {
+export function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null; onClose: () => void; onChanged: () => void }) {
   const { t, lang } = useI18n();
   const { f, settings, name } = useSettings();
   const { role, profile } = useAuth();
@@ -528,6 +528,16 @@ export default function OrdersPage() {
     { key: 'void', label: t('orders.statusVoid') },
   ];
 
+  const sel4 = useSelection((rows).map((x) => x.id));
+  const removeMany4 = useDeleteMany();
+  const bulkDelete4 = () =>
+    void removeMany4('order', [...sel4.ids]).then((ok) => {
+      if (ok) {
+        sel4.clear();
+        void orders.refetch();
+      }
+    });
+
   return (
     <div>
       <PageHeader
@@ -541,13 +551,20 @@ export default function OrdersPage() {
       />
 
       {/* summary */}
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[
-          [t('reports.ordersCount'), f.number(valid.length)],
-          [t('reports.totalSales'), f.money(total)],
-          [t('reports.avgTicket'), f.money(valid.length ? total / valid.length : 0)],
-          [t('orders.statusVoid'), f.number(counts.void)],
-        ].map(([label, value]) => (
+      <div className={cn('mb-4 grid grid-cols-2 gap-3', isManager ? 'md:grid-cols-4' : 'md:grid-cols-2')}>
+        {/* cashiers never see sales totals — only how many orders */}
+        {(isManager
+          ? [
+              [t('reports.ordersCount'), f.number(valid.length)],
+              [t('reports.totalSales'), f.money(total)],
+              [t('reports.avgTicket'), f.money(valid.length ? total / valid.length : 0)],
+              [t('orders.statusVoid'), f.number(counts.void)],
+            ]
+          : [
+              [t('reports.ordersCount'), f.number(valid.length)],
+              [t('orders.statusVoid'), f.number(counts.void)],
+            ]
+        ).map(([label, value]) => (
           <Card key={label} className="px-4 py-3">
             <p className="text-[0.8125rem] text-fg-2">{label}</p>
             <p className="num mt-1 text-[1.375rem] leading-tight font-medium text-fg">{value}</p>
@@ -641,8 +658,13 @@ export default function OrdersPage() {
             {/* phones: cards */}
             <ul className="divide-y divide-line md:hidden">
               {rows.map((o) => (
-                <li key={o.id}>
-                  <button type="button" onClick={() => openOrder(o.id)} className="w-full px-4 py-3 text-start">
+                <li key={o.id} className={cn('flex items-start', sel4.has(o.id) && 'bg-brand/[0.06]')}>
+                  {isManager && (
+                    <span className="ps-4 pt-4">
+                      <SelectBox checked={sel4.has(o.id)} onChange={(on) => sel4.toggle(o.id, on)} label={`${t('bulk.selectRow')} #${o.order_number}`} />
+                    </span>
+                  )}
+                  <button type="button" onClick={() => openOrder(o.id)} className="min-w-0 flex-1 px-4 py-3 text-start">
                     <div className="flex items-center justify-between gap-2">
                       <span className="mono text-fg">#{f.digits(o.order_number)}</span>
                       <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge>
@@ -662,7 +684,7 @@ export default function OrdersPage() {
               {!orders.loading && rows.length === 0 && <EmptyState icon={<ClipboardList className="size-6" />} title={t('orders.empty')} />}
             </ul>
             <div className="hidden md:block">
-              <DataTable
+              <DataTable selection={isManager ? sel4 : undefined}
                 columns={columns}
                 rows={rows}
                 rowKey={(o) => o.id}
@@ -680,6 +702,7 @@ export default function OrdersPage() {
           </div>
         )}
       </Card>
+      {isManager && <BulkBar selection={sel4} onDelete={bulkDelete4} />}
       <OrderDetails orderId={selectedId} onClose={() => openOrder(null)} onChanged={() => void orders.refetch()} />
     </div>
   );

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { BookOpen, Boxes, ChartColumn, ClipboardCheck, ShoppingBag, Truck } from 'lucide-react';
+import { BookOpen, Boxes, ChartColumn, ClipboardCheck, ShoppingBag, Truck, PackageCheck } from 'lucide-react';
 import { useT } from '@/i18n';
 import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch, useRealtime } from '@/hooks/useRealtime';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Button } from '@/components/ui/Button';
+import { ReceiveGoodsModal } from './components/ReceiveGoodsModal';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { Tabs } from '@/components/ui/Tabs';
 import { fetchIngredients, fetchSuppliers, stockLevel } from './api';
@@ -29,6 +31,7 @@ export default function InventoryPage() {
   const ingredients = useQuery(fetchIngredients, []);
   const suppliers = useQuery(fetchSuppliers, []);
   const [newPo, setNewPo] = useState(false);
+  const [receiving, setReceiving] = useState(false);
 
   // live stock levels (sales on the POS deduct stock in real time)
   useRealtime({ table: 'ingredients' }, (p) => {
@@ -55,7 +58,23 @@ export default function InventoryPage() {
 
   return (
     <div>
-      <PageHeader title={t('inventory.title')} icon={<Boxes className="size-6" />} subtitle={lowCount > 0 ? t('inventory.lowCount', { count: lowCount }) : undefined} />
+      <PageHeader
+        title={t('inventory.title')}
+        icon={<Boxes className="size-6" />}
+        subtitle={lowCount > 0 ? t('inventory.lowCount', { count: lowCount }) : undefined}
+        actions={
+          <Button variant="primary" icon={<PackageCheck className="size-4" />} onClick={() => setReceiving(true)}>
+            {t('recv.title')}
+          </Button>
+        }
+      />
+      <ReceiveGoodsModal
+        open={receiving}
+        ingredients={ingredients.data ?? []}
+        suppliers={suppliers.data ?? []}
+        onClose={() => setReceiving(false)}
+        onSaved={() => void ingredients.refetch()}
+      />
       <Tabs
         className="mb-5"
         layoutId="inv-tabs"

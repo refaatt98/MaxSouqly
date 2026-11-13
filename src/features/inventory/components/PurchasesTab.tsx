@@ -12,10 +12,10 @@ import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
-import { DataTable, type Column } from '@/components/ui/Table';
+import { DataTable, type Column, BulkBar, useSelection } from '@/components/ui/Table';
 import { Badge, type Tone } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Select, TextInput, Textarea } from '@/components/ui/Input';
@@ -297,6 +297,16 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
     },
   ];
 
+  const sel8 = useSelection((orders.data ?? []).map((x) => x.id));
+  const removeMany8 = useDeleteMany();
+  const bulkDelete8 = () =>
+    void removeMany8('purchase_order', [...sel8.ids]).then((ok) => {
+      if (ok) {
+        sel8.clear();
+        void orders.refetch(); onChanged();
+      }
+    });
+
   return (
     <>
       <div className="mb-4 flex justify-end">
@@ -306,7 +316,7 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
         {orders.error && !orders.data ? (
           <ErrorState message={errorMessage(t, orders.error)} onRetry={() => void orders.refetch()} retryLabel={t('common.retry')} />
         ) : (
-          <DataTable
+          <DataTable selection={sel8}
             columns={columns}
             rows={orders.data ?? []}
             rowKey={(p) => p.id}
@@ -316,6 +326,7 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
           />
         )}
       </Card>
+      <BulkBar selection={sel8} onDelete={bulkDelete8} />
       <PoEditor
         po={edit}
         suppliers={suppliers}

@@ -12,10 +12,10 @@ import { useAuth, PROFILE_COLUMNS } from '@/app/providers/AuthProvider';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useConfirm } from '@/app/providers/ConfirmProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
-import { DataTable, type Column } from '@/components/ui/Table';
+import { DataTable, type Column, BulkBar, useSelection } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Modal } from '@/components/ui/Modal';
@@ -68,6 +68,16 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
 
   const cell = (empId: string, date: string) => (shifts.data ?? []).filter((s) => s.employee_id === empId && s.shift_date === date);
   const today = toISODate(new Date());
+  const [picking, setPicking] = useState(false);
+  const shiftSel = useSelection((shifts.data ?? []).map((s) => s.id));
+  const removeShifts = useDeleteMany();
+  const bulkShifts = () =>
+    void removeShifts('work_shift', [...shiftSel.ids]).then((ok) => {
+      if (!ok) return;
+      shiftSel.clear();
+      setPicking(false);
+      void shifts.refetch();
+    });
 
   return (
     <>
@@ -78,9 +88,21 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
           <IconButton label={t('employees.nextWeek')} onClick={() => setWeekStart((w) => addDays(w, 7))}><ChevronRight className="size-5 rtl:-scale-x-100" /></IconButton>
           <span className="num ms-2 text-sm font-semibold text-fg-2">{f.shortDate(days[0])} — {f.shortDate(days[6])}</span>
         </div>
-        <Button variant="primary" onClick={() => setDraft({ employee_id: active[0]?.id ?? '', date: today >= from && today <= to ? today : from, start: '10:00', end: '18:00', notes: '' })}>
-          {t('employees.addShift')}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant={picking ? 'secondary' : 'ghost'}
+            aria-pressed={picking}
+            onClick={() => {
+              setPicking((v) => !v);
+              shiftSel.clear();
+            }}
+          >
+            {t('bulk.select')}
+          </Button>
+          <Button variant="primary" onClick={() => setDraft({ employee_id: active[0]?.id ?? '', date: today >= from && today <= to ? today : from, start: '10:00', end: '18:00', notes: '' })}>
+            {t('employees.addShift')}
+          </Button>
+        </div>
       </div>
       <Card className="overflow-x-auto">
         {shifts.loading && !shifts.data ? (
@@ -114,8 +136,17 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
                             <button
                               key={s.id}
                               type="button"
-                              onClick={() => setDraft({ id: s.id, employee_id: s.employee_id, date: s.shift_date, start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5), notes: s.notes })}
-                              className={cn('num rounded-btn px-2 py-1 text-[0.6875rem] font-semibold', Number(s.start_time.slice(0, 2)) < 14 ? 'bg-elevated text-fg' : 'bg-elevated text-fg-2')}
+                              aria-pressed={picking ? shiftSel.has(s.id) : undefined}
+                              onClick={() =>
+                                picking
+                                  ? shiftSel.toggle(s.id)
+                                  : setDraft({ id: s.id, employee_id: s.employee_id, date: s.shift_date, start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5), notes: s.notes })
+                              }
+                              className={cn(
+                                'num rounded-btn px-2 py-1 text-[0.6875rem] font-semibold',
+                                Number(s.start_time.slice(0, 2)) < 14 ? 'bg-elevated text-fg' : 'bg-elevated text-fg-2',
+                                shiftSel.has(s.id) && 'bg-brand text-white ring-2 ring-brand/40',
+                              )}
                               dir="ltr"
                             >
                               {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
@@ -141,6 +172,7 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
           </table>
         )}
       </Card>
+      <BulkBar selection={shiftSel} onDelete={bulkShifts} />
       <Modal
         open={draft !== null}
         onClose={() => setDraft(null)}
@@ -477,15 +509,21 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
     void rows.refetch();
   };
 
-  const totalHours = (rows.data ?? []).reduce((s, a) => s + hoursBetween(a.clock_in, a.clock_out), 0);
+  const totalHours = (rows.data ?? []).filter((a) => !a.absent).reduce((s, a) => s + hoursBetween(a.clock_in, a.clock_out), 0);
   const columns: Column<Attendance>[] = [
     { key: 'emp', header: t('employees.shiftEmployee'), cell: (a) => <span className="font-semibold">{names.get(a.employee_id)?.full_name ?? t('common.unknown')}</span> },
-    { key: 'in', header: t('employees.clockInAt'), cell: (a) => <span className="num">{f.dateTime(a.clock_in)}</span> },
+    {
+      key: 'in',
+      header: t('employees.clockInAt'),
+      cell: (a) => (a.absent ? <span className="text-danger">{t('att.absent')} · <span className="num">{f.date(a.clock_in)}</span></span> : <span className="num">{f.dateTime(a.clock_in)}</span>),
+    },
     {
       key: 'out',
       header: t('employees.clockOutAt'),
       cell: (a) =>
-        a.clock_out ? (
+        a.absent ? (
+          '—'
+        ) : a.clock_out ? (
           <span className="num">{f.time(a.clock_out)}</span>
         ) : manager ? (
           <Button
@@ -503,7 +541,7 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
           <Badge tone="blue">{t('employees.stillOnClock')}</Badge>
         ),
     },
-    { key: 'dur', header: t('employees.duration'), align: 'end', cell: (a) => <span className="num font-semibold">{f.number(hoursBetween(a.clock_in, a.clock_out), 1)} {t('common.hoursShort')}</span> },
+    { key: 'dur', header: t('employees.duration'), align: 'end', cell: (a) => (a.absent ? '—' : <span className="num font-semibold">{f.number(hoursBetween(a.clock_in, a.clock_out), 1)} {t('common.hoursShort')}</span>) },
     ...(manager
       ? [
           {
@@ -527,6 +565,16 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
         ]
       : []),
   ];
+
+  const sel2 = useSelection((rows.data ?? []).map((x) => x.id));
+  const removeMany2 = useDeleteMany();
+  const bulkDelete2 = () =>
+    void removeMany2('attendance', [...sel2.ids]).then((ok) => {
+      if (ok) {
+        sel2.clear();
+        void rows.refetch();
+      }
+    });
 
   return (
     <div className="space-y-4">
@@ -567,7 +615,7 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
         </Button>
       </div>
       <Card className="overflow-hidden">
-        <DataTable
+        <DataTable selection={manager ? sel2 : undefined}
           columns={columns}
           rows={rows.data ?? []}
           rowKey={(a) => a.id}
@@ -576,6 +624,7 @@ export function AttendanceTab({ employees }: { employees: EmployeeRow[] }) {
           empty={<EmptyState icon={<CalendarDays className="size-7" />} title={t('employees.attendanceEmpty')} />}
         />
       </Card>
+      {manager && <BulkBar selection={sel2} onDelete={bulkDelete2} />}
       <Modal
         open={entry !== null}
         onClose={() => setEntry(null)}
@@ -722,6 +771,16 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
     },
   ];
 
+  const sel3 = useSelection((list).map((x) => x.id));
+  const removeMany3 = useDeleteMany();
+  const bulkDelete3 = () =>
+    void removeMany3('payroll', [...sel3.ids]).then((ok) => {
+      if (ok) {
+        sel3.clear();
+        void rows.refetch();
+      }
+    });
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
@@ -735,8 +794,9 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
       </div>
       <Card className="overflow-hidden">
         <CardHeader title={f.monthYear(period)} subtitle={cycle ? t('employees.cycleRange', { from: f.date(cycle.from), to: f.date(cycle.to) }) : undefined} className="pb-3" />
-        <DataTable columns={columns} rows={list} rowKey={(p) => p.id} loading={rows.loading && !rows.data} empty={<EmptyState icon={<Wallet className="size-7" />} title={t('employees.payrollEmpty')} />} />
+        <DataTable selection={sel3} columns={columns} rows={list} rowKey={(p) => p.id} loading={rows.loading && !rows.data} empty={<EmptyState icon={<Wallet className="size-7" />} title={t('employees.payrollEmpty')} />} />
       </Card>
+      <BulkBar selection={sel3} onDelete={bulkDelete3} />
       <Modal
         open={edit !== null}
         onClose={() => setEdit(null)}

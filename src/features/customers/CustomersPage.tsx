@@ -8,14 +8,14 @@ import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Drawer } from '@/components/ui/Modal';
 import { TextInput, Textarea } from '@/components/ui/Input';
-import { DataTable, type Column } from '@/components/ui/Table';
+import { DataTable, type Column, BulkBar, useSelection } from '@/components/ui/Table';
 import { EmptyState, ErrorState } from '@/components/ui/EmptyState';
 import { SkeletonRows } from '@/components/ui/Skeleton';
 import type { Customer, Order } from '@/types/models';
@@ -215,6 +215,16 @@ export default function CustomersPage() {
     { key: 'last', header: t('cust.last'), hideBelow: 'md', cell: (c) => <span className="num text-fg-3">{c.last_order_at ? f.date(c.last_order_at) : '—'}</span> },
   ];
 
+  const sel5 = useSelection((rows).map((x) => x.id));
+  const removeMany5 = useDeleteMany();
+  const bulkDelete5 = () =>
+    void removeMany5('customer', [...sel5.ids]).then((ok) => {
+      if (ok) {
+        sel5.clear();
+        void list.refetch();
+      }
+    });
+
   return (
     <div>
       <PageHeader
@@ -254,7 +264,7 @@ export default function CustomersPage() {
         {list.error && !list.data ? (
           <ErrorState message={errorMessage(t, list.error)} onRetry={() => void list.refetch()} retryLabel={t('common.retry')} />
         ) : (
-          <DataTable
+          <DataTable selection={sel5}
             columns={columns}
             rows={rows}
             rowKey={(c) => c.id}
@@ -264,6 +274,7 @@ export default function CustomersPage() {
           />
         )}
       </Card>
+      <BulkBar selection={sel5} onDelete={bulkDelete5} />
       <CustomerDrawer customer={open} onClose={() => setOpen(null)} onChanged={() => void list.refetch()} />
     </div>
   );

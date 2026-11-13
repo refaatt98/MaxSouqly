@@ -10,7 +10,7 @@ import { presetRange, rangeToTimestamps } from '@/lib/dates';
 import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Tabs, Segmented } from '@/components/ui/Tabs';
@@ -20,7 +20,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, ErrorState } from '@/components/ui/EmptyState';
 import { SkeletonRows } from '@/components/ui/Skeleton';
-import { DataTable, type Column } from '@/components/ui/Table';
+import { DataTable, type Column, BulkBar, useSelection } from '@/components/ui/Table';
 import { ZReportView } from '@/features/pos/components/ShiftPanels';
 import { fromJson, type CashShift, type ShiftReport } from '@/types/models';
 import type { Json } from '@/types/database';
@@ -231,9 +231,20 @@ function ShiftsTab() {
     [t, f, removeRecord, shifts],
   );
 
+  const sel0 = useSelection((shifts.data ?? []).map((x) => x.id));
+  const removeMany0 = useDeleteMany();
+  const bulkDelete0 = () =>
+    void removeMany0('cash_shift', [...sel0.ids]).then((ok) => {
+      if (ok) {
+        sel0.clear();
+        void shifts.refetch();
+      }
+    });
+
   return (
+    <>
     <Card className="overflow-hidden">
-      <DataTable
+      <DataTable selection={sel0}
         columns={columns}
         rows={shifts.data ?? []}
         rowKey={(s) => s.id}
@@ -256,6 +267,8 @@ function ShiftsTab() {
         {report && <ZReportView report={report} />}
       </Modal>
     </Card>
+    <BulkBar selection={sel0} onDelete={bulkDelete0} />
+    </>
   );
 }
 

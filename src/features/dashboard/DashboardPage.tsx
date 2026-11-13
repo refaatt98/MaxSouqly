@@ -2,11 +2,11 @@ import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { motion } from 'motion/react';
 import { Bell, ChartColumn, ClipboardList, Coins, MonitorSmartphone, ShoppingBag, TrendingUp, Wallet } from 'lucide-react';
-import { useT } from '@/i18n';
+import { isTranslationKey, useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/errors';
 import { percentChange } from '@/lib/format';
-import { parseISODate, satIndex } from '@/lib/dates';
+import { parseISODate, satIndex, toISODate } from '@/lib/dates';
 import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch, useRealtime } from '@/hooks/useRealtime';
 import { useFormat } from '@/app/providers/SettingsProvider';
@@ -40,6 +40,28 @@ interface DashboardData {
   open_purchase_orders: number;
 }
 
+interface DashboardExtra {
+  expenses_today: number;
+  unpaid_orders: number;
+  printers: number;
+  on_shift: { name: string; avatar_url: string | null; since: string }[];
+  forgot_clock_out: number;
+  activity: { action: string; entity: string; details: Record<string, unknown>; created_at: string; by: string | null }[];
+}
+
+async function fetchExtra(): Promise<DashboardExtra> {
+  const { data, error } = await supabase.rpc('dashboard_extra');
+  if (error) throw error;
+  return fromJson<DashboardExtra>(data);
+}
+
+async function fetchTopToday(): Promise<{ name: string; qty: number; revenue: number }[]> {
+  const today = toISODate(new Date());
+  const { data, error } = await supabase.rpc('report_top_items', { p_from: today, p_to: today, p_limit: 5 });
+  if (error) throw error;
+  return fromJson(data);
+}
+
 async function fetchDashboard(): Promise<DashboardData> {
   const { data, error } = await supabase.rpc('dashboard_today');
   if (error) throw error;
@@ -56,6 +78,20 @@ async function fetchRecent(): Promise<RecentOrder[]> {
     .limit(6);
   if (error) throw error;
   return data;
+}
+
+function AlertRow({ tone, label, value, onClick }: { tone: 'amber' | 'red' | 'green' | 'neutral'; label: string; value: string; onClick: () => void }) {
+  const dot = { amber: 'bg-warning', red: 'bg-danger', green: 'bg-success', neutral: 'bg-fg-3' }[tone];
+  const txt = { amber: 'text-warning', red: 'text-danger', green: 'text-success', neutral: 'text-fg-2' }[tone];
+  return (
+    <li>
+      <button type="button" onClick={onClick} className="flex h-11 w-full items-center gap-2.5 rounded-btn px-3 text-sm transition-colors hover:bg-fg/[0.04]">
+        <span className={`size-2 rounded-full ${dot}`} aria-hidden />
+        <span className="flex-1 text-start text-fg">{label}</span>
+        <span className={`mono text-[0.8125rem] ${txt}`}>{value}</span>
+      </button>
+    </li>
+  );
 }
 
 function QuickAction({ icon, label, count, onClick, to }: {
@@ -93,6 +129,14 @@ export default function DashboardPage() {
   const [alertsOpen, setAlertsOpen] = useState(false);
   const dash = useQuery(fetchDashboard, []);
   const recent = useQuery(fetchRecent, []);
+  const extra = useQuery(fetchExtra, []);
+  const topToday = useQuery(fetchTopToday, []);
+  useLiveRefetch(['orders', 'payments', 'expenses', 'attendance', 'audit_log', 'printers'], () => Promise.all([extra.refetch(), topToday.refetch()]), 1200);
+  const x = extra.data;
+  const actLabel = (prefix: string, key: string) => {
+    const k = `${prefix}.${key}`;
+    return isTranslationKey(k) ? t(k) : key;
+  };
 
   // Realtime: coalesce bursts of order changes into one refetch.
   const timer = useRef<number | undefined>(undefined);
@@ -130,7 +174,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-5">
       <h1 className="sr-only">{t('dashboard.title')}</h1>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 [&>*:first-child]:col-span-2 md:[&>*:first-child]:col-span-1">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
         <StatCard
           label={t('dashboard.salesToday')}
           value={Number(d?.today.sales ?? 0)}
@@ -164,6 +208,84 @@ export default function DashboardPage() {
           trendLabel={t('common.vsYesterday')}
           delay={0.1}
         />
+        <StatCard label={t('dashboard.expensesToday')} value={Number(x?.expenses_today ?? 0)} format={money} loading={!x} delay={0.12} />
+        <StatCard
+          label={t('dashboard.currentOrders')}
+          value={Number(d?.active_orders ?? 0)}
+          format={(n) => f.number(Math.round(n), 0)}
+          loading={dash.loading && !d}
+          delay={0.14}
+          footer={x && x.unpaid_orders > 0 ? <span className="text-xs text-warning">{t('dashboard.unpaidCount', { count: f.number(x.unpaid_orders) })}</span> : undefined}
+        />
+        <StatCard
+          label={t('reports.avgTicket')}
+          value={d && Number(d.today.orders) > 0 ? Number(d.today.sales) / Number(d.today.orders) : 0}
+          format={f.money}
+          loading={dash.loading && !d}
+          delay={0.16}
+        />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Card>
+          <CardHeader title={t('dashboard.alerts')} icon={<Bell className="size-5" />} />
+          <ul className="space-y-1 p-3">
+            {d && d.low_stock_count > 0 && (
+              <AlertRow tone="amber" label={t('dashboard.lowStock')} value={f.number(d.low_stock_count)} onClick={() => navigate('/inventory?low=1')} />
+            )}
+            {x && x.unpaid_orders > 0 && <AlertRow tone="amber" label={t('dashboard.unpaidOrders')} value={f.number(x.unpaid_orders)} onClick={() => navigate('/reports?tab=payments')} />}
+            {d && d.active_orders > 0 && <AlertRow tone="green" label={t('dashboard.currentOrders')} value={f.number(d.active_orders)} onClick={() => navigate('/orders?active=1')} />}
+            {x && x.forgot_clock_out > 0 && <AlertRow tone="red" label={t('dashboard.forgotClockOut')} value={f.number(x.forgot_clock_out)} onClick={() => navigate('/attendance')} />}
+            {x && x.printers === 0 && <AlertRow tone="red" label={t('dashboard.noPrinters')} value="!" onClick={() => navigate('/settings?tab=printers')} />}
+            {unread > 0 && <AlertRow tone="neutral" label={t('dashboard.unreadNotifications')} value={f.number(unread)} onClick={() => setAlertsOpen(true)} />}
+            {x && d && d.low_stock_count === 0 && x.unpaid_orders === 0 && x.forgot_clock_out === 0 && x.printers > 0 && unread === 0 && d.active_orders === 0 && (
+              <li className="px-3 py-6 text-center text-sm text-fg-3">{t('dashboard.allGood')}</li>
+            )}
+          </ul>
+        </Card>
+        <Card>
+          <CardHeader title={t('dashboard.topToday')} />
+          <ul className="p-3">
+            {(topToday.data ?? []).length === 0 ? (
+              <li className="px-3 py-6 text-center text-sm text-fg-3">{t('dashboard.noOrdersYet')}</li>
+            ) : (
+              (topToday.data ?? []).map((i, n) => (
+                <li key={i.name} className="flex items-center gap-3 rounded-btn px-3 py-2">
+                  <span className="num w-5 text-fg-3">{f.digits(n + 1)}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-fg">{i.name}</span>
+                  <span className="num text-xs text-fg-3">×{f.number(Number(i.qty))}</span>
+                  <span className="num w-20 text-end text-sm text-fg">{f.money(Number(i.revenue))}</span>
+                </li>
+              ))
+            )}
+          </ul>
+        </Card>
+        <Card>
+          <CardHeader title={t('dashboard.staffActivity')} subtitle={x ? t('att.kioskSub', { count: f.number(x.on_shift.length) }) : undefined} />
+          <div className="space-y-3 p-3">
+            {x && x.on_shift.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 px-1">
+                {x.on_shift.map((s) => (
+                  <Badge key={s.name + s.since} tone="green" dot>
+                    {s.name} <span className="num text-fg-3">· {f.time(s.since)}</span>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <ul className="divide-y divide-line">
+              {(x?.activity ?? []).map((a, n) => (
+                <li key={n} className="flex items-center gap-2 px-1 py-2 text-xs">
+                  <span className="min-w-0 flex-1 truncate text-fg-2">
+                    <span className="text-fg">{a.by ?? t('act.system')}</span> · {actLabel('act.action', a.action)} {actLabel('act.entity', a.entity)}
+                    {typeof a.details.label === 'string' && a.details.label ? ` — ${a.details.label}` : ''}
+                    {typeof a.details.order_number === 'number' ? ` #${f.digits(a.details.order_number)}` : ''}
+                  </span>
+                  <span className="num shrink-0 text-fg-3">{f.time(a.created_at)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Card>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">

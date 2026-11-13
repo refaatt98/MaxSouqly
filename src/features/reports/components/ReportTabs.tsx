@@ -99,7 +99,28 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
         <CardHeader title={t('reports.salesByDay')} icon={<TrendingUp className="size-5" />} />
         <div className="p-3">
           {s ? (
-            <BarChart data={s.by_day.map((d) => ({ label: dayLabel(d.date, days), sublabel: `${f.date(d.date)} · ${f.number(d.orders)} ${t('reports.ordersShort')}`, value: Number(d.total) }))} format={f.money} formatAxis={(n) => f.number(Math.round(n), 0)} height={280} emptyLabel={t('common.noResults')} />
+            <BarChart
+              data={
+                days > 62
+                  ? // long periods (a year): one bar per month
+                    Object.values(
+                      s.by_day.reduce<Record<string, { label: string; sublabel: string; value: number; orders: number }>>((acc, d) => {
+                        const k = d.date.slice(0, 7);
+                        const cur = acc[k] ?? { label: f.monthYear(`${k}-01`), sublabel: '', value: 0, orders: 0 };
+                        cur.value += Number(d.total);
+                        cur.orders += Number(d.orders);
+                        cur.sublabel = `${f.number(cur.orders)} ${t('reports.ordersShort')}`;
+                        acc[k] = cur;
+                        return acc;
+                      }, {}),
+                    )
+                  : s.by_day.map((d) => ({ label: dayLabel(d.date, days), sublabel: `${f.date(d.date)} · ${f.number(d.orders)} ${t('reports.ordersShort')}`, value: Number(d.total) }))
+              }
+              format={f.money}
+              formatAxis={(n) => f.number(Math.round(n), 0)}
+              height={280}
+              emptyLabel={t('common.noResults')}
+            />
           ) : (
             <Skeleton className="h-72" />
           )}
@@ -186,6 +207,8 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
   const profit = useQuery(() => fetchProfit(from, to), [from, to]);
   useLiveRefetch(['orders', 'expenses'], profit.refetch, 1500);
   const p = profit.data;
+  // salaries reach expenses when payroll is paid; advances are part of it and never counted twice
+  const salaries = Number(p?.expenses_by_category.find((e) => e.category === 'salaries')?.amount ?? 0);
   const days = p?.by_day.length ?? 1;
 
   const spec = useMemo<ExportSpec | null>(() => {
@@ -193,7 +216,7 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
     return {
       title: t('reports.profit'),
       sections: [
-        { heading: t('reports.profit'), kpis: [[t('reports.revenue'), f.money(p.revenue)], [t('reports.cogs'), f.money(p.cogs)], [t('reports.expensesTotal'), f.money(p.expenses)], [t('reports.netProfit'), f.money(p.net)]] },
+        { heading: t('reports.profit'), kpis: [[t('reports.revenue'), f.money(p.revenue)], [t('reports.cogs'), f.money(p.cogs)], [t('rep.salaries'), f.money(salaries)], [t('rep.operating'), f.money(p.expenses - salaries)], [t('reports.netProfit'), f.money(p.net)]] },
         { heading: t('reports.profitByDay'), table: { headers: [t('common.date'), t('reports.revenue'), t('reports.cogs'), t('reports.expensesTotal'), t('reports.netProfit')], rows: p.by_day.map((d) => [f.date(d.date), f.money(d.revenue), f.money(d.cogs), f.money(d.expenses), f.money(d.net)]) } },
         { heading: t('reports.expensesByCategory'), table: { headers: [t('menu.category'), t('common.amount')], rows: p.expenses_by_category.map((e) => [t(`expense.${e.category}`), f.money(e.amount)]) } },
       ],
@@ -202,7 +225,7 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
         rows: p.by_day.map((d) => [d.date, Number(d.revenue), Number(d.cogs), Number(d.expenses), Number(d.net)]),
       },
     };
-  }, [p, t, f]);
+  }, [p, t, f, salaries]);
   useEffect(() => register(spec), [register, spec]);
 
   if (profit.error && !p) return <ErrorState message={errorMessage(t, profit.error)} onRetry={() => void profit.refetch()} retryLabel={t('common.retry')} />;
@@ -210,10 +233,11 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5 [&>*:last-child]:col-span-2 xl:[&>*:last-child]:col-span-1">
         <StatCard label={t('reports.revenue')} value={Number(p?.revenue ?? 0)} format={(n) => f.money(Math.round(n))} icon={<Wallet className="size-6" />} tone="green" loading={!p} />
         <StatCard label={t('reports.cogs')} value={Number(p?.cogs ?? 0)} format={(n) => f.money(Math.round(n))} icon={<ShoppingBag className="size-6" />} tone="blue" loading={!p} delay={0.05} />
-        <StatCard label={t('reports.expensesTotal')} value={Number(p?.expenses ?? 0)} format={(n) => f.money(Math.round(n))} icon={<Receipt className="size-6" />} tone="red" loading={!p} delay={0.1} />
+        <StatCard label={t('rep.salaries')} value={salaries} format={(n) => f.money(Math.round(n))} loading={!p} delay={0.1} />
+        <StatCard label={t('rep.operating')} value={Number(p?.expenses ?? 0) - salaries} format={(n) => f.money(Math.round(n))} icon={<Receipt className="size-6" />} tone="red" loading={!p} delay={0.12} />
         <StatCard
           label={t('reports.netProfit')}
           emphasis

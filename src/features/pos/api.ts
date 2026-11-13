@@ -112,6 +112,10 @@ export interface StaffMember {
   avatar_url: string | null;
   position: string;
   open_since: string | null;
+  /** paid by the day: present or absent */
+  daily?: boolean;
+  absent_today?: boolean;
+  present_today?: boolean;
 }
 
 export async function fetchStaffBoard(): Promise<StaffMember[]> {

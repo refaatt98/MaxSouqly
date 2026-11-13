@@ -10,10 +10,10 @@ import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
-import { useDeleteRecord } from '@/app/providers/DeleteProvider';
+import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
-import { DataTable, type Column } from '@/components/ui/Table';
+import { DataTable, type Column, BulkBar, useSelection } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
 import { Select, TextInput, Textarea } from '@/components/ui/Input';
 import { ShareBars } from '@/components/ui/Chart';
@@ -100,7 +100,15 @@ export function ExpensesTab({ from, to, register }: { from: string; to: string; 
     return data;
   }, [from, to]);
   useLiveRefetch(['expenses'], expenses.refetch);
-  const rows = useMemo(() => expenses.data ?? [], [expenses.data]);
+  const [search, setSearch] = useState('');
+  const [cat, setCat] = useState('');
+  const rows = useMemo(
+    () =>
+      (expenses.data ?? []).filter(
+        (e) => (!cat || e.category === cat) && (!search.trim() || e.note.toLowerCase().includes(search.trim().toLowerCase()) || String(e.amount).includes(search.trim())),
+      ),
+    [expenses.data, search, cat],
+  );
   const total = rows.reduce((s, e) => s + Number(e.amount), 0);
   const byCategory = useMemo(() => {
     const m = new Map<ExpenseCategory, number>();
@@ -149,14 +157,41 @@ export function ExpensesTab({ from, to, register }: { from: string; to: string; 
     },
   ];
 
+  const sel9 = useSelection((rows).map((x) => x.id));
+  const removeMany9 = useDeleteMany();
+  const bulkDelete9 = () =>
+    void removeMany9('expense', [...sel9.ids]).then((ok) => {
+      if (ok) {
+        sel9.clear();
+        void expenses.refetch();
+      }
+    });
+
   if (expenses.error && !expenses.data) return <ErrorState message={errorMessage(t, expenses.error)} onRetry={() => void expenses.refetch()} retryLabel={t('common.retry')} />;
+
 
   return (
     <div className="grid gap-4 xl:grid-cols-3">
       <Card className="overflow-hidden xl:col-span-2">
         <CardHeader title={t('reports.expenses')} subtitle={f.money(total)} actions={<Button variant="primary" onClick={() => setAdding(true)}>{t('reports.addExpense')}</Button>} className="pb-3" />
-        <DataTable columns={columns} rows={rows} rowKey={(e) => e.id} loading={expenses.loading && !expenses.data} empty={<EmptyState icon={<Receipt className="size-7" />} title={t('reports.expensesEmpty')} />} />
+        <div className="flex flex-wrap gap-2 px-5 pb-3">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('rep.searchExpenses')}
+            aria-label={t('rep.searchExpenses')}
+            className="h-10 min-w-48 flex-1 rounded-btn border border-line-strong bg-card px-3 text-sm placeholder:text-fg-3 focus:border-fg-3 focus:outline-none"
+          />
+          <Select
+            aria-label={t('menu.category')}
+            value={cat}
+            onChange={(e) => setCat(e.target.value)}
+            options={[{ value: '', label: t('rep.allCategories') }, ...(['rent', 'utilities', 'salaries', 'supplies', 'maintenance', 'marketing', 'other'] as ExpenseCategory[]).map((c) => ({ value: c, label: t(`expense.${c}`) }))]}
+          />
+        </div>
+        <DataTable selection={sel9} columns={columns} rows={rows} rowKey={(e) => e.id} loading={expenses.loading && !expenses.data} empty={<EmptyState icon={<Receipt className="size-7" />} title={t('reports.expensesEmpty')} />} />
       </Card>
+      <BulkBar selection={sel9} onDelete={bulkDelete9} />
       <Card className="h-fit">
         <CardHeader title={t('reports.expensesByCategory')} />
         <div className="p-5">

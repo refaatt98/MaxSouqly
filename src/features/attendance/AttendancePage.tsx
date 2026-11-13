@@ -49,6 +49,15 @@ export default function AttendancePage() {
     void board.refetch();
   };
 
+  const markAbsent = async (m: StaffMember) => {
+    setBusy(m.id);
+    const { error } = await supabase.rpc('kiosk_absent', { p_employee_id: m.id });
+    setBusy(null);
+    if (error) return toast.error(errorMessage(t, error));
+    toast.info(t('att.absentSaved', { name: m.full_name }));
+    void board.refetch();
+  };
+
   const list = (board.data ?? []).filter((m) => !search.trim() || m.full_name.includes(search.trim()));
   const inCount = (board.data ?? []).filter((m) => m.open_since).length;
 
@@ -92,6 +101,8 @@ export default function AttendancePage() {
                       {forgot && <TriangleAlert className="me-1 inline size-3.5 align-[-2px]" />}
                       {forgot ? t('att.forgot', { time: f.dateTime(m.open_since!) }) : t('att.inSince', { time: f.time(m.open_since!), hours: f.number(hours, 1) })}
                     </p>
+                  ) : m.absent_today ? (
+                    <p className="text-xs text-danger">{t('att.absentToday')}</p>
                   ) : (
                     <p className="text-xs text-fg-3">{m.position || t('att.out_')}</p>
                   )}
@@ -101,9 +112,16 @@ export default function AttendancePage() {
                     {t('att.clockOut')}
                   </Button>
                 ) : (
-                  <Button variant="primary" icon={<LogIn className="size-4 rtl:-scale-x-100" />} loading={busy === m.id} onClick={() => void clock(m, 'in')}>
-                    {t('att.clockIn')}
-                  </Button>
+                  <div className="flex gap-1.5">
+                    {m.daily && !m.present_today && !m.absent_today && (
+                      <Button variant="ghost" disabled={busy === m.id} onClick={() => void markAbsent(m)}>
+                        {t('att.absent')}
+                      </Button>
+                    )}
+                    <Button variant="primary" icon={<LogIn className="size-4 rtl:-scale-x-100" />} loading={busy === m.id} onClick={() => void clock(m, 'in')}>
+                      {t('att.clockIn')}
+                    </Button>
+                  </div>
                 )}
               </Card>
             );

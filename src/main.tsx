@@ -14,6 +14,9 @@ import { SettingsProvider } from '@/app/providers/SettingsProvider';
 import { ConnectionProvider } from '@/app/providers/ConnectionProvider';
 import { ConfirmProvider } from '@/app/providers/ConfirmProvider';
 import { DeleteProvider } from '@/app/providers/DeleteProvider';
+import { registerServiceWorker } from '@/lib/install';
+
+registerServiceWorker();
 
 const root = createRoot(document.getElementById('root')!);
 
