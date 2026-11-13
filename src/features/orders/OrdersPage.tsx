@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Ban, ChefHat, ClipboardList, Download, Pencil, Phone, Printer, RotateCcw, Search, Trash, Undo2 } from 'lucide-react';
+import { Armchair, Ban, Bike, ChefHat, ClipboardList, Download, Pencil, Phone, Printer, RotateCcw, Search, ShoppingBag, Trash, Undo2, UserRound } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/errors';
@@ -13,22 +13,23 @@ import { rangeToTimestamps, toISODate } from '@/lib/dates';
 import { useQuery } from '@/hooks/useQuery';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useAuth } from '@/app/providers/AuthProvider';
-import { useSettings } from '@/app/providers/SettingsProvider';
+import { useFormat, useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useDeleteRecord, useDeleteMany } from '@/app/providers/DeleteProvider';
 import { EditOrderModal, type EditableOrder } from './components/EditOrderModal';
 import { cn } from '@/lib/cn';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
-import { DataTable, type Column, BulkBar, SelectBox, useSelection } from '@/components/ui/Table';
+import { BulkBar, SelectBox, useSelection } from '@/components/ui/Table';
+import { FoodImage } from '@/components/ui/FoodImage';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Select, TextInput, Textarea } from '@/components/ui/Input';
 import { Segmented } from '@/components/ui/Tabs';
 import { Drawer, Modal } from '@/components/ui/Modal';
 import { EmptyState, ErrorState } from '@/components/ui/EmptyState';
-import { SkeletonRows } from '@/components/ui/Skeleton';
-import { fromJson, type Order, type OrderFull, type OrderType, type PaymentMethod } from '@/types/models';
+import { Skeleton, SkeletonRows } from '@/components/ui/Skeleton';
+import { fromJson, type Order, type OrderFull, type OrderStatus, type OrderType, type PaymentMethod } from '@/types/models';
 import { paymentKind, STATUS_TONE } from './meta';
 
 type OrderRow = Order & { cashier: { full_name: string } | null; payments: { method: PaymentMethod; amount: number }[] };
@@ -91,6 +92,16 @@ export function OrderDetails({ orderId, onClose, onChanged }: { orderId: string 
   }, [load]);
 
   useRealtime(orderId ? { table: 'orders', event: 'UPDATE', filter: `id=eq.${orderId}` } : null, () => void load());
+  const itemIds = [...new Set((order?.items ?? []).map((i) => i.menu_item_id).filter(Boolean) as string[])];
+  const images = useQuery(
+    async (): Promise<Record<string, string | null>> => {
+      const { data, error: e } = await supabase.from('menu_items').select('id, image_url').in('id', itemIds);
+      if (e) throw e;
+      return Object.fromEntries(data.map((m) => [m.id, m.image_url]));
+    },
+    [itemIds.join(',')],
+    { enabled: itemIds.length > 0 },
+  );
 
   const submitVoid = async () => {
     if (!order || !voidMode) return;
@@ -203,18 +214,35 @@ export function OrderDetails({ orderId, onClose, onChanged }: { orderId: string 
         <SkeletonRows rows={8} />
       ) : (
         <div className="space-y-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={STATUS_TONE[order.status]}>{t(`order.status.${order.status}`)}</Badge>
-            {!voided && order.payment_status !== 'paid' && (
-              <Badge tone={order.payment_status === 'partial' ? 'amber' : 'red'}>
-                {t(`payStatus.${order.payment_status}`)} · {f.money(Number(order.total) - Number(order.paid_amount))}
-              </Badge>
-            )}
-            <Badge>
-              {t(`order.type.${order.type}`)}
-              {order.table_no ? ` · ${t('order.table', { table: f.digits(order.table_no) })}` : ''}
-            </Badge>
-            <span className="text-sm text-fg-3">{f.dateTime(order.created_at)} · {order.cashier_name}</span>
+          {/* at a glance: number, where, when, who */}
+          <div className="rounded-card border border-line bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="num text-[2rem] leading-none font-medium text-fg">#{f.digits(order.order_number)}</p>
+                <p className="num mt-1.5 text-xs text-fg-3">{f.dateTime(order.created_at)} · {order.cashier_name}</p>
+              </div>
+              <div className="flex flex-col items-end gap-1.5">
+                <Badge tone={STATUS_TONE[order.status]}>{t(`order.status.${order.status}`)}</Badge>
+                {!voided && (
+                  <Badge tone={order.payment_status === 'paid' ? 'green' : order.payment_status === 'partial' ? 'amber' : 'red'}>
+                    {t(`payStatus.${order.payment_status}`)}
+                    {order.payment_status !== 'paid' && ` · ${f.money(Number(order.total) - Number(order.paid_amount))}`}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-btn bg-elevated px-3 py-2">
+                <p className="text-xs text-fg-3">{order.type === 'dine_in' ? t('orders.table') : t('orders.type')}</p>
+                <p className="num text-lg text-fg">
+                  {order.type === 'dine_in' && order.table_no ? f.digits(order.table_no) : t(`order.type.${order.type}`)}
+                </p>
+              </div>
+              <div className="rounded-btn bg-elevated px-3 py-2">
+                <p className="text-xs text-fg-3">{t('orders.itemsCol')}</p>
+                <p className="num text-lg text-fg">{f.number(order.items.filter((i) => !i.voided_at).reduce((a, i) => a + i.quantity, 0))}</p>
+              </div>
+            </div>
           </div>
           {voided && order.void_reason && (
             <p className="rounded-card border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{t('orders.voidReason', { reason: order.void_reason })}</p>
@@ -235,8 +263,9 @@ export function OrderDetails({ orderId, onClose, onChanged }: { orderId: string 
             <h3 className="mb-2 text-sm font-semibold text-fg-3">{t('orders.items')}</h3>
             <ul className="divide-y divide-line rounded-card border border-line bg-card">
               {order.items.map((i) => (
-                <li key={i.id} className={cn('flex items-start justify-between gap-3 px-4 py-3', i.voided_at && 'text-fg-3')}>
-                  <div>
+                <li key={i.id} className={cn('flex items-start gap-3 px-4 py-3', i.voided_at && 'text-fg-3 opacity-70')}>
+                  <FoodImage src={(i.menu_item_id && images.data?.[i.menu_item_id]) || null} alt="" className="size-14 shrink-0 rounded-btn bg-elevated" />
+                  <div className="min-w-0 flex-1">
                     <p className={i.voided_at ? 'line-through' : 'text-fg'}>
                       <span className="num text-fg-3">{f.number(i.quantity)}×</span> {name({ name_ar: i.name_snapshot, name_he: i.name_he_snapshot })}
                     </p>
@@ -349,7 +378,116 @@ function presetDates(p: Exclude<Preset, 'custom'>): { from: string; to: string }
   return { from: day(p === '7d' ? -6 : -29), to: day(0) };
 }
 
-type ListRow = OrderRow & { items: { name_snapshot: string; quantity: number; voided_at: string | null }[] };
+type ListRow = OrderRow & { items: { name_snapshot: string; quantity: number; voided_at: string | null; menu_item: { image_url: string | null } | null }[] };
+
+/** Coloured edge per status, so a glance tells new / preparing / ready / done apart. */
+const STATUS_EDGE: Record<OrderStatus, string> = {
+  new: 'before:bg-brand',
+  preparing: 'before:bg-warning',
+  ready: 'before:bg-success',
+  served: 'before:bg-fg-3/40',
+  cancelled: 'before:bg-danger/50',
+  refunded: 'before:bg-danger/50',
+};
+
+function OrderCard({ order: o, selected, onSelect, onOpen, payLabel }: {
+  order: ListRow;
+  selected: boolean;
+  onSelect?: (on: boolean) => void;
+  onOpen: () => void;
+  payLabel: string;
+}) {
+  const { t } = useI18n();
+  const f = useFormat();
+  const items = o.items.filter((i) => !i.voided_at);
+  const count = items.reduce((a, i) => a + i.quantity, 0);
+  const voided = o.status === 'cancelled' || o.status === 'refunded';
+  const unpaid = !voided && o.payment_status !== 'paid';
+  const where =
+    o.type === 'dine_in' ? (
+      <span className="inline-flex items-center gap-1.5 rounded-btn bg-elevated px-2.5 py-1 text-sm text-fg">
+        <Armchair className="size-4 text-fg-3" /> {o.table_no ? t('order.table', { table: f.digits(o.table_no) }) : t('order.type.dine_in')}
+      </span>
+    ) : o.type === 'delivery' ? (
+      <span className="inline-flex items-center gap-1.5 rounded-btn bg-elevated px-2.5 py-1 text-sm text-fg">
+        <Bike className="size-4 text-fg-3" /> {t('order.type.delivery')}
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1.5 rounded-btn bg-elevated px-2.5 py-1 text-sm text-fg">
+        <ShoppingBag className="size-4 text-fg-3" /> {t('order.type.takeaway')}
+      </span>
+    );
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className={cn(
+        'relative flex h-full cursor-pointer flex-col gap-3 overflow-hidden rounded-card border bg-card p-4 ps-5 text-start transition-colors',
+        "before:absolute before:inset-y-0 before:start-0 before:w-1 before:content-['']",
+        STATUS_EDGE[o.status],
+        selected ? 'border-brand/60 bg-brand/[0.06]' : 'border-line hover:border-line-strong',
+        voided && 'opacity-60',
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="num text-[1.75rem] leading-none font-medium text-fg">#{f.digits(o.order_number)}</p>
+          <p className="num mt-1 text-xs text-fg-3">
+            {f.time(o.created_at)} · {o.cashier?.full_name ?? '—'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge>
+          {onSelect && (
+            <span onClick={(e) => e.stopPropagation()}>
+              <SelectBox checked={selected} onChange={onSelect} label={`${t('bulk.selectRow')} #${o.order_number}`} />
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {where}
+        {(o.customer_name || o.customer_phone) && (
+          <span className="inline-flex min-w-0 items-center gap-1.5 rounded-btn border border-line px-2.5 py-1 text-sm">
+            <UserRound className="size-4 shrink-0 text-fg-3" />
+            {o.customer_name && <span className="truncate text-fg">{o.customer_name}</span>}
+            {o.customer_phone && (
+              <span className="num text-fg-2" dir="ltr">
+                {o.customer_phone}
+              </span>
+            )}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="flex -space-x-2 rtl:space-x-reverse">
+          {items.slice(0, 4).map((i, k) => (
+            <FoodImage key={k} src={i.menu_item?.image_url ?? null} alt="" className="size-10 rounded-full border-2 border-card bg-elevated object-cover" />
+          ))}
+        </div>
+        <p className="line-clamp-2 min-w-0 flex-1 text-[0.8125rem] text-fg-2">
+          {items.map((i) => `${i.quantity}× ${i.name_snapshot}`).join('، ')}
+        </p>
+      </div>
+
+      <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-3">
+        <span className={cn('text-xs', unpaid ? 'text-warning' : 'text-fg-3')}>
+          {t('orders.itemsCount', { count: f.number(count) })} · {payLabel}
+        </span>
+        <span className={cn('num text-lg font-medium', voided ? 'text-fg-3 line-through' : 'text-fg')}>{f.money(Number(o.total))}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function OrdersPage() {
   const { t } = useI18n();
@@ -379,7 +517,7 @@ export default function OrdersPage() {
     const paymentsSel = filters.payment ? 'payments!inner(method, amount)' : 'payments(method, amount)';
     let q = supabase
       .from('orders')
-      .select(`${ORDER_COLS}, cashier:profiles!orders_cashier_id_fkey(full_name), ${paymentsSel}, items:order_items(name_snapshot, quantity, voided_at)`)
+      .select(`${ORDER_COLS}, cashier:profiles!orders_cashier_id_fkey(full_name), ${paymentsSel}, items:order_items(name_snapshot, quantity, voided_at, menu_item:menu_items(image_url))`)
       .order('created_at', { ascending: false })
       .limit(limit);
     // a search looks across all dates
@@ -441,65 +579,6 @@ export default function OrdersPage() {
     return k ? t(`payment.${k}`) : t('common.none');
   };
 
-  const columns = useMemo<Column<ListRow>[]>(
-    () => [
-      {
-        key: 'num',
-        header: t('orders.number'),
-        cell: (o) => (
-          <div>
-            <p className="mono text-fg">#{f.digits(o.order_number)}</p>
-            <p className="num text-xs text-fg-3">{query ? f.dateTime(o.created_at) : f.time(o.created_at)}</p>
-          </div>
-        ),
-      },
-      {
-        key: 'customer',
-        header: t('orders.customer'),
-        cell: (o) =>
-          o.customer_phone || o.customer_name ? (
-            <div>
-              <p className="text-fg">{o.customer_name || t('common.none')}</p>
-              {o.customer_phone && (
-                <a href={`tel:${o.customer_phone}`} onClick={(e) => e.stopPropagation()} className="num inline-flex items-center gap-1 text-xs text-fg-2 hover:text-fg" dir="ltr">
-                  <Phone className="size-3" strokeWidth={1.5} /> {o.customer_phone}
-                </a>
-              )}
-            </div>
-          ) : (
-            <span className="text-xs text-fg-3">{t('orders.noPhone')}</span>
-          ),
-      },
-      {
-        key: 'items',
-        header: t('orders.itemsCol'),
-        hideBelow: 'lg',
-        cell: (o) => <p className="line-clamp-2 max-w-72 text-[0.8125rem] text-fg-2">{itemsText(o)}</p>,
-      },
-      {
-        key: 'type',
-        header: t('orders.type'),
-        hideBelow: 'sm',
-        cell: (o) => (
-          <span className="text-fg-2">
-            {t(`order.type.${o.type}`)}
-            {o.table_no ? ` · ${f.digits(o.table_no)}` : ''}
-          </span>
-        ),
-      },
-      { key: 'cashier', header: t('orders.cashier'), cell: (o) => <span className="text-fg-2">{o.cashier?.full_name ?? t('common.none')}</span>, hideBelow: 'md' },
-      {
-        key: 'pay',
-        header: t('orders.payment'),
-        hideBelow: 'md',
-        cell: (o) => <span className={!isVoid(o) && o.payment_status !== 'paid' ? 'text-warning' : 'text-fg-2'}>{payText(o)}</span>,
-      },
-      { key: 'status', header: t('common.status'), cell: (o) => <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge> },
-      { key: 'total', header: t('orders.total'), align: 'end', cell: (o) => <span className={cn('num font-medium', isVoid(o) ? 'text-fg-3 line-through' : 'text-fg')}>{f.money(Number(o.total))}</span> },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, f, query],
-  );
 
   const exportCsv = () =>
     downloadCsv(
@@ -650,58 +729,53 @@ export default function OrdersPage() {
         )}
       </Card>
 
-      <Card className="overflow-hidden">
-        {orders.error && !orders.data ? (
+      {orders.error && !orders.data ? (
+        <Card>
           <ErrorState message={errorMessage(t, orders.error)} onRetry={() => void orders.refetch()} retryLabel={t('common.retry')} />
-        ) : (
-          <>
-            {/* phones: cards */}
-            <ul className="divide-y divide-line md:hidden">
-              {rows.map((o) => (
-                <li key={o.id} className={cn('flex items-start', sel4.has(o.id) && 'bg-brand/[0.06]')}>
-                  {isManager && (
-                    <span className="ps-4 pt-4">
-                      <SelectBox checked={sel4.has(o.id)} onChange={(on) => sel4.toggle(o.id, on)} label={`${t('bulk.selectRow')} #${o.order_number}`} />
-                    </span>
-                  )}
-                  <button type="button" onClick={() => openOrder(o.id)} className="min-w-0 flex-1 px-4 py-3 text-start">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="mono text-fg">#{f.digits(o.order_number)}</span>
-                      <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge>
-                    </div>
-                    <p className="mt-1 line-clamp-1 text-[0.8125rem] text-fg-2">{itemsText(o)}</p>
-                    <div className="mt-1 flex items-center justify-between text-xs text-fg-3">
-                      <span className="num">
-                        {f.time(o.created_at)} · {t(`order.type.${o.type}`)}
-                        {o.customer_phone ? ` · ` : ''}
-                        {o.customer_phone && <span dir="ltr">{o.customer_phone}</span>}
-                      </span>
-                      <span className={cn('num text-sm font-medium', isVoid(o) ? 'line-through' : 'text-fg')}>{f.money(Number(o.total))}</span>
-                    </div>
-                  </button>
-                </li>
-              ))}
-              {!orders.loading && rows.length === 0 && <EmptyState icon={<ClipboardList className="size-6" />} title={t('orders.empty')} />}
-            </ul>
-            <div className="hidden md:block">
-              <DataTable selection={isManager ? sel4 : undefined}
-                columns={columns}
-                rows={rows}
-                rowKey={(o) => o.id}
-                loading={orders.loading && !orders.data}
-                onRowClick={(o) => openOrder(o.id)}
-                rowClassName={(o) => (isVoid(o) ? 'opacity-60' : undefined)}
-                empty={<EmptyState icon={<ClipboardList className="size-6" />} title={t('orders.empty')} />}
+        </Card>
+      ) : orders.loading && !orders.data ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {Array.from({ length: 6 }, (_, k) => (
+            <Skeleton key={k} className="h-56 rounded-card" />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <Card>
+          <EmptyState icon={<ClipboardList className="size-6" />} title={t('orders.empty')} />
+        </Card>
+      ) : (
+        <>
+          {isManager && (
+            <label className="mb-2 inline-flex cursor-pointer items-center gap-2 text-sm text-fg-2">
+              <SelectBox
+                checked={rows.every((o) => sel4.has(o.id))}
+                indeterminate={rows.some((o) => sel4.has(o.id))}
+                onChange={(on) => sel4.setAll(rows.map((o) => o.id), on)}
+                label={t('bulk.selectAll')}
               />
-            </div>
-          </>
-        )}
-        {all.length >= limit && (
-          <div className="border-t border-line p-3 text-center">
-            <Button variant="ghost" onClick={() => setLimit((l) => l + PAGE)}>{t('common.loadMore')}</Button>
-          </div>
-        )}
-      </Card>
+              {t('bulk.selectAll')}
+            </label>
+          )}
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {rows.map((o) => (
+              <li key={o.id}>
+                <OrderCard
+                  order={o}
+                  selected={sel4.has(o.id)}
+                  onSelect={isManager ? (on) => sel4.toggle(o.id, on) : undefined}
+                  onOpen={() => openOrder(o.id)}
+                  payLabel={payText(o)}
+                />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {all.length >= limit && (
+        <div className="mt-3 text-center">
+          <Button variant="ghost" onClick={() => setLimit((l) => l + PAGE)}>{t('common.loadMore')}</Button>
+        </div>
+      )}
       {isManager && <BulkBar selection={sel4} onDelete={bulkDelete4} />}
       <OrderDetails orderId={selectedId} onClose={() => openOrder(null)} onChanged={() => void orders.refetch()} />
     </div>

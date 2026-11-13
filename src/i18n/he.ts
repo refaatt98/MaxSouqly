@@ -1120,4 +1120,8 @@ export const he: Dictionary = {
   'install.done': 'התוכנה מותקנת במכשיר הזה.',
   'install.ios': 'באייפון/אייפד: כפתור השיתוף ← «הוספה למסך הבית».',
   'install.browser': 'פתחו את המערכת ב-Chrome או Edge ובחרו «התקנה» מתפריט הדפדפן.',
+  'orders.itemsCount': '{count} פריטים',
+  'orders.table': 'שולחן',
+  'cust.since': 'לקוח מאז {date}',
+  'cust.lastShort': 'הזמנה אחרונה {date}',
 };

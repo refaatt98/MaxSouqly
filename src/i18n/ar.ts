@@ -1146,6 +1146,10 @@ export const ar = {
   'install.done': 'البرنامج مثبّت على هذا الجهاز.',
   'install.ios': 'على الآيفون/الآيباد: زر المشاركة ← «إضافة إلى الشاشة الرئيسية».',
   'install.browser': 'افتح النظام من Chrome أو Edge ثم اختر «تثبيت» من قائمة المتصفح.',
+  'orders.itemsCount': '{count} صنف',
+  'orders.table': 'الطاولة',
+  'cust.since': 'زبون منذ {date}',
+  'cust.lastShort': 'آخر طلب {date}',
 } as const;
 
 export type TranslationKey = keyof typeof ar;
