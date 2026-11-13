@@ -38,7 +38,7 @@ export function OpenShiftPanel({ onOpened }: { onOpened: (s: CashShift) => void 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm rounded-panel border border-line bg-surface p-6 shadow-panel">
         <div className="mb-5 flex items-center gap-3">
           <span className="grid size-10 place-items-center rounded-btn border border-line bg-elevated text-fg-3">
-            <Wallet className="size-[18px]" strokeWidth={1.5} />
+            <Wallet className="size-[1.125rem]" strokeWidth={1.5} />
           </span>
           <div>
             <h2 className="text-lg font-medium">{t('shift.openTitle')}</h2>
@@ -47,7 +47,7 @@ export function OpenShiftPanel({ onOpened }: { onOpened: (s: CashShift) => void 
         </div>
         <div className="mb-3 rounded-card border border-line bg-card p-4">
           <p className="text-xs text-fg-3">{t('shift.openingFloat')}</p>
-          <p className="num text-[28px] leading-none font-medium">{f.money(Number(entry) || 0)}</p>
+          <p className="num text-[1.75rem] leading-none font-medium">{f.money(Number(entry) || 0)}</p>
         </div>
         <Keypad onKey={(k) => setEntry((v) => applyKey(v, k))} />
         <Button variant="primary" size="lg" block className="mt-4" loading={pending} onClick={() => void submit()}>
@@ -168,7 +168,7 @@ export function CloseShiftModal({ open, onClose, onClosed }: { open: boolean; on
         <div className="space-y-4">
           <div className="rounded-card border border-line bg-card p-4">
             <p className="text-xs text-fg-3">{t('shift.countedCash')}</p>
-            <p className="num text-[28px] leading-none font-medium">{f.money(Number(entry) || 0)}</p>
+            <p className="num text-[1.75rem] leading-none font-medium">{f.money(Number(entry) || 0)}</p>
           </div>
           <Keypad onKey={(k) => setEntry((v) => applyKey(v, k))} />
           <Textarea label={t('shift.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={500} />

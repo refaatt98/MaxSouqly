@@ -242,7 +242,7 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
             <ol className="relative space-y-4 border-s border-line-strong ps-5">
               {timeline.map(([key, at]) => (
                 <li key={key} className="relative">
-                  <span className={`absolute -start-[25px] top-1.5 size-2 rounded-full ${key === 'orders.timeline.voided' ? 'bg-danger' : 'bg-fg-3'}`} />
+                  <span className={`absolute -start-[1.5625rem] top-1.5 size-2 rounded-full ${key === 'orders.timeline.voided' ? 'bg-danger' : 'bg-fg-3'}`} />
                   <p className="text-sm text-fg">{t(key)}</p>
                   <p className="num text-xs text-fg-3">{f.dateTime(at as string)}</p>
                 </li>
@@ -435,7 +435,7 @@ export default function OrdersPage() {
         key: 'items',
         header: t('orders.itemsCol'),
         hideBelow: 'lg',
-        cell: (o) => <p className="line-clamp-2 max-w-72 text-[13px] text-fg-2">{itemsText(o)}</p>,
+        cell: (o) => <p className="line-clamp-2 max-w-72 text-[0.8125rem] text-fg-2">{itemsText(o)}</p>,
       },
       {
         key: 'type',
@@ -505,8 +505,8 @@ export default function OrdersPage() {
           [t('orders.statusVoid'), f.number(counts.void)],
         ].map(([label, value]) => (
           <Card key={label} className="px-4 py-3">
-            <p className="text-[13px] text-fg-2">{label}</p>
-            <p className="num mt-1 text-[22px] leading-tight font-medium text-fg">{value}</p>
+            <p className="text-[0.8125rem] text-fg-2">{label}</p>
+            <p className="num mt-1 text-[1.375rem] leading-tight font-medium text-fg">{value}</p>
           </Card>
         ))}
       </div>
@@ -603,7 +603,7 @@ export default function OrdersPage() {
                       <span className="mono text-fg">#{f.digits(o.order_number)}</span>
                       <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge>
                     </div>
-                    <p className="mt-1 line-clamp-1 text-[13px] text-fg-2">{itemsText(o)}</p>
+                    <p className="mt-1 line-clamp-1 text-[0.8125rem] text-fg-2">{itemsText(o)}</p>
                     <div className="mt-1 flex items-center justify-between text-xs text-fg-3">
                       <span className="num">
                         {f.time(o.created_at)} · {t(`order.type.${o.type}`)}

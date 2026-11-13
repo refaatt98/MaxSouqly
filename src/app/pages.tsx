@@ -9,7 +9,7 @@ export function NotFound() {
   return (
     <div className="grid min-h-[70dvh] place-items-center p-6 text-center">
       <div>
-        <p className="mono text-[96px] leading-none font-medium text-fg-3">404</p>
+        <p className="mono text-[6rem] leading-none font-medium text-fg-3">404</p>
         <h1 className="mt-2 text-2xl font-semibold">{t('notFound.title')}</h1>
         <p className="mt-2 text-fg-3">{t('notFound.body')}</p>
         <Link to="/" className="mt-6 inline-flex h-11 items-center rounded-btn bg-brand px-5 text-sm font-medium text-white shadow-glow-sm transition-colors hover:bg-brand-hover">

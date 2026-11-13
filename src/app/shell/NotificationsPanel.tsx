@@ -77,13 +77,13 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
                 <button
                   type="button"
                   onClick={() => openItem(n)}
-                  className={cn('flex w-full items-start gap-3 border-b border-line px-4 py-3 text-start transition-colors hover:bg-black/[0.04]', isUnread(n) && 'bg-black/[0.02]')}
+                  className={cn('flex w-full items-start gap-3 border-b border-line px-4 py-3 text-start transition-colors hover:bg-fg/[0.04]', isUnread(n) && 'bg-fg/[0.02]')}
                 >
                   <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-btn bg-fg/5">{icon[n.type]}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm text-fg">{n.title}</span>
                     {n.body && <span className="block truncate text-xs text-fg-3">{n.body}</span>}
-                    <span className="mt-1 block text-[11px] text-fg-3">
+                    <span className="mt-1 block text-[0.6875rem] text-fg-3">
                       {t(`notifications.type.${n.type}`)} · {f.dateTime(n.created_at)}
                     </span>
                   </span>

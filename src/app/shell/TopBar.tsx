@@ -14,7 +14,7 @@ export function ConnectionPill({ className }: { className?: string }) {
   const t = useT();
   const { online } = useConnection();
   return (
-    <span role="status" className={cn('inline-flex items-center gap-2 px-2 text-[13px]', online ? 'text-fg-2' : 'text-danger', className)}>
+    <span role="status" className={cn('inline-flex items-center gap-2 px-2 text-[0.8125rem]', online ? 'text-fg-2' : 'text-danger', className)}>
       <span className={cn('size-2 rounded-full', online ? 'bg-success' : 'bg-danger')} aria-hidden />
       {online ? t('topbar.online') : t('topbar.offline')}
     </span>
@@ -43,8 +43,8 @@ export function TopBar({ onOpenCommand }: { onOpenCommand: () => void }) {
         <BrandMark size="sm" />
       </div>
       <div className="hidden min-w-0 md:block">
-        <p className="truncate text-[15px] font-medium text-fg">{f.weekdayDate(new Date())}</p>
-        <LiveClock className="text-[13px] text-fg-3" />
+        <p className="truncate text-[0.9375rem] font-medium text-fg">{f.weekdayDate(new Date())}</p>
+        <LiveClock className="text-[0.8125rem] text-fg-3" />
       </div>
       <div className="ms-auto flex items-center gap-2">
         <button
@@ -54,7 +54,7 @@ export function TopBar({ onOpenCommand }: { onOpenCommand: () => void }) {
         >
           <Search className="size-4" strokeWidth={1.5} />
           <span>{t('topbar.commandHint')}</span>
-          <kbd className="mono ms-6 inline-flex items-center gap-0.5 rounded-[4px] border border-line bg-elevated px-1.5 text-[11px] text-fg-3" dir="ltr">
+          <kbd className="mono ms-6 inline-flex items-center gap-0.5 rounded-[4px] border border-line bg-elevated px-1.5 text-[0.6875rem] text-fg-3" dir="ltr">
             <Command className="size-3" />K
           </kbd>
         </button>
@@ -70,7 +70,7 @@ export function TopBar({ onOpenCommand }: { onOpenCommand: () => void }) {
             aria-expanded={panelOpen}
             className="relative grid size-10 place-items-center rounded-btn text-fg-2 transition-colors hover:bg-fg/5 hover:text-fg"
           >
-            <Bell className="size-[18px]" strokeWidth={1.5} />
+            <Bell className="size-[1.125rem]" strokeWidth={1.5} />
             <CountBadge count={unread} alert className="absolute -end-1 -top-1" />
           </button>
           <NotificationsPanel open={panelOpen} onClose={() => setPanelOpen(false)} />

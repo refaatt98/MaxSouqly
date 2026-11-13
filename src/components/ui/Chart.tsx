@@ -133,13 +133,13 @@ export function LineChart({ data, format, formatAxis, height = 260, className, e
           {geo.ticks.map((tk) => (
             <g key={tk.v}>
               <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(243,238,230,0.08)" />
-              <text x={width - 4} y={tk.y + 4} textAnchor="end" className="mono fill-fg-3 text-[11px]">
+              <text x={width - 4} y={tk.y + 4} textAnchor="end" direction="ltr" className="mono fill-fg-3 text-[0.6875rem]">
                 {(formatAxis ?? format)(tk.v)}
               </text>
             </g>
           ))}
           {data.map((d, i) => (
-            <text key={i} x={geo.xAt(i)} y={height - 8} textAnchor="middle" className={cn('text-[11px]', tip?.index === i ? 'fill-fg' : 'fill-fg-3')}>
+            <text key={i} x={geo.xAt(i)} y={height - 8} textAnchor="middle" className={cn('text-[0.6875rem]', tip?.index === i ? 'fill-fg' : 'fill-fg-3')}>
               {d.label}
             </text>
           ))}
@@ -217,7 +217,7 @@ export function BarChart({ data, format, formatAxis, height = 260, className, hi
           {ticks.map((tk) => (
             <g key={tk.v}>
               <line x1={PAD.end} x2={width - PAD.start + 8} y1={tk.y} y2={tk.y} stroke="rgba(243,238,230,0.08)" />
-              <text x={width - 4} y={tk.y + 4} textAnchor="end" className="mono fill-fg-3 text-[11px]">
+              <text x={width - 4} y={tk.y + 4} textAnchor="end" direction="ltr" className="mono fill-fg-3 text-[0.6875rem]">
                 {(formatAxis ?? format)(tk.v)}
               </text>
             </g>
@@ -239,7 +239,7 @@ export function BarChart({ data, format, formatAxis, height = 260, className, hi
                   transition={{ duration: 0.5, delay: reduce ? 0 : Math.min(i * 0.02, 0.3), ease: [0.22, 1, 0.36, 1] }}
                 />
                 {i % labelEvery === 0 && (
-                  <text x={xCenter(i)} y={height - 8} textAnchor="middle" className={cn('text-[11px]', tip?.index === i ? 'fill-fg' : 'fill-fg-3')}>
+                  <text x={xCenter(i)} y={height - 8} textAnchor="middle" className={cn('text-[0.6875rem]', tip?.index === i ? 'fill-fg' : 'fill-fg-3')}>
                     {d.label}
                   </text>
                 )}
@@ -290,7 +290,7 @@ export function RingGauge({ value, size = 180, stroke = 16, label, sublabel, for
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="num text-[34px] leading-none font-medium text-fg">{format(pct)}</span>
+        <span className="num text-[2.125rem] leading-none font-medium text-fg">{format(pct)}</span>
         {label && <span className="mt-1 text-xs text-fg-3">{label}</span>}
         {sublabel}
       </div>
@@ -309,7 +309,7 @@ export function Heatmap({ rows, cols, value, format, rowLabel, colLabel }: {
   const max = Math.max(1, ...rows.flatMap((r) => cols.map((c) => value(r, c))));
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-separate border-spacing-1 text-[11px]">
+      <table className="w-full border-separate border-spacing-1 text-[0.6875rem]">
         <thead>
           <tr>
             <th />
@@ -366,7 +366,7 @@ export function ShareBars({ items, format }: { items: { label: string; value: nu
                 {format(it.value)} <span className="text-xs font-normal text-fg-3">· {pct.toFixed(0)}%</span>
               </span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-black/[0.05]">
+            <div className="h-1.5 overflow-hidden rounded-full bg-fg/[0.05]">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: it.color ?? '#b3aa9c' }}

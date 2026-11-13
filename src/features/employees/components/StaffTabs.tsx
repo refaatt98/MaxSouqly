@@ -84,7 +84,7 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
         {shifts.loading && !shifts.data ? (
           <SkeletonRows rows={6} />
         ) : (
-          <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
+          <table className="w-full min-w-[56.25rem] border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
                 <th className="sticky start-0 z-[1] border-b border-line bg-card px-3 py-3 text-start text-xs text-fg-3">{t('employees.shiftEmployee')}</th>
@@ -106,14 +106,14 @@ export function ShiftsTab({ employees }: { employees: EmployeeRow[] }) {
                     const date = toISODate(d);
                     const list = cell(e.id, date);
                     return (
-                      <td key={date} className={cn('h-16 border-b border-s border-line p-1 align-top', date === today && 'bg-black/[0.02]')}>
+                      <td key={date} className={cn('h-16 border-b border-s border-line p-1 align-top', date === today && 'bg-fg/[0.02]')}>
                         <div className="flex h-full flex-col gap-1">
                           {list.map((s) => (
                             <button
                               key={s.id}
                               type="button"
                               onClick={() => setDraft({ id: s.id, employee_id: s.employee_id, date: s.shift_date, start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5), notes: s.notes })}
-                              className={cn('num rounded-btn px-2 py-1 text-[11px] font-semibold', Number(s.start_time.slice(0, 2)) < 14 ? 'bg-elevated text-fg' : 'bg-elevated text-fg-2')}
+                              className={cn('num rounded-btn px-2 py-1 text-[0.6875rem] font-semibold', Number(s.start_time.slice(0, 2)) < 14 ? 'bg-elevated text-fg' : 'bg-elevated text-fg-2')}
                               dir="ltr"
                             >
                               {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}

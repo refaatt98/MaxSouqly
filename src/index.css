@@ -64,6 +64,11 @@
 @layer base {
   html {
     color-scheme: dark;
+    /* phones: everything is sized in rem, so a smaller root zooms the whole UI out */
+    font-size: 16px;
+    @media (max-width: 639px) {
+      font-size: 13.5px;
+    }
     -webkit-tap-highlight-color: transparent;
   }
   body {
@@ -73,6 +78,9 @@
     background-size: 320px 320px;
     font-family: var(--font-sans);
     min-height: 100dvh;
+    @media (max-width: 639px) {
+      background-size: 230px 230px;
+    }
   }
   html[lang='he'] body {
     font-family: var(--font-he);

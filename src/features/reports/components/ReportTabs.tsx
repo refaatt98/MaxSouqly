@@ -89,7 +89,7 @@ export function SalesTab({ from, to, register }: { from: string; to: string; reg
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard emphasis label={t('reports.totalSales')} value={Number(s?.total ?? 0)} format={(n) => f.money(Math.round(n))} icon={<Wallet className="size-6" />} tone="green" loading={!s} trend={s ? percentChange(Number(s.total), Number(s.prev_total)) : null} trendLabel={t('common.vsPrevious')} />
         <StatCard label={t('reports.ordersCount')} value={Number(s?.orders ?? 0)} format={(n) => f.number(Math.round(n))} icon={<ShoppingBag className="size-6" />} tone="blue" loading={!s} delay={0.05} />
         <StatCard label={t('reports.avgTicket')} value={Number(s?.avg_ticket ?? 0)} format={f.money} icon={<Receipt className="size-6" />} tone="gold" loading={!s} delay={0.1} />
@@ -210,7 +210,7 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard label={t('reports.revenue')} value={Number(p?.revenue ?? 0)} format={(n) => f.money(Math.round(n))} icon={<Wallet className="size-6" />} tone="green" loading={!p} />
         <StatCard label={t('reports.cogs')} value={Number(p?.cogs ?? 0)} format={(n) => f.money(Math.round(n))} icon={<ShoppingBag className="size-6" />} tone="blue" loading={!p} delay={0.05} />
         <StatCard label={t('reports.expensesTotal')} value={Number(p?.expenses ?? 0)} format={(n) => f.money(Math.round(n))} icon={<Receipt className="size-6" />} tone="red" loading={!p} delay={0.1} />

@@ -110,7 +110,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 className="h-14 w-full bg-transparent text-base text-fg placeholder:text-fg-3 focus:outline-none"
                 aria-label={t('command.placeholder')}
               />
-              <kbd className="rounded border border-line px-1.5 text-[11px] text-fg-3">Esc</kbd>
+              <kbd className="rounded border border-line px-1.5 text-[0.6875rem] text-fg-3">Esc</kbd>
             </div>
             <div className="max-h-[50vh] overflow-y-auto p-2">
               {flat.length === 0 && <p className="px-3 py-8 text-center text-sm text-fg-3">{t('command.empty')}</p>}

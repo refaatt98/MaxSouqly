@@ -70,10 +70,10 @@ function QuickAction({ icon, label, count, onClick, to }: {
     <>
       <span className="text-fg-3">{icon}</span>
       <span className="flex-1 text-start text-sm text-fg">{label}</span>
-      {count !== undefined && count > 0 && <span className="mono text-[13px] text-fg-2">{count}</span>}
+      {count !== undefined && count > 0 && <span className="mono text-[0.8125rem] text-fg-2">{count}</span>}
     </>
   );
-  const cls = 'flex h-12 items-center gap-2.5 rounded-btn px-3 transition-colors hover:bg-black/[0.04]';
+  const cls = 'flex h-12 items-center gap-2.5 rounded-btn px-3 transition-colors hover:bg-fg/[0.04]';
   return to ? (
     <Link to={to} className={cls}>
       {inner}
@@ -130,7 +130,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-5">
       <h1 className="sr-only">{t('dashboard.title')}</h1>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 [&>*:first-child]:col-span-2 md:[&>*:first-child]:col-span-1">
         <StatCard
           label={t('dashboard.salesToday')}
           value={Number(d?.today.sales ?? 0)}
@@ -210,22 +210,22 @@ export default function DashboardPage() {
         <Card className="xl:col-span-1">
           <CardHeader title={t('dashboard.quickActions')} />
           <div className="space-y-0.5 p-2 pt-3">
-            <QuickAction to="/orders?active=1" icon={<ClipboardList className="size-[18px]" strokeWidth={1.5} />} label={t('dashboard.currentOrders')} count={d?.active_orders ?? 0} />
-            <QuickAction onClick={() => setAlertsOpen(true)} icon={<Bell className="size-[18px]" strokeWidth={1.5} />} label={t('dashboard.alerts')} count={unread} />
-            <QuickAction to="/inventory?tab=purchases" icon={<ShoppingBag className="size-[18px]" strokeWidth={1.5} />} label={t('dashboard.purchases')} count={d?.open_purchase_orders ?? 0} />
-            <QuickAction to="/reports" icon={<ChartColumn className="size-[18px]" strokeWidth={1.5} />} label={t('dashboard.quickReports')} />
+            <QuickAction to="/orders?active=1" icon={<ClipboardList className="size-[1.125rem]" strokeWidth={1.5} />} label={t('dashboard.currentOrders')} count={d?.active_orders ?? 0} />
+            <QuickAction onClick={() => setAlertsOpen(true)} icon={<Bell className="size-[1.125rem]" strokeWidth={1.5} />} label={t('dashboard.alerts')} count={unread} />
+            <QuickAction to="/inventory?tab=purchases" icon={<ShoppingBag className="size-[1.125rem]" strokeWidth={1.5} />} label={t('dashboard.purchases')} count={d?.open_purchase_orders ?? 0} />
+            <QuickAction to="/reports" icon={<ChartColumn className="size-[1.125rem]" strokeWidth={1.5} />} label={t('dashboard.quickReports')} />
           </div>
           {d && d.low_stock_count > 0 && (
-            <button type="button" onClick={() => navigate('/inventory?low=1')} className="mx-2 mb-2 flex h-12 w-[calc(100%-1rem)] items-center gap-2.5 rounded-btn px-3 text-sm transition-colors hover:bg-black/[0.04]">
+            <button type="button" onClick={() => navigate('/inventory?low=1')} className="mx-2 mb-2 flex h-12 w-[calc(100%-1rem)] items-center gap-2.5 rounded-btn px-3 text-sm transition-colors hover:bg-fg/[0.04]">
               <span className="size-2 rounded-full bg-warning" aria-hidden />
               <span className="flex-1 text-start text-fg">{t('dashboard.lowStock')}</span>
-              <span className="mono text-[13px] text-warning">{f.number(d.low_stock_count)}</span>
+              <span className="mono text-[0.8125rem] text-warning">{f.number(d.low_stock_count)}</span>
             </button>
           )}
         </Card>
 
         <Card className="xl:col-span-1">
-          <CardHeader title={t('dashboard.recentOrders')} actions={<Link to="/orders" className="text-[13px] text-fg-2 transition-colors hover:text-fg">{t('common.view')}</Link>} />
+          <CardHeader title={t('dashboard.recentOrders')} actions={<Link to="/orders" className="text-[0.8125rem] text-fg-2 transition-colors hover:text-fg">{t('common.view')}</Link>} />
           <div className="p-3">
             {recent.loading && !recent.data ? (
               <div className="space-y-2 p-2">{Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-12" />)}</div>
@@ -233,8 +233,8 @@ export default function DashboardPage() {
               <ul>
                 {recent.data.map((o) => (
                   <li key={o.id}>
-                    <Link to={`/orders?id=${o.id}`} className="flex items-center gap-3 rounded-btn px-2 py-2.5 hover:bg-black/[0.04]">
-                      <span className="mono min-w-14 text-[13px] text-fg-2">#{f.digits(o.order_number)}</span>
+                    <Link to={`/orders?id=${o.id}`} className="flex items-center gap-3 rounded-btn px-2 py-2.5 hover:bg-fg/[0.04]">
+                      <span className="mono min-w-14 text-[0.8125rem] text-fg-2">#{f.digits(o.order_number)}</span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm text-fg">{t(`order.type.${o.type}`)}{o.table_no ? ` · ${t('order.table', { table: f.digits(o.table_no) })}` : ''}</span>
                         <span className="block text-xs text-fg-3">{f.time(o.created_at)}</span>

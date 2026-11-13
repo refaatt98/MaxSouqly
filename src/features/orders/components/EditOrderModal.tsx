@@ -190,7 +190,7 @@ export function EditOrderModal({ order, onClose, onChanged }: { order: EditableO
       </div>
 
       {lastDelta !== null && Math.abs(lastDelta) >= 0.01 && (
-        <div className={cn('mb-4 rounded-card border px-4 py-3 text-[15px] font-medium', lastDelta < 0 ? 'border-danger/30 bg-danger/5 text-danger' : 'border-success/30 bg-success/5 text-success')}>
+        <div className={cn('mb-4 rounded-card border px-4 py-3 text-[0.9375rem] font-medium', lastDelta < 0 ? 'border-danger/30 bg-danger/5 text-danger' : 'border-success/30 bg-success/5 text-success')}>
           {lastDelta < 0 ? t('edit.refund', { amount: f.money(Math.abs(lastDelta)) }) : t('edit.collect', { amount: f.money(lastDelta) })}
         </div>
       )}

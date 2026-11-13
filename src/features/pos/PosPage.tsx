@@ -357,7 +357,7 @@ export default function PosPage() {
               }}
               placeholder={t('pos.search')}
               aria-label={t('pos.search')}
-              className="h-12 w-full rounded-btn border border-line-strong bg-surface ps-11 pe-11 text-base placeholder:text-fg-3 focus:border-fg-3 focus:ring-2 focus:ring-black/10 focus:outline-none"
+              className="h-11 w-full rounded-btn border border-line-strong bg-surface ps-11 pe-11 text-base sm:h-12 placeholder:text-fg-3 focus:border-fg-3 focus:ring-2 focus:ring-black/10 focus:outline-none"
             />
             <ScanBarcode className="pointer-events-none absolute end-3.5 top-1/2 size-5 -translate-y-1/2 text-fg-3" />
           </div>
@@ -370,7 +370,7 @@ export default function PosPage() {
             }}
           />
           <div className="flex items-center gap-2">
-            <span className="text-[13px] text-fg-3">{t('pos.multiplier')}</span>
+            <span className="text-[0.8125rem] text-fg-3">{t('pos.multiplier')}</span>
             {[1, 2, 3].map((m) => (
               <button
                 key={m}
@@ -378,7 +378,7 @@ export default function PosPage() {
                 onClick={() => setMultiplier(m)}
                 aria-pressed={multiplier === m}
                 className={cn(
-                  'mono h-11 min-w-14 rounded-btn border px-3 text-[15px] transition-colors',
+                  'mono h-9 min-w-11 rounded-btn border px-2.5 text-[0.9375rem] transition-colors sm:h-11 sm:min-w-14 sm:px-3',
                   multiplier === m ? 'border-line-strong bg-elevated text-fg shadow-glow-sm' : 'border-line bg-card text-fg-3 hover:border-line-strong hover:text-fg-2',
                 )}
               >
@@ -390,7 +390,7 @@ export default function PosPage() {
               onClick={() => setQtyOpen(true)}
               aria-label={t('pos.customQty')}
               className={cn(
-                'mono grid h-11 min-w-14 place-items-center rounded-btn border px-3 transition-colors',
+                'mono grid h-9 min-w-11 place-items-center rounded-btn border px-2.5 transition-colors sm:h-11 sm:min-w-14 sm:px-3',
                 multiplier > 3 ? 'border-line-strong bg-elevated text-fg shadow-glow-sm' : 'border-line bg-card text-fg-3 hover:border-line-strong hover:text-fg-2',
               )}
             >
@@ -405,7 +405,7 @@ export default function PosPage() {
       </section>
 
       {/* Cart (desktop / tablet) */}
-      <aside className="hidden w-[380px] shrink-0 border-s border-line bg-surface lg:block xl:w-[420px]">{cartPanel}</aside>
+      <aside className="hidden w-[23.75rem] shrink-0 border-s border-line bg-surface lg:block xl:w-[26.25rem]">{cartPanel}</aside>
 
       {/* Cart (mobile) */}
       <AnimatePresence>

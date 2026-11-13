@@ -5,7 +5,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
         <div className="min-w-0">
-          <h1 className="truncate text-[28px] leading-tight font-medium text-fg">{title}</h1>
+          <h1 className="truncate text-[1.75rem] leading-tight font-medium text-fg">{title}</h1>
           {subtitle && <p className="mt-1 text-sm text-fg-2">{subtitle}</p>}
         </div>
       </div>

@@ -178,7 +178,7 @@ export default function LoginPage() {
           <LanguageSwitcher className="w-48" />
         </div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mx-auto w-full max-w-sm">
-          <h1 className="text-[28px] leading-tight font-medium">{t('auth.title')}</h1>
+          <h1 className="text-[1.75rem] leading-tight font-medium">{t('auth.title')}</h1>
           <p className="mt-2 text-sm text-fg-3">{t('auth.subtitle')}</p>
           <Segmented
             className="mt-8 w-full"

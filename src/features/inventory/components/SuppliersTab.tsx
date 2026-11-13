@@ -104,7 +104,7 @@ export function SuppliersTab({ suppliers, ingredients }: { suppliers: QueryState
               <Card key={s.id} className="p-5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <span className="grid size-10 place-items-center rounded-btn border border-line bg-elevated text-fg-3"><Truck className="size-[18px]" strokeWidth={1.5} /></span>
+                    <span className="grid size-10 place-items-center rounded-btn border border-line bg-elevated text-fg-3"><Truck className="size-[1.125rem]" strokeWidth={1.5} /></span>
                     <div>
                       <p className="font-medium">{s.name}</p>
                       <p className="text-xs text-fg-3">{s.contact_name || t('common.none')}</p>
@@ -117,7 +117,7 @@ export function SuppliersTab({ suppliers, ingredients }: { suppliers: QueryState
                   {s.email && <li className="flex items-center gap-2"><Mail className="size-4 text-fg-3" /><a href={`mailto:${s.email}`} dir="ltr" className="truncate hover:text-fg">{s.email}</a></li>}
                   {s.address && <li className="flex items-center gap-2"><MapPin className="size-4 text-fg-3" />{s.address}</li>}
                 </ul>
-                {s.notes && <p className="mt-3 rounded-btn bg-black/[0.03] p-2 text-xs text-fg-3">{s.notes}</p>}
+                {s.notes && <p className="mt-3 rounded-btn bg-fg/[0.03] p-2 text-xs text-fg-3">{s.notes}</p>}
                 <div className="mt-4 flex justify-end gap-1 border-t border-line pt-3">
                   <IconButton label={t('common.edit')} size="sm" onClick={() => setEdit(s)}><Pencil className="size-4" /></IconButton>
                   <IconButton label={t('common.delete')} size="sm" className="hover:text-danger" onClick={() => void remove(s)}><Trash className="size-4" /></IconButton>

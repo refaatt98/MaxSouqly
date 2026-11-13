@@ -385,7 +385,7 @@ function AboutTab() {
           <p className="mb-3 text-sm text-fg-3">{t('settings.shortcuts')}</p>
           <ul className="space-y-2 text-sm">
             {shortcuts.map(([k, label]) => (
-              <li key={k} className="flex justify-between gap-2"><span className="text-fg-2">{label}</span><kbd className="mono rounded-[4px] border border-line bg-elevated px-1.5 text-[11px] text-fg-2" dir="ltr">{k}</kbd></li>
+              <li key={k} className="flex justify-between gap-2"><span className="text-fg-2">{label}</span><kbd className="mono rounded-[4px] border border-line bg-elevated px-1.5 text-[0.6875rem] text-fg-2" dir="ltr">{k}</kbd></li>
             ))}
           </ul>
         </div>

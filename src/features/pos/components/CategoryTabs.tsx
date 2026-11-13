@@ -29,14 +29,14 @@ export function CategoryTabs({ categories, value, onChange }: { categories: Cate
             aria-selected={active}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'relative flex min-h-[76px] min-w-[88px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-card border px-3 text-sm transition-colors',
+              'relative flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-card border px-3 text-sm transition-colors sm:min-h-[4.75rem] sm:min-w-[5.5rem] sm:flex-col',
               active ? 'border-line-strong bg-elevated font-medium text-fg shadow-glow-sm' : 'border-line bg-card text-fg-2 hover:border-line-strong hover:text-fg',
             )}
           >
-            {active && <span className="slash absolute start-2.5 top-2.5" aria-hidden />}
-            <span className="relative text-fg-3">{tab.icon}</span>
+            {active && <span className="slash absolute start-1.5 top-1.5 sm:start-2.5 sm:top-2.5" aria-hidden />}
+            <span className="relative text-fg-3 max-sm:[&>*]:size-5">{tab.icon}</span>
             <span className="relative">{tab.label}</span>
-            {tab.key && <kbd className="mono absolute end-2 top-1.5 text-[11px] text-fg-3">{tab.key}</kbd>}
+            {tab.key && <kbd className="mono absolute end-2 top-1.5 hidden sm:block text-[0.6875rem] text-fg-3">{tab.key}</kbd>}
           </button>
         );
       })}

@@ -312,7 +312,7 @@ export default function MenuPage() {
             <button
               type="button"
               onClick={() => setCategory(null)}
-              className={cn('flex h-10 w-full items-center gap-2.5 rounded-btn px-3 text-sm transition-colors', category === null ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-black/[0.04]')}
+              className={cn('flex h-10 w-full items-center gap-2.5 rounded-btn px-3 text-sm transition-colors', category === null ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-fg/[0.04]')}
             >
               <UtensilsCrossed className="size-4" /> {t('common.all')}
               <span className="mono ms-auto text-xs text-fg-3">{menu.data?.items.length ?? 0}</span>
@@ -324,7 +324,7 @@ export default function MenuPage() {
                   onClick={() => setCategory(c.id)}
                   className={cn(
                     'flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-btn px-3 text-sm transition-colors',
-                    category === c.id ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-black/[0.04]',
+                    category === c.id ? 'bg-elevated text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-fg/[0.04]',
                     !c.is_active && 'opacity-50',
                   )}
                 >
@@ -344,7 +344,7 @@ export default function MenuPage() {
             ) : items.length === 0 ? (
               <EmptyState icon={<UtensilsCrossed className="size-7" />} title={t('menu.empty')} action={<Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setEditItem('new')}>{t('menu.addItem')}</Button>} />
             ) : (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] sm:gap-3">
                 {items.map((i) => {
                   const margin = Number(i.price) > 0 ? ((Number(i.price) - Number(i.cost_cache)) / Number(i.price)) * 100 : 0;
                   return (
@@ -354,7 +354,7 @@ export default function MenuPage() {
                         <p className="mt-2 truncate text-fg">{name(i)}</p>
                       </button>
                       <div className="mt-1 flex items-center justify-between">
-                        <span className="num text-[17px] font-medium text-fg">{f.money(Number(i.price))}</span>
+                        <span className="num text-[1.0625rem] font-medium text-fg">{f.money(Number(i.price))}</span>
                         <span className={cn('num text-xs', margin >= 40 ? 'text-fg-3' : 'text-danger')}>{t('menu.margin')} {f.percent(margin)}</span>
                       </div>
                       {menu.data?.withRecipe && !menu.data.withRecipe.has(i.id) && (

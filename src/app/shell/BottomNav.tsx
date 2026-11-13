@@ -18,7 +18,7 @@ export function BottomNav() {
   const rest = items.slice(4);
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    cn('flex flex-1 flex-col items-center justify-center gap-1 text-[11px] transition-colors', isActive ? 'font-medium text-fg' : 'text-fg-3');
+    cn('flex flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] transition-colors', isActive ? 'font-medium text-fg' : 'text-fg-3');
 
   return (
     <>
@@ -35,7 +35,7 @@ export function BottomNav() {
             )}
           </NavLink>
         ))}
-        <button type="button" onClick={() => setMore(true)} className="flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-fg-3">
+        <button type="button" onClick={() => setMore(true)} className="flex flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] font-semibold text-fg-3">
           <span className="grid h-7 w-12 place-items-center"><Ellipsis className="size-5" /></span>
           {t('nav.more')}
         </button>

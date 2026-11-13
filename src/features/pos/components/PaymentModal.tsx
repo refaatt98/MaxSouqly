@@ -104,7 +104,7 @@ export function PaymentModal({ open, due, onClose, onConfirm, pending }: {
         <div className="space-y-4">
           <div className="rounded-card border border-line bg-card p-5 text-center">
             <p className="text-sm text-fg-2">{t('payment.due')}</p>
-            <p className="num mt-2 text-[44px] leading-none font-medium text-fg">{f.money(due)}</p>
+            <p className="num mt-2 text-[2.75rem] leading-none font-medium text-fg">{f.money(due)}</p>
           </div>
           <Segmented
             size="lg"
@@ -125,11 +125,11 @@ export function PaymentModal({ open, due, onClose, onConfirm, pending }: {
             <div className="space-y-3">
               <div className="rounded-card border border-line bg-card p-4">
                 <p className="text-xs text-fg-3">{t('payment.cashGiven')}</p>
-                <p className="num text-[28px] leading-none font-medium">{f.money(entry === '' ? due : amount)}</p>
+                <p className="num text-[1.75rem] leading-none font-medium">{f.money(entry === '' ? due : amount)}</p>
               </div>
               <div className="rounded-card border border-line bg-card p-4">
                 <p className="text-xs text-fg-2">{calc.valid ? t('payment.changeDue') : t('payment.insufficient')}</p>
-                <p className={cn('num text-[28px] leading-none font-medium', calc.valid ? 'text-fg' : 'text-danger')}>{f.money(calc.valid ? calc.change : due - amount)}</p>
+                <p className={cn('num text-[1.75rem] leading-none font-medium', calc.valid ? 'text-fg' : 'text-danger')}>{f.money(calc.valid ? calc.change : due - amount)}</p>
               </div>
             </div>
           )}

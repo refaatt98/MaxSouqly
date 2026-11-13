@@ -24,7 +24,7 @@ function QtyStepper({ line, dispatch }: { line: CartLine; dispatch: (a: CartActi
       >
         <Minus className="size-4" />
       </button>
-      <motion.span key={line.qty} initial={{ y: -4, opacity: 0.4 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.16 }} className="num w-8 text-center text-[15px] font-medium">
+      <motion.span key={line.qty} initial={{ y: -4, opacity: 0.4 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.16 }} className="num w-8 text-center text-[0.9375rem] font-medium">
         {f.number(line.qty)}
       </motion.span>
       <button
@@ -59,7 +59,7 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
       className="mb-2 touch-pan-y rounded-card border border-line bg-card p-2.5"
     >
       <div className="flex items-center gap-3">
-        <FoodImage src={line.item.image_url} alt="" className="size-14 shrink-0 rounded-btn bg-black/[0.03]" />
+        <FoodImage src={line.item.image_url} alt="" className="size-14 shrink-0 rounded-btn bg-fg/[0.03]" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-fg">{name(line.item)}</p>
           <p className="num text-xs text-fg-3">{f.money(Number(line.item.price))}</p>
@@ -127,7 +127,7 @@ export function CartPanel(p: CartPanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
-        <h2 className="flex items-center gap-2 text-[15px] font-medium">
+        <h2 className="flex items-center gap-2 text-[0.9375rem] font-medium">
           {t('pos.cart')} <CountBadge count={totals.count} />
         </h2>
         <div className="flex gap-1">
@@ -266,7 +266,7 @@ export function CartPanel(p: CartPanelProps) {
           <div>
             <p className="text-sm text-fg-2">{t('pos.grandTotal')}</p>
           </div>
-          <motion.p key={totals.total} initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className="num text-[30px] leading-none font-medium text-fg">
+          <motion.p key={totals.total} initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className="num text-[1.875rem] leading-none font-medium text-fg">
             {f.money(totals.total)}
           </motion.p>
         </div>
@@ -277,7 +277,7 @@ export function CartPanel(p: CartPanelProps) {
           <Button variant="secondary" size="lg" icon={<Printer className="size-4" />} onClick={p.onPrint} disabled={empty}>
             {t('pos.print')}
           </Button>
-          <Button variant="primary" size="lg" icon={<Wallet className="size-[18px]" strokeWidth={1.5} />} onClick={p.onPay} disabled={empty} className="text-base">
+          <Button variant="primary" size="lg" icon={<Wallet className="size-[1.125rem]" strokeWidth={1.5} />} onClick={p.onPay} disabled={empty} className="text-base">
             {t('pos.pay')}
           </Button>
         </div>

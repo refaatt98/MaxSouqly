@@ -144,7 +144,7 @@ function LogTab() {
                       {s.title && <span className="truncate text-sm text-fg">{s.title}</span>}
                     </div>
                     {s.lines.length > 0 && (
-                      <ul className="mt-1 space-y-0.5 text-[13px] text-fg-2">
+                      <ul className="mt-1 space-y-0.5 text-[0.8125rem] text-fg-2">
                         {s.lines.map((l, i) => (
                           <li key={i} className="num">{l}</li>
                         ))}

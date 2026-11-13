@@ -17,7 +17,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
     <aside
       className={cn(
         'sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-line bg-surface transition-[width] duration-300 md:flex',
-        collapsed ? 'w-[72px]' : 'w-[248px]',
+        collapsed ? 'w-[4.5rem]' : 'w-[15.5rem]',
       )}
       aria-label="sidebar"
     >
@@ -25,7 +25,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
         {collapsed ? <span className="inline-block h-5 w-1.5 -skew-x-12 rounded-[2px] bg-brand" aria-label="MAX" /> : <BrandMark />}
         {!collapsed && (
           <button type="button" onClick={onToggle} className="grid size-9 place-items-center rounded-btn text-fg-3 hover:bg-fg/5 hover:text-fg" aria-label={t('nav.collapse')} title={t('nav.collapse')}>
-            <PanelRightClose className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
+            <PanelRightClose className="size-[1.125rem] rtl:-scale-x-100" strokeWidth={1.5} />
           </button>
         )}
       </div>
@@ -33,7 +33,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       <nav className="no-scrollbar flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {collapsed && (
           <button type="button" onClick={onToggle} className="mb-2 grid h-10 w-full place-items-center rounded-btn text-fg-3 hover:bg-fg/5 hover:text-fg" aria-label={t('nav.expand')} title={t('nav.expand')}>
-            <PanelRightOpen className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
+            <PanelRightOpen className="size-[1.125rem] rtl:-scale-x-100" strokeWidth={1.5} />
           </button>
         )}
         {items.map((item) => (
@@ -46,14 +46,14 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
               cn(
                 'relative flex h-10 items-center gap-2.5 rounded-btn text-sm transition-colors',
                 collapsed ? 'justify-center' : 'ps-4 pe-3',
-                isActive ? 'bg-elevated font-medium text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-black/[0.04] hover:text-fg',
+                isActive ? 'bg-elevated font-medium text-fg shadow-glow-sm' : 'text-fg-2 hover:bg-fg/[0.04] hover:text-fg',
               )
             }
           >
             {({ isActive }) => (
               <>
                 {isActive && <span className={cn('slash absolute top-1/2 -translate-y-1/2', collapsed ? 'start-2' : 'start-1.5')} aria-hidden />}
-                <item.icon className={cn('size-[18px] shrink-0', isActive ? 'text-fg' : 'text-fg-3')} strokeWidth={1.5} aria-hidden />
+                <item.icon className={cn('size-[1.125rem] shrink-0', isActive ? 'text-fg' : 'text-fg-3')} strokeWidth={1.5} aria-hidden />
                 {!collapsed && <span className="truncate">{t(item.label)}</span>}
                 
               </>
@@ -79,9 +79,9 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
           type="button"
           onClick={() => void signOut()}
           title={t('nav.logout')}
-          className={cn('flex h-10 w-full items-center gap-2.5 rounded-btn text-sm text-fg-3 transition-colors hover:bg-black/[0.04] hover:text-fg', collapsed ? 'justify-center' : 'px-3')}
+          className={cn('flex h-10 w-full items-center gap-2.5 rounded-btn text-sm text-fg-3 transition-colors hover:bg-fg/[0.04] hover:text-fg', collapsed ? 'justify-center' : 'px-3')}
         >
-          <LogOut className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
+          <LogOut className="size-[1.125rem] rtl:-scale-x-100" strokeWidth={1.5} />
           {!collapsed && t('nav.logout')}
         </button>
       </div>

@@ -172,12 +172,12 @@ export function SuccessOverlay({ info, onDone }: { info: SuccessInfo | null; onD
               {info.offline ? <WifiOff className="size-7" strokeWidth={1.5} /> : <CircleCheck className="size-8" strokeWidth={1.5} />}
             </motion.div>
             <h2 className="relative text-xl font-medium">{t('pos.successTitle')}</h2>
-            <p className="num relative mt-1 text-[15px] text-fg-2">{t('pos.successOrder', { number: f.digits(info.number) })}</p>
+            <p className="num relative mt-1 text-[0.9375rem] text-fg-2">{t('pos.successOrder', { number: f.digits(info.number) })}</p>
             {info.offline && <p className="relative mt-2 text-sm text-warning">{t('pos.offlineSaved')}</p>}
             {info.change > 0 && (
               <div className="relative mt-6 rounded-card border border-line bg-card p-4">
                 <p className="text-sm text-fg-2">{t('pos.successChange')}</p>
-                <p className="num mt-1 text-[40px] leading-none font-medium text-fg">{f.money(info.change)}</p>
+                <p className="num mt-1 text-[2.5rem] leading-none font-medium text-fg">{f.money(info.change)}</p>
               </div>
             )}
             <Button variant="primary" size="lg" block className="relative mt-6" onClick={onDone}>

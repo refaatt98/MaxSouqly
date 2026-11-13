@@ -21,9 +21,9 @@ interface ToastApi {
 const ToastContext = createContext<ToastApi | null>(null);
 
 const icons = {
-  success: <CircleCheck className="size-[18px] text-success" strokeWidth={1.5} />,
-  error: <TriangleAlert className="size-[18px] text-danger" strokeWidth={1.5} />,
-  info: <Info className="size-[18px] text-fg-3" strokeWidth={1.5} />,
+  success: <CircleCheck className="size-[1.125rem] text-success" strokeWidth={1.5} />,
+  error: <TriangleAlert className="size-[1.125rem] text-danger" strokeWidth={1.5} />,
+  info: <Info className="size-[1.125rem] text-fg-3" strokeWidth={1.5} />,
   order: <span className="slash" aria-hidden />,
 };
 

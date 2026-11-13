@@ -98,9 +98,9 @@ function OrderCard({ order, now, fresh, onAdvance, onBack, onEdit }: {
     >
       <header className="flex items-start justify-between gap-2">
         <div>
-          <p className="mono text-[30px] leading-none font-medium">#{f.digits(order.order_number)}</p>
-          <p className="mt-2 flex items-center gap-1.5 text-[15px] text-paper-muted">
-            <TypeIcon className="size-[18px]" strokeWidth={1.5} />
+          <p className="mono text-[1.875rem] leading-none font-medium">#{f.digits(order.order_number)}</p>
+          <p className="mt-2 flex items-center gap-1.5 text-[0.9375rem] text-paper-muted">
+            <TypeIcon className="size-[1.125rem]" strokeWidth={1.5} />
             {t(`order.type.${order.type}`)}
             {order.table_no ? ` · ${t('order.table', { table: f.digits(order.table_no) })}` : ''}
           </p>
@@ -108,7 +108,7 @@ function OrderCard({ order, now, fresh, onAdvance, onBack, onEdit }: {
         <div className="flex flex-col items-end gap-2">
           <span
             className={cn(
-              'num rounded-[4px] px-2 py-0.5 text-[15px]',
+              'num rounded-[4px] px-2 py-0.5 text-[0.9375rem]',
               level === 'late' ? 'bg-danger text-white' : level === 'warn' ? 'bg-warning text-paper-ink' : 'text-paper-muted',
             )}
           >
@@ -164,7 +164,7 @@ function OrderCard({ order, now, fresh, onAdvance, onBack, onEdit }: {
               <FoodImage src={i.menu_item?.image_url ?? null} alt="" className="size-11 shrink-0" />
               <span>{lang === 'he' && i.name_he_snapshot ? i.name_he_snapshot : i.name_snapshot}</span>
             </div>
-            {i.notes && <p className="ms-[100px] mt-1 border-s-2 border-danger ps-2 text-base font-medium text-[#b4242c]">{i.notes}</p>}
+            {i.notes && <p className="ms-[6.25rem] mt-1 border-s-2 border-danger ps-2 text-base font-medium text-[#b4242c]">{i.notes}</p>}
           </li>
         ))}
       </ul>
@@ -173,9 +173,9 @@ function OrderCard({ order, now, fresh, onAdvance, onBack, onEdit }: {
           <StickyNote className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} /> {order.notes}
         </p>
       )}
-      <div className="mt-4 flex h-11 items-center justify-center gap-2 rounded-[6px] bg-paper-ink text-[15px] font-medium text-paper">
+      <div className="mt-4 flex h-11 items-center justify-center gap-2 rounded-[6px] bg-paper-ink text-[0.9375rem] font-medium text-paper">
         {actionLabel}
-        <ArrowRight className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
+        <ArrowRight className="size-[1.125rem] rtl:-scale-x-100" strokeWidth={1.5} />
       </div>
     </motion.article>
   );
@@ -315,18 +315,21 @@ export default function KitchenPage() {
 
   return (
     <div className="pattern flex h-dvh flex-col bg-bg">
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-line bg-surface px-5">
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-3 sm:h-16 sm:gap-4 sm:px-5">
         <BrandMark />
         <h1 className="flex items-center gap-2 text-lg font-medium">
-          <ChefHat className="size-5 text-fg-3" strokeWidth={1.5} /> {t('kitchen.title')}
+          <ChefHat className="size-5 text-fg-3" strokeWidth={1.5} /> <span className="hidden sm:inline">{t('kitchen.title')}</span>
         </h1>
         <span className="hidden text-sm text-fg-3 lg:block">{t('kitchen.tapHint')}</span>
-        <div className="ms-auto flex items-center gap-2">
-          <LiveClock className="text-2xl text-fg" />
-          <ConnectionPill />
+        <div className="ms-auto flex items-center gap-1.5 sm:gap-2">
+          <LiveClock className="text-base text-fg sm:text-2xl" />
+          <span className="hidden sm:contents">
+            <ConnectionPill />
+          </span>
           {!soundReady ? (
-            <button type="button" onClick={() => void enableSound()} className="h-10 rounded-btn bg-brand px-4 text-sm font-medium text-white shadow-glow-sm transition-colors hover:bg-brand-hover">
-              {t('kitchen.enableSound')}
+            <button type="button" onClick={() => void enableSound()} aria-label={t('kitchen.enableSound')} className="flex h-10 items-center gap-2 rounded-btn bg-brand px-3 text-sm font-medium text-white shadow-glow-sm transition-colors hover:bg-brand-hover sm:px-4">
+              <Volume2 className="size-[1.125rem] sm:hidden" strokeWidth={1.5} />
+              <span className="hidden sm:inline">{t('kitchen.enableSound')}</span>
             </button>
           ) : (
             <button
@@ -336,11 +339,11 @@ export default function KitchenPage() {
               aria-label={t('kitchen.sound')}
               className="grid size-10 place-items-center rounded-btn border border-line text-fg-2 transition-colors hover:text-fg"
             >
-              {soundOn ? <Volume2 className="size-[18px]" strokeWidth={1.5} /> : <VolumeX className="size-[18px]" strokeWidth={1.5} />}
+              {soundOn ? <Volume2 className="size-[1.125rem]" strokeWidth={1.5} /> : <VolumeX className="size-[1.125rem]" strokeWidth={1.5} />}
             </button>
           )}
-          <button type="button" onClick={toggleFullscreen} aria-label={t('kitchen.fullscreen')} className="grid size-10 place-items-center rounded-btn border border-line text-fg-2 transition-colors hover:text-fg">
-            {fullscreen ? <Minimize className="size-[18px]" strokeWidth={1.5} /> : <Maximize className="size-[18px]" strokeWidth={1.5} />}
+          <button type="button" onClick={toggleFullscreen} aria-label={t('kitchen.fullscreen')} className="hidden size-10 place-items-center sm:grid rounded-btn border border-line text-fg-2 transition-colors hover:text-fg">
+            {fullscreen ? <Minimize className="size-[1.125rem]" strokeWidth={1.5} /> : <Maximize className="size-[1.125rem]" strokeWidth={1.5} />}
           </button>
           <button
             type="button"
@@ -348,7 +351,7 @@ export default function KitchenPage() {
             aria-label={role === 'kitchen' ? t('nav.logout') : t('kitchen.exit')}
             className="grid size-10 place-items-center rounded-btn border border-line text-fg-2 transition-colors hover:text-fg"
           >
-            <LogOut className="size-[18px] rtl:-scale-x-100" strokeWidth={1.5} />
+            <LogOut className="size-[1.125rem] rtl:-scale-x-100" strokeWidth={1.5} />
           </button>
         </div>
       </header>
@@ -357,15 +360,15 @@ export default function KitchenPage() {
         <ErrorState message={errorMessage(t, orders.error)} onRetry={() => void orders.refetch()} retryLabel={t('common.retry')} />
       ) : (
         <LayoutGroup>
-          <div className="grid min-h-0 flex-1 gap-4 overflow-x-auto p-4 md:grid-cols-3">
+          <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto p-3 md:grid md:snap-none md:grid-cols-3 md:gap-4 md:p-4">
             {COLUMNS.map((col) => (
-              <section key={col.status} className="flex min-h-0 min-w-[300px] flex-col rounded-panel border border-line bg-surface" aria-label={t(col.label)}>
+              <section key={col.status} className="flex min-h-0 w-[86vw] shrink-0 snap-center flex-col rounded-panel border border-line bg-surface md:w-auto md:min-w-[18.75rem]" aria-label={t(col.label)}>
                 <div className="flex h-14 items-center gap-2.5 border-b border-line px-4">
                   <span className={cn('size-2.5 rounded-full', col.header)} aria-hidden />
-                  <span className="text-[15px] font-medium text-fg">{t(col.label)}</span>
-                  <span className="mono ms-auto text-[15px] text-fg-2">{grouped[col.status].length}</span>
+                  <span className="text-[0.9375rem] font-medium text-fg">{t(col.label)}</span>
+                  <span className="mono ms-auto text-[0.9375rem] text-fg-2">{grouped[col.status].length}</span>
                 </div>
-                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 md:space-y-4 md:p-4">
                   {orders.loading && !orders.data ? (
                     Array.from({ length: 2 }, (_, i) => <Skeleton key={i} className="h-56 rounded-panel" />)
                   ) : (

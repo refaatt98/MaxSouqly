@@ -12,7 +12,7 @@ export function TrendChip({ value, label }: { value: number | null; label?: stri
   if (value === null || !Number.isFinite(value)) return null;
   const up = value >= 0;
   return (
-    <span className="inline-flex items-center gap-1 text-[13px]">
+    <span className="inline-flex items-center gap-1 text-[0.8125rem]">
       <span className={cn('num inline-flex items-center gap-0.5 font-medium', up ? 'text-success' : 'text-danger')}>
         {up ? <ArrowUp className="size-3.5" strokeWidth={1.75} /> : <ArrowDown className="size-3.5" strokeWidth={1.75} />}
         <span dir="ltr">{Math.abs(value).toFixed(0)}%</span>
@@ -45,20 +45,20 @@ export function StatCard({ label, value, format, trend, trendLabel, loading, foo
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-card border border-line bg-card px-5 py-4"
+      className="rounded-card border border-line bg-card px-3.5 py-3 sm:px-5 sm:py-4"
     >
-      <p className="flex items-center gap-2 text-[13px] text-fg-2">
+      <p className="flex items-center gap-2 text-[0.8125rem] text-fg-2">
         {emphasis && <span className="slash" aria-hidden />}
         {label}
       </p>
       {loading ? (
         <Skeleton className="mt-3 h-8 w-32" />
       ) : (
-        <p className="num mt-2 text-[30px] leading-none font-medium text-fg">
+        <p className="num mt-2 text-[1.5rem] leading-none font-medium text-fg sm:text-[1.875rem]">
           <AnimatedNumber value={value} format={format} />
         </p>
       )}
-      <div className="mt-3 flex min-h-5 items-center gap-2">
+      <div className="mt-2 flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1 sm:mt-3">
         {!loading && <TrendChip value={trend ?? null} label={trend !== null && trend !== undefined ? trendLabel : undefined} />}
         {footer}
       </div>

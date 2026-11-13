@@ -113,7 +113,7 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
               <button
                 type="button"
                 onClick={() => setSelected(m)}
-                className={cn('flex w-full items-center gap-3 rounded-btn p-2 text-start', selected?.id === m.id ? 'bg-elevated shadow-glow-sm' : 'hover:bg-black/[0.04]')}
+                className={cn('flex w-full items-center gap-3 rounded-btn p-2 text-start', selected?.id === m.id ? 'bg-elevated shadow-glow-sm' : 'hover:bg-fg/[0.04]')}
               >
                 <FoodImage src={m.image_url} alt="" className="size-10" />
                 <span className="min-w-0 flex-1">
