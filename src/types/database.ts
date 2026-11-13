@@ -853,7 +853,7 @@ export type Database = {
         Row: {
           id: string;
           po_number: number;
-          supplier_id: string;
+          supplier_id: string | null;
           status: Database["public"]["Enums"]["po_status"];
           notes: string;
           expected_date: string | null;
@@ -868,7 +868,7 @@ export type Database = {
         Insert: {
           id?: string;
           po_number?: number;
-          supplier_id: string;
+          supplier_id?: string | null;
           status?: Database["public"]["Enums"]["po_status"];
           notes?: string;
           expected_date?: string | null;
@@ -883,7 +883,7 @@ export type Database = {
         Update: {
           id?: string;
           po_number?: number;
-          supplier_id?: string;
+          supplier_id?: string | null;
           status?: Database["public"]["Enums"]["po_status"];
           notes?: string;
           expected_date?: string | null;
@@ -1217,6 +1217,7 @@ export type Database = {
           expires_at: string | null;
           granted_by: string | null;
           created_at: string;
+          effect: string;
         };
         Insert: {
           user_id: string;
@@ -1224,6 +1225,7 @@ export type Database = {
           expires_at?: string | null;
           granted_by?: string | null;
           created_at?: string;
+          effect?: string;
         };
         Update: {
           user_id?: string;
@@ -1231,6 +1233,7 @@ export type Database = {
           expires_at?: string | null;
           granted_by?: string | null;
           created_at?: string;
+          effect?: string;
         };
         Relationships: [
           { foreignKeyName: "user_permissions_granted_by_fkey"; columns: ["granted_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
@@ -1311,6 +1314,7 @@ export type Database = {
       normalize_phone: { Args: { p: string }; Returns: string };
       open_shift: { Args: { p_opening_float: number }; Returns: Database["public"]["Tables"]["cash_shifts"]["Row"] };
       payroll_range: { Args: { p_month: string }; Returns: unknown[] };
+      perm_locked: { Args: { p_role: Database["public"]["Enums"]["app_role"]; p: string }; Returns: boolean };
       place_order: { Args: { payload: Json }; Returns: Json };
       po_item_costs: { Args: { p_po_id: string }; Returns: Json };
       range_end: { Args: { p_to: string }; Returns: string };
@@ -1334,6 +1338,7 @@ export type Database = {
       report_top_items: { Args: { p_from: string; p_to: string; p_limit?: number }; Returns: Json };
       require_perm: { Args: { p: string }; Returns: undefined };
       restaurant_tz: { Args: Record<PropertyKey, never>; Returns: string };
+      role_defaults: { Args: { p_role: Database["public"]["Enums"]["app_role"] }; Returns: string[] };
       set_pin: { Args: { p_user_id: string; p_pin: string }; Returns: undefined };
       shift_report: { Args: { p_shift_id: string }; Returns: Json };
       staff_board: { Args: Record<PropertyKey, never>; Returns: Json };

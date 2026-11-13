@@ -13,21 +13,23 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { path: '/', label: 'nav.dashboard', icon: LayoutDashboard, roles: ['owner', 'manager'], perm: 'reports' },
-  { path: '/pos', label: 'nav.pos', icon: MonitorSmartphone, roles: ['owner', 'manager', 'cashier'] },
-  { path: '/kitchen', label: 'nav.kitchen', icon: ChefHat, roles: ['owner', 'manager', 'kitchen'] },
-  { path: '/orders', label: 'nav.orders', icon: ClipboardList, roles: ['owner', 'manager', 'cashier'] },
-  { path: '/customers', label: 'nav.customers', icon: Contact, roles: ['owner', 'manager'], perm: 'customers' },
-  { path: '/menu', label: 'nav.menu', icon: UtensilsCrossed, roles: ['owner', 'manager'] },
-  { path: '/inventory', label: 'nav.inventory', icon: Boxes, roles: ['owner', 'manager', 'inventory', 'cashier'] },
-  { path: '/attendance', label: 'nav.attendance', icon: Clock, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'] },
-  { path: '/employees', label: 'nav.employees', icon: Users, roles: ['owner', 'manager'], perm: 'employees' },
-  { path: '/reports', label: 'nav.reports', icon: ChartColumn, roles: ['owner', 'manager'], perm: 'reports' },
-  { path: '/activity', label: 'nav.activity', icon: ScrollText, roles: ['owner', 'manager'], perm: 'activity' },
+  { path: '/', label: 'nav.dashboard', icon: LayoutDashboard, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'reports' },
+  { path: '/pos', label: 'nav.pos', icon: MonitorSmartphone, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'pos' },
+  { path: '/kitchen', label: 'nav.kitchen', icon: ChefHat, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'kitchen' },
+  { path: '/orders', label: 'nav.orders', icon: ClipboardList, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'orders' },
+  { path: '/customers', label: 'nav.customers', icon: Contact, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'customers' },
+  { path: '/menu', label: 'nav.menu', icon: UtensilsCrossed, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'menu' },
+  { path: '/inventory', label: 'nav.inventory', icon: Boxes, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'inventory' },
+  { path: '/attendance', label: 'nav.attendance', icon: Clock, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'attendance' },
+  { path: '/employees', label: 'nav.employees', icon: Users, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'employees' },
+  { path: '/reports', label: 'nav.reports', icon: ChartColumn, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'reports' },
+  { path: '/activity', label: 'nav.activity', icon: ScrollText, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'activity' },
   { path: '/settings', label: 'nav.settings', icon: Settings, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'] },
 ];
 
-const allowed = (n: NavItem, role: AppRole, can: (p: Permission) => boolean) => n.roles.includes(role) && (!n.perm || can(n.perm));
+// inventory opens for stock counting too; its tabs follow the finer permissions
+const allowed = (n: NavItem, role: AppRole, can: (p: Permission) => boolean) =>
+  n.roles.includes(role) && (!n.perm || can(n.perm) || (n.path === '/inventory' && (can('stocktake') || can('receive_goods'))));
 
 export function navFor(role: AppRole | null, can: (p: Permission) => boolean): NavItem[] {
   return role ? NAV_ITEMS.filter((n) => allowed(n, role, can)) : [];

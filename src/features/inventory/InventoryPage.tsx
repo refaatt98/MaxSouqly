@@ -7,7 +7,7 @@ import { useLiveRefetch, useRealtime } from '@/hooks/useRealtime';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { ReceiveGoodsModal } from './components/ReceiveGoodsModal';
-import { useAuth } from '@/app/providers/AuthProvider';
+import { usePermissions } from '@/app/providers/PermissionsProvider';
 import { Tabs } from '@/components/ui/Tabs';
 import { fetchIngredients, fetchSuppliers, stockLevel } from './api';
 import { MaterialsTab } from './components/MaterialsTab';
@@ -23,9 +23,9 @@ const TABS: Tab[] = ['materials', 'suppliers', 'purchases', 'stocktake', 'recipe
 export default function InventoryPage() {
   const t = useT();
   const [params, setParams] = useSearchParams();
-  const { role } = useAuth();
-  // cashiers only count stock; the rest of inventory is for the back office
-  const tabs: Tab[] = role === 'cashier' ? ['stocktake'] : TABS;
+  const { can } = usePermissions();
+  // the back-office tabs need 'inventory'; counting stock has its own permission
+  const tabs: Tab[] = TABS.filter((k) => (k === 'stocktake' ? can('stocktake') || can('inventory') : can('inventory')));
   const tabParam = params.get('tab') as Tab | null;
   const tab: Tab = tabParam && tabs.includes(tabParam) ? tabParam : tabs[0];
   const ingredients = useQuery(fetchIngredients, []);
@@ -63,9 +63,11 @@ export default function InventoryPage() {
         icon={<Boxes className="size-6" />}
         subtitle={lowCount > 0 ? t('inventory.lowCount', { count: lowCount }) : undefined}
         actions={
-          <Button variant="primary" icon={<PackageCheck className="size-4" />} onClick={() => setReceiving(true)}>
-            {t('recv.title')}
-          </Button>
+          (can('receive_goods') || can('inventory')) && (
+            <Button variant="primary" icon={<PackageCheck className="size-4" />} onClick={() => setReceiving(true)}>
+              {t('recv.title')}
+            </Button>
+          )
         }
       />
       <ReceiveGoodsModal

@@ -16,7 +16,7 @@ import { InventoryReportsTab } from '@/features/inventory/components/InventoryRe
 import { ProfitTab, SalesTab, type ExportSpec } from './components/ReportTabs';
 import { ExpensesTab } from './components/ExpensesTab';
 import { AssistantSection } from './components/Assistant';
-import { CashSection, OrderLog, SalesExtras, OrdersSection, PaymentsSection, PurchasesSection, StaffSection, TaxSection } from './components/Sections';
+import { CashSection, ItemsSold, OrderLog, SalesExtras, OrdersSection, PaymentsSection, PurchasesSection, StaffSection, TaxSection } from './components/Sections';
 
 type Section = 'sales' | 'profit' | 'expenses' | 'orders' | 'payments' | 'staff' | 'inventory' | 'purchases' | 'tax' | 'cash' | 'assistant';
 type Kind = 'day' | 'week' | 'month' | 'year' | 'custom';
@@ -127,7 +127,7 @@ export default function ReportsPage() {
         title={t('reports.title')}
         icon={<ChartColumn className="size-6" />}
         actions={
-          section !== 'inventory' && (
+          (
             <>
               <Button icon={<Printer className="size-4" />} onClick={() => print()}>{t('reports.printReport')}</Button>
               <Button icon={<FileText className="size-4" />} onClick={() => print(true)} title={t('rep.pdfHint')}>PDF</Button>
@@ -137,7 +137,7 @@ export default function ReportsPage() {
         }
       />
 
-      {section !== 'inventory' && (
+      {(
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-panel border border-line bg-card p-3">
           <Segmented
             layoutId="rep-kind"
@@ -196,6 +196,7 @@ export default function ReportsPage() {
             <>
               <SalesTab from={range.from} to={range.to} register={r('main')} />
               <SalesExtras range={range} />
+              <ItemsSold range={range} register={r('items')} />
               <OrderLog range={range} register={r('log')} />
             </>
           )}
@@ -209,7 +210,7 @@ export default function ReportsPage() {
           )}
           {section === 'payments' && <PaymentsSection range={range} register={r('main')} />}
           {section === 'staff' && <StaffSection range={range} register={r('main')} />}
-          {section === 'inventory' && <InventoryReportsTab />}
+          {section === 'inventory' && <InventoryReportsTab range={range} register={r('main')} />}
           {section === 'purchases' && <PurchasesSection range={range} register={r('main')} />}
           {section === 'tax' && <TaxSection range={range} register={r('main')} />}
           {section === 'cash' && <CashSection range={range} register={r('main')} />}

@@ -22,6 +22,8 @@ import { fromJson, type Order, type OrderStatus, type OrderType, type PaymentMet
 import { OrderDetails } from '@/features/orders/OrdersPage';
 import { STATUS_TONE } from '@/features/orders/meta';
 import type { RegisterExport } from './ReportTabs';
+import { fetchTopItems } from '../api';
+import { FoodImage } from '@/components/ui/FoodImage';
 
 type Range = { from: string; to: string };
 type Fn = 'report_orders' | 'report_payments' | 'report_tax' | 'report_purchases' | 'report_cash' | 'report_staff';
@@ -389,6 +391,9 @@ export function TaxSection({ range, register }: { range: Range; register: Regist
   const { f } = useSettings();
   const { cur, prev } = useReport<TaxRep>('report_tax', range, ['orders']);
   const d = cur.data;
+  const [search, setSearch] = useState('');
+  const [min, setMin] = useState('');
+  const days = (d?.by_day ?? []).filter((x) => (!search.trim() || f.date(x.date).includes(search.trim()) || x.date.includes(search.trim())) && (!min || Number(x.vat) >= Number(min)));
   useEffect(() => {
     if (!d) return register(null);
     register({
@@ -412,6 +417,19 @@ export function TaxSection({ range, register }: { range: Range; register: Regist
           </div>
           <Card className="overflow-hidden">
             <CardHeader title={t('rep.byDay')} />
+            <div className="flex flex-wrap gap-2 p-4 pb-2">
+              <SearchBox value={search} onChange={setSearch} placeholder={t('rep.searchDate')} />
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={min}
+                onChange={(e) => setMin(e.target.value)}
+                placeholder={t('rep.minVat')}
+                aria-label={t('rep.minVat')}
+                className="h-10 w-40 rounded-btn border border-line-strong bg-card px-3 text-sm placeholder:text-fg-3 focus:border-fg-3 focus:outline-none"
+              />
+            </div>
             <DataTable
               columns={[
                 { key: 'd', header: t('common.date'), cell: (x) => <span className="num">{f.date(x.date)}</span> },
@@ -420,7 +438,7 @@ export function TaxSection({ range, register }: { range: Range; register: Regist
                 { key: 'v', header: t('rep.vatShort'), cell: (x) => <span className="num text-fg">{f.money(Number(x.vat))}</span> },
                 { key: 'n', header: t('rep.net'), align: 'end', cell: (x) => <span className="num">{f.money(Number(x.gross) - Number(x.vat))}</span> },
               ]}
-              rows={d.by_day}
+              rows={days}
               rowKey={(x) => x.date}
               empty={<p className="p-5 text-sm text-fg-3">{t('common.noResults')}</p>}
             />
@@ -675,3 +693,53 @@ export function StaffSection({ range, register }: { range: Range; register: Regi
   );
 }
 
+
+// ================================================================ sales: every item with its quantity
+/** All items sold in the period with quantities and revenue (not only the top ten). */
+export function ItemsSold({ range, register }: { range: Range; register: RegisterExport }) {
+  const { t } = useI18n();
+  const { f, name } = useSettings();
+  const items = useQuery(() => fetchTopItems(range.from, range.to, 1000), [range.from, range.to]);
+  useLiveRefetch(['orders', 'order_items'], items.refetch, 1500);
+  const [search, setSearch] = useState('');
+  const rows = (items.data ?? []).filter((i) => !search.trim() || i.name.includes(search.trim()) || i.name_he.includes(search.trim()));
+  const totalQty = rows.reduce((a, i) => a + Number(i.qty), 0);
+  useEffect(() => {
+    if (!items.data) return register(null);
+    register({
+      title: t('rep.itemsSold'),
+      sections: [{ heading: t('rep.itemsSold'), table: { headers: [t('inventory.item'), t('reports.sold'), t('reports.revenue')], rows: rows.map((i) => [i.name, f.number(Number(i.qty)), f.money(Number(i.revenue))]) } }],
+      csv: { headers: [t('inventory.item'), t('reports.sold'), t('reports.revenue')], rows: rows.map((i) => [i.name, Number(i.qty), Number(i.revenue)]) },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.data, search, register]);
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader title={t('rep.itemsSold')} subtitle={t('rep.itemsSoldSub', { items: f.number(rows.length), qty: f.number(totalQty) })} />
+      <div className="p-4 pb-2">
+        <SearchBox value={search} onChange={setSearch} placeholder={t('rep.searchItem')} />
+      </div>
+      <Loading error={items.error} retry={() => void items.refetch()} ready={Boolean(items.data)}>
+        <DataTable
+          columns={[
+            {
+              key: 'n',
+              header: t('inventory.item'),
+              cell: (i) => (
+                <span className="flex items-center gap-3">
+                  <FoodImage src={i.image_url} alt="" className="size-9 shrink-0 rounded-btn bg-elevated" />
+                  <span className="text-fg">{name({ name_ar: i.name, name_he: i.name_he })}</span>
+                </span>
+              ),
+            },
+            { key: 'q', header: t('reports.sold'), cell: (i) => <span className="num">{f.number(Number(i.qty))}</span> },
+            { key: 'r', header: t('reports.revenue'), align: 'end', cell: (i) => <span className="num text-fg">{f.money(Number(i.revenue))}</span> },
+          ]}
+          rows={rows}
+          rowKey={(i) => i.menu_item_id ?? i.name}
+          empty={<p className="p-5 text-sm text-fg-3">{t('common.noResults')}</p>}
+        />
+      </Loading>
+    </Card>
+  );
+}

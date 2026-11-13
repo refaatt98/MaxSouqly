@@ -13,6 +13,7 @@ import { useLiveRefetch } from '@/hooks/useRealtime';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useBarcodeScanner } from './hooks/useBarcodeScanner';
 import { useAuth } from '@/app/providers/AuthProvider';
+import { usePermissions } from '@/app/providers/PermissionsProvider';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { useConnection } from '@/app/providers/ConnectionProvider';
 import { useToast } from '@/app/providers/ToastProvider';
@@ -39,6 +40,7 @@ export default function PosPage() {
   const { t, lang } = useI18n();
   const toast = useToast();
   const { profile, role } = useAuth();
+  const { can } = usePermissions();
   const { settings, name, f } = useSettings();
   const { online } = useConnection();
   const [params, setParams] = useSearchParams();
@@ -422,10 +424,10 @@ export default function PosPage() {
               {t('pos.unpaidTitle')}
               {(unpaid.data?.length ?? 0) > 0 && <span className="num rounded bg-warning/20 px-1 text-warning">{f.number(unpaid.data?.length ?? 0)}</span>}
             </button>
-            <button type="button" onClick={() => setAdvanceOpen(true)} className="inline-flex items-center gap-1.5 rounded-[6px] border border-line px-2 py-0.5 text-xs text-fg-2 transition-colors hover:text-fg">
+            {can('advance') && <button type="button" onClick={() => setAdvanceOpen(true)} className="inline-flex items-center gap-1.5 rounded-[6px] border border-line px-2 py-0.5 text-xs text-fg-2 transition-colors hover:text-fg">
               <HandCoins className="size-3" />
               {t('advance.title')}
-            </button>
+            </button>}
             {catalog.data?.fromCache && (
               <Badge tone="amber" icon={<WifiOff className="size-3" />}>
                 {t('topbar.offline')}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Armchair, Banknote, Bike, Coins, CreditCard, Percent, Receipt, ShoppingBag, TrendingUp, Users, Wallet } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useI18n } from '@/i18n';
@@ -13,6 +13,7 @@ import { StatCard } from '@/components/ui/StatCard';
 import { BarChart, Heatmap, LineChart, ShareBars } from '@/components/ui/Chart';
 import { DataTable, type Column } from '@/components/ui/Table';
 import { Avatar } from '@/components/ui/Avatar';
+import { Select } from '@/components/ui/Input';
 import { FoodImage } from '@/components/ui/FoodImage';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/EmptyState';
@@ -209,6 +210,13 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
   const p = profit.data;
   // salaries reach expenses when payroll is paid; advances are part of it and never counted twice
   const salaries = Number(p?.expenses_by_category.find((e) => e.category === 'salaries')?.amount ?? 0);
+  const [daySearch, setDaySearch] = useState('');
+  const [dayFilter, setDayFilter] = useState('');
+  const profitDays = (p?.by_day ?? []).filter(
+    (x) =>
+      (!daySearch.trim() || f.date(x.date).includes(daySearch.trim()) || x.date.includes(daySearch.trim())) &&
+      (!dayFilter || (dayFilter === 'loss' ? Number(x.net) < 0 : Number(x.net) >= 0)),
+  );
   const days = p?.by_day.length ?? 1;
 
   const spec = useMemo<ExportSpec | null>(() => {
@@ -274,6 +282,36 @@ export function ProfitTab({ from, to, register }: { from: string; to: string; re
           </div>
         </Card>
       </div>
+      <Card className="overflow-hidden">
+        <CardHeader title={t('rep.profitTable')} />
+        <div className="flex flex-wrap gap-2 p-4 pb-2">
+          <input
+            value={daySearch}
+            onChange={(e) => setDaySearch(e.target.value)}
+            placeholder={t('rep.searchDate')}
+            aria-label={t('rep.searchDate')}
+            className="h-10 min-w-48 flex-1 rounded-btn border border-line-strong bg-card px-3 text-sm placeholder:text-fg-3 focus:border-fg-3 focus:outline-none"
+          />
+          <Select
+            aria-label={t('rep.dayFilter')}
+            value={dayFilter}
+            onChange={(e) => setDayFilter(e.target.value)}
+            options={[{ value: '', label: t('rep.allDays') }, { value: 'profit', label: t('rep.profitDays') }, { value: 'loss', label: t('rep.lossDays') }]}
+          />
+        </div>
+        <DataTable
+          columns={[
+            { key: 'd', header: t('common.date'), cell: (x) => <span className="num">{f.date(x.date)}</span> },
+            { key: 'r', header: t('reports.revenue'), cell: (x) => <span className="num">{f.money(Number(x.revenue))}</span> },
+            { key: 'c', header: t('reports.cogs'), hideBelow: 'sm', cell: (x) => <span className="num text-fg-2">{f.money(Number(x.cogs))}</span> },
+            { key: 'e', header: t('reports.expensesTotal'), hideBelow: 'sm', cell: (x) => <span className="num text-fg-2">{f.money(Number(x.expenses))}</span> },
+            { key: 'n', header: t('reports.netProfit'), align: 'end', cell: (x) => <span className={cn('num', Number(x.net) < 0 ? 'text-danger' : 'text-success')}>{f.money(Number(x.net))}</span> },
+          ]}
+          rows={profitDays}
+          rowKey={(x) => x.date}
+          empty={<p className="p-5 text-sm text-fg-3">{t('common.noResults')}</p>}
+        />
+      </Card>
     </div>
   );
 }

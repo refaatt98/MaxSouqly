@@ -38,7 +38,7 @@ export function ReceiveGoodsModal({ open, ingredients, suppliers, onClose, onSav
 
   useEffect(() => {
     if (!open) return;
-    setSupplier(suppliers[0]?.id ?? '');
+    setSupplier('');
     setDate(toISODate(new Date()));
     setNotes('');
     setLines([blank()]);
@@ -49,7 +49,6 @@ export function ReceiveGoodsModal({ open, ingredients, suppliers, onClose, onSav
   const ok = lines.filter((l) => l.ingredient_id && Number(l.quantity) > 0);
 
   const save = async () => {
-    if (!supplier) return toast.error(t('errors.SUPPLIER_REQUIRED'));
     if (ok.length === 0) return toast.error(t('po.noLines'));
     setPending(true);
     const { error } = await supabase.rpc('receive_goods', {
@@ -58,7 +57,8 @@ export function ReceiveGoodsModal({ open, ingredients, suppliers, onClose, onSav
         quantity: Number(l.quantity),
         ...(costs.allowed && l.unit_cost !== '' ? { unit_cost: Number(l.unit_cost) } : {}),
       })),
-      p_supplier_id: supplier,
+      // no supplier is allowed (the generated type does not mark it optional)
+      p_supplier_id: (supplier || null) as string,
       p_date: date,
       p_notes: notes.trim(),
     });
@@ -87,7 +87,7 @@ export function ReceiveGoodsModal({ open, ingredients, suppliers, onClose, onSav
     >
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Select label={t('po.supplier')} value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="—" options={suppliers.map((s) => ({ value: s.id, label: s.name }))} />
+          <Select label={t('recv.supplierOptional')} value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder={t('recv.noSupplier')} options={suppliers.map((s) => ({ value: s.id, label: s.name }))} />
           <TextInput label={t('recv.date')} type="date" value={date} max={toISODate(new Date())} onChange={(e) => e.target.value && setDate(e.target.value)} />
           <TextInput label={t('common.notes')} value={notes} maxLength={500} onChange={(e) => setNotes(e.target.value)} />
         </div>

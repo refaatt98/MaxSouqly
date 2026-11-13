@@ -278,7 +278,7 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
 
   const columns: Column<PurchaseOrder>[] = [
     { key: 'num', header: '#', cell: (p) => <span className="num font-semibold">#{f.digits(p.po_number)}</span> },
-    { key: 'supplier', header: t('po.supplier'), cell: (p) => supplierName.get(p.supplier_id) ?? t('common.unknown') },
+    { key: 'supplier', header: t('po.supplier'), cell: (p) => (p.supplier_id && supplierName.get(p.supplier_id)) || t('recv.noSupplier') },
     { key: 'date', header: t('common.date'), hideBelow: 'sm', cell: (p) => <span className="num text-fg-2">{f.dateTime(p.created_at)}</span> },
     { key: 'expected', header: t('po.expectedDate'), hideBelow: 'md', cell: (p) => (p.expected_date ? f.date(p.expected_date) : t('common.none')) },
     { key: 'status', header: t('common.status'), cell: (p) => <Badge tone={STATUS_TONE[p.status]}>{t(`po.status.${p.status}`)}</Badge> },

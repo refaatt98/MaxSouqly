@@ -4,9 +4,45 @@ import { useRealtime } from '@/hooks/useRealtime';
 import type { AppRole } from '@/types/models';
 import { useAuth } from './AuthProvider';
 
-/** What the owner can grant to other accounts (permanently or until a date). The owner always has all of them. */
-export const PERMISSIONS = ['reports', 'employees', 'customers', 'costs', 'activity', 'stocktake_approve'] as const;
+/**
+ * Every screen / action an account can be allowed. Each role has defaults; the owner can switch any of them
+ * on or off per account (on can be temporary). The owner always has all of them.
+ */
+export const PERMISSIONS = [
+  'pos', 'orders', 'kitchen', 'menu', 'customers',
+  'inventory', 'stocktake', 'stocktake_approve', 'receive_goods', 'costs',
+  'attendance', 'advance', 'employees',
+  'reports', 'activity',
+] as const;
 export type Permission = (typeof PERMISSIONS)[number];
+
+/** Groups for the permissions screen. */
+export const PERMISSION_GROUPS: { key: string; items: Permission[] }[] = [
+  { key: 'sales', items: ['pos', 'orders', 'kitchen', 'menu', 'customers'] },
+  { key: 'stock', items: ['inventory', 'stocktake', 'stocktake_approve', 'receive_goods', 'costs'] },
+  { key: 'staff', items: ['attendance', 'advance', 'employees'] },
+  { key: 'money', items: ['reports', 'activity'] },
+];
+
+/** Mirror of public.role_defaults() in the database. */
+export const ROLE_DEFAULTS: Record<AppRole, Permission[]> = {
+  owner: [...PERMISSIONS],
+  manager: ['pos', 'kitchen', 'orders', 'menu', 'inventory', 'stocktake', 'receive_goods', 'attendance', 'advance'],
+  cashier: ['pos', 'orders', 'stocktake', 'attendance', 'advance'],
+  kitchen: ['kitchen', 'attendance'],
+  inventory: ['inventory', 'stocktake', 'receive_goods', 'attendance'],
+};
+
+/**
+ * Mirror of public.perm_locked(): rules from the spec the owner cannot override —
+ * purchase costs are the owner's only; financial reports go to a manager at most; the cashier never sees pay.
+ */
+export function permLocked(role: AppRole, p: Permission): boolean {
+  if (role === 'owner') return false;
+  if (p === 'costs') return true;
+  if ((p === 'reports' || p === 'activity') && role !== 'manager') return true;
+  return p === 'employees' && role === 'cashier';
+}
 
 const CACHE = 'max.perms';
 
@@ -78,8 +114,10 @@ export function usePermissions(): PermissionsValue {
   return ctx;
 }
 
-/** Where each account lands after signing in. A manager without report access starts at the orders list. */
+/** Where each account lands after signing in: its role's main screen, else the first screen it may open. */
 export function homeFor(role: AppRole, can: (p: Permission) => boolean): string {
-  if (role === 'manager' && !can('reports')) return '/orders';
-  return { owner: '/', manager: '/', cashier: '/pos', kitchen: '/kitchen', inventory: '/inventory' }[role];
+  const preferred: Record<AppRole, Permission> = { owner: 'reports', manager: 'reports', cashier: 'pos', kitchen: 'kitchen', inventory: 'inventory' };
+  const paths: [Permission, string][] = [['reports', '/'], ['pos', '/pos'], ['kitchen', '/kitchen'], ['orders', '/orders'], ['inventory', '/inventory'], ['stocktake', '/inventory'], ['menu', '/menu'], ['attendance', '/attendance']];
+  if (can(preferred[role])) return paths.find(([p]) => p === preferred[role])![1];
+  return paths.find(([p]) => can(p))?.[1] ?? '/settings';
 }

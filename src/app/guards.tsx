@@ -54,12 +54,13 @@ export function Forbidden() {
  * Role gate, plus an owner-granted permission for non-owners when `perm` is set.
  * With `redirectHome`, unauthorized users are sent to their own home screen.
  */
-export function RequireRole({ roles, perm, redirectHome = false }: { roles: AppRole[]; perm?: Permission; redirectHome?: boolean }) {
+export function RequireRole({ roles, perm, redirectHome = false }: { roles: AppRole[]; perm?: Permission | Permission[]; redirectHome?: boolean }) {
   const { role } = useAuth();
   const { can, ready } = usePermissions();
   if (!role) return null;
   if (perm && !ready) return <FullScreenLoader />;
-  if (!roles.includes(role) || (perm && !can(perm))) {
+  const permOk = !perm || (Array.isArray(perm) ? perm.some(can) : can(perm));
+  if (!roles.includes(role) || !permOk) {
     const home = homeFor(role, can);
     return redirectHome && home !== '/' ? <Navigate to={home} replace /> : <Forbidden />;
   }

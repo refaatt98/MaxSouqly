@@ -24,8 +24,8 @@ import { Toggle } from '@/components/ui/Toggle';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonRows } from '@/components/ui/Skeleton';
 import { ROLES, type AppRole, type Attendance, type Payroll, type Profile, type UserPermission } from '@/types/models';
-import type { Permission } from '@/app/providers/PermissionsProvider';
-import { GrantsModal } from './GrantsModal';
+import { permLocked, type Permission } from '@/app/providers/PermissionsProvider';
+import { GrantsModal, PermissionChecklist, initialGrants, saveGrants, type GrantState } from './GrantsModal';
 import { createEmployeeUser, hoursBetween, resetUserPassword, type EmployeeRow } from '../api';
 
 // ===================================================================== shifts
@@ -207,13 +207,19 @@ export function NewUserModal({ open, onClose, onCreated }: { open: boolean; onCl
   const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'cashier' as AppRole, phone: '', pin: '' });
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [pending, setPending] = useState(false);
+  const [grants, setGrants] = useState<GrantState>(() => initialGrants('cashier'));
   useEffect(() => {
     if (open) {
       setForm({ full_name: '', email: '', password: '', role: 'cashier', phone: '', pin: '' });
+      setGrants(initialGrants('cashier'));
       setErrors({});
     }
   }, [open]);
-  const set = (k: keyof typeof form, val: string) => setForm((f) => ({ ...f, [k]: val }));
+  const set = (k: keyof typeof form, val: string) => {
+    setForm((f) => ({ ...f, [k]: val }));
+    // a new role starts from that role's defaults
+    if (k === 'role') setGrants(initialGrants(val as AppRole));
+  };
 
   const save = async () => {
     const e = {
@@ -227,7 +233,8 @@ export function NewUserModal({ open, onClose, onCreated }: { open: boolean; onCl
     if (Object.values(e).some(Boolean)) return;
     setPending(true);
     try {
-      await createEmployeeUser({ ...form, pin: form.pin || undefined });
+      const userId = await createEmployeeUser({ ...form, pin: form.pin || undefined });
+      await saveGrants(userId, form.role, grants);
       toast.success(t('employees.accountCreated'));
       onCreated();
     } catch (err) {
@@ -258,6 +265,11 @@ export function NewUserModal({ open, onClose, onCreated }: { open: boolean; onCl
         <TextInput label={t('employees.password')} type="text" dir="ltr" autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} error={errors.password} required />
         <TextInput label={t('common.phone')} type="tel" dir="ltr" value={form.phone} onChange={(e) => set('phone', e.target.value)} error={errors.phone} />
         <TextInput label={t('employees.pinOptional')} inputMode="numeric" dir="ltr" maxLength={6} value={form.pin} onChange={(e) => set('pin', e.target.value.replace(/\D/g, ''))} error={errors.pin} />
+      </div>
+      <div className="mt-6 border-t border-line pt-5">
+        <h3 className="text-[0.9375rem] text-fg">{t('perm.whatSees')}</h3>
+        <p className="mb-4 text-xs text-fg-3">{t('perm.newHint')}</p>
+        <PermissionChecklist role={form.role} value={grants} onChange={setGrants} />
       </div>
     </Modal>
   );
@@ -369,16 +381,19 @@ export function PermissionsTab() {
       header: t('perm.column'),
       cell: (u) => {
         if (u.role === 'owner') return <span className="text-xs text-fg-3">{t('perm.all')}</span>;
-        const mine = (grants.data ?? []).filter((g) => g.user_id === u.id && (!g.expires_at || new Date(g.expires_at) > new Date()));
+        // locked by policy (e.g. costs for anyone but the owner) never applies, so it is not shown
+        const mine = (grants.data ?? []).filter(
+          (g) => g.user_id === u.id && !permLocked(u.role, g.permission as Permission) && (g.effect === 'deny' || !g.expires_at || new Date(g.expires_at) > new Date()),
+        );
         return (
           <div className="flex flex-wrap items-center gap-1">
             {mine.map((g) => (
-              <Badge key={g.permission} tone={g.expires_at ? 'amber' : 'neutral'}>
-                {t(`perm.${g.permission as Permission}`)}
+              <Badge key={g.permission} tone={g.effect === 'deny' ? 'red' : g.expires_at ? 'amber' : 'green'}>
+                {g.effect === 'deny' ? '−' : '+'} {t(`perm.${g.permission as Permission}`)}
                 {g.expires_at && <span className="num"> · {f.date(g.expires_at)}</span>}
               </Badge>
             ))}
-            {mine.length === 0 && <span className="text-xs text-fg-3">{t('perm.none')}</span>}
+            {mine.length === 0 && <span className="text-xs text-fg-3">{t('perm.roleDefault')}</span>}
             {isOwner && (
               <Button size="sm" variant="ghost" onClick={() => setGranting(u)}>
                 {t('perm.edit')}
