@@ -3,6 +3,8 @@ import { BookOpen, Plus, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
+import { useCosts } from '@/hooks/useCosts';
+import { MENU_ITEM_COLS } from '@/lib/columns';
 import { errorMessage } from '@/lib/errors';
 import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
@@ -27,10 +29,11 @@ interface Line {
 
 export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
   const t = useT();
+  const costs = useCosts();
   const { f, name } = useSettings();
   const toast = useToast();
   const menu = useQuery(async () => {
-    const { data, error } = await supabase.from('menu_items').select('*').order('name_ar');
+    const { data, error } = await supabase.from('menu_items').select(MENU_ITEM_COLS).order('name_ar');
     if (error) throw error;
     return data;
   }, []);
@@ -61,7 +64,7 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
     const ing = byId.get(l.ingredient_id);
     if (!ing) return 0;
     const factor = unitFactor(l.unit, ing.unit);
-    return factor === null ? 0 : (Number(l.quantity) || 0) * factor * Number(ing.cost_per_unit);
+    return factor === null ? 0 : (Number(l.quantity) || 0) * factor * (costs.ingredient(ing.id) ?? 0);
   };
   const cost = (lines ?? []).reduce((s, l) => s + lineCost(l), 0);
   const price = Number(selected?.price ?? 0);
@@ -91,7 +94,7 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
         if (error) throw error;
       }
       toast.success(t('common.saved'));
-      const { data } = await supabase.from('menu_items').select('*').eq('id', selected.id).single();
+      const { data } = await supabase.from('menu_items').select(MENU_ITEM_COLS).eq('id', selected.id).single();
       if (data) setSelected(data);
       void menu.refetch();
     } catch (err) {
@@ -118,7 +121,7 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
                 <FoodImage src={m.image_url} alt="" className="size-10" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm text-fg">{name(m)}</span>
-                  <span className="num block text-xs text-fg-3">{f.money(Number(m.price))} · {t('common.cost')} {f.money(Number(m.cost_cache))}</span>
+                  <span className="num block text-xs text-fg-3">{f.money(Number(m.price))}{costs.allowed && <> · {t('common.cost')} {f.money(costs.menuItem(m.id) ?? 0)}</>}</span>
                 </span>
               </button>
             </li>
@@ -136,13 +139,13 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
                 <h2 className="text-lg font-semibold">{name(selected)}</h2>
                 <p className="num text-sm text-fg-3">{t('common.price')}: {f.money(price)}</p>
               </div>
-              <div className="text-end">
+              {costs.allowed && <div className="text-end">
                 <p className="text-xs text-fg-3">{t('recipes.costTotal')}</p>
                 <p className="num text-2xl font-medium text-fg">{f.money(cost)}</p>
                 <p className={cn('num text-xs font-semibold', margin >= 60 ? 'text-success' : margin >= 40 ? 'text-warning' : 'text-danger')}>
                   {t('recipes.marginHint', { margin: f.number(margin, 0) })}
                 </p>
-              </div>
+              </div>}
             </div>
             {!lines ? (
               <SkeletonRows rows={4} />
@@ -171,10 +174,12 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
                         onChange={(e) => update(l.key, { unit: e.target.value as UnitType })}
                         options={(ing ? compatibleUnits(ing.unit) : [l.unit]).map((u) => ({ value: u, label: t(`unit.${u}`) }))}
                       />
-                      <div className="pb-2.5">
-                        <p className="text-xs text-fg-3">{t('recipes.unitCost')}</p>
-                        <p className="num font-semibold">{f.money(lineCost(l))}</p>
-                      </div>
+                      {costs.allowed && (
+                        <div className="pb-2.5">
+                          <p className="text-xs text-fg-3">{t('recipes.unitCost')}</p>
+                          <p className="num font-semibold">{f.money(lineCost(l))}</p>
+                        </div>
+                      )}
                       <IconButton label={t('common.delete')} className="hover:text-danger" onClick={() => setLines((ls) => (ls ?? []).filter((x) => x.key !== l.key))}>
                         <X className="size-4" />
                       </IconButton>

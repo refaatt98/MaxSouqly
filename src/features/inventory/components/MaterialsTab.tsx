@@ -12,6 +12,7 @@ import { useSettings } from '@/app/providers/SettingsProvider';
 import { useToast } from '@/app/providers/ToastProvider';
 import { useDeleteRecord } from '@/app/providers/DeleteProvider';
 import { useAuth } from '@/app/providers/AuthProvider';
+import { useCosts } from '@/hooks/useCosts';
 import { Card } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
 import { DataTable, type Column } from '@/components/ui/Table';
@@ -32,6 +33,7 @@ type Field = 'name_ar' | 'name_he' | 'unit' | 'quantity' | 'min_quantity' | 'cos
 function MaterialModal({ material, suppliers, onClose, onSaved }: { material: Ingredient | 'new' | null; suppliers: Supplier[]; onClose: () => void; onSaved: () => void }) {
   const t = useT();
   const toast = useToast();
+  const costs = useCosts();
   const editing = material !== null && material !== 'new' ? material : null;
   const image = useImageField(editing?.image_url ?? null);
   const [form, setForm] = useState<Record<Field, string>>({ name_ar: '', name_he: '', unit: 'kg', quantity: '0', min_quantity: '0', cost_per_unit: '0', supplier_id: '' });
@@ -47,7 +49,7 @@ function MaterialModal({ material, suppliers, onClose, onSaved }: { material: In
       unit: editing?.unit ?? 'kg',
       quantity: String(editing?.quantity ?? 0),
       min_quantity: String(editing?.min_quantity ?? 0),
-      cost_per_unit: String(editing?.cost_per_unit ?? 0),
+      cost_per_unit: String((editing && costs.ingredient(editing.id)) ?? 0),
       supplier_id: editing?.supplier_id ?? '',
     });
     setActive(editing?.is_active ?? true);
@@ -63,7 +65,7 @@ function MaterialModal({ material, suppliers, onClose, onSaved }: { material: In
       name_ar: v.required(t, form.name_ar) ?? v.maxLen(t, form.name_ar, 80),
       quantity: editing ? null : v.number(t, form.quantity, { min: 0 }),
       min_quantity: v.number(t, form.min_quantity, { min: 0 }),
-      cost_per_unit: v.number(t, form.cost_per_unit, { min: 0 }),
+      cost_per_unit: costs.allowed ? v.number(t, form.cost_per_unit, { min: 0 }) : null,
     };
     setErrors(e);
     if (hasErrors(e)) return;
@@ -73,7 +75,8 @@ function MaterialModal({ material, suppliers, onClose, onSaved }: { material: In
       name_he: form.name_he.trim(),
       unit: form.unit as UnitType,
       min_quantity: Number(form.min_quantity),
-      cost_per_unit: Number(form.cost_per_unit),
+      // only cost viewers send a price; the database ignores it from anyone else
+      ...(costs.allowed ? { cost_per_unit: Number(form.cost_per_unit) } : {}),
       supplier_id: form.supplier_id || null,
       image_url: image.url,
       is_active: active,
@@ -114,7 +117,7 @@ function MaterialModal({ material, suppliers, onClose, onSaved }: { material: In
         <Select label={t('inventory.supplier')} value={form.supplier_id} onChange={(e) => set('supplier_id', e.target.value)} placeholder={t('common.none')} options={suppliers.map((s) => ({ value: s.id, label: s.name }))} />
         {!editing && <TextInput label={t('inventory.initialQty')} type="number" inputMode="decimal" min={0} value={form.quantity} onChange={(e) => set('quantity', e.target.value)} error={errors.quantity} />}
         <TextInput label={t('inventory.minQty')} type="number" inputMode="decimal" min={0} value={form.min_quantity} onChange={(e) => set('min_quantity', e.target.value)} error={errors.min_quantity} />
-        <TextInput label={t('inventory.costPerUnit')} type="number" inputMode="decimal" min={0} step="0.01" value={form.cost_per_unit} onChange={(e) => set('cost_per_unit', e.target.value)} error={errors.cost_per_unit} suffix="₪" />
+        {costs.allowed && <TextInput label={t('inventory.costPerUnit')} type="number" inputMode="decimal" min={0} step="0.01" value={form.cost_per_unit} onChange={(e) => set('cost_per_unit', e.target.value)} error={errors.cost_per_unit} suffix="₪" />}
         <ImageUploader className="md:col-span-2" value={image.url} onChange={image.setUrl} folder="ingredients" />
         <Toggle id="mat-active" label={t('common.active')} checked={active} onChange={setActive} />
       </div>
@@ -257,6 +260,7 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
   const t = useT();
   const { f, name } = useSettings();
   const { role } = useAuth();
+  const costs = useCosts();
   const removeRecord = useDeleteRecord();
   const [search, setSearch] = useState('');
   const [lowOnly, setLowOnly] = useState(initialLow);
@@ -307,8 +311,12 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
       ),
     },
     { key: 'min', header: t('inventory.minQty'), hideBelow: 'sm', cell: (i) => <span className="num text-fg-2">{f.number(Number(i.min_quantity), 3)}</span> },
-    { key: 'cost', header: t('inventory.costPerUnit'), hideBelow: 'md', cell: (i) => <span className="num text-fg-2">{f.money(Number(i.cost_per_unit))}</span> },
-    { key: 'value', header: t('inventory.value'), hideBelow: 'lg', cell: (i) => <span className="num">{f.money(Math.max(0, Number(i.quantity)) * Number(i.cost_per_unit))}</span> },
+    ...(costs.allowed
+      ? ([
+          { key: 'cost', header: t('inventory.costPerUnit'), hideBelow: 'md', cell: (i: Ingredient) => <span className="num text-fg-2">{f.money(costs.ingredient(i.id) ?? 0)}</span> },
+          { key: 'value', header: t('inventory.value'), hideBelow: 'lg', cell: (i: Ingredient) => <span className="num">{f.money(Math.max(0, Number(i.quantity)) * (costs.ingredient(i.id) ?? 0))}</span> },
+        ] as Column<Ingredient>[])
+      : []),
     {
       key: 'status',
       header: t('common.status'),
@@ -337,8 +345,15 @@ export function MaterialsTab({ ingredients, suppliers, lowOnly: initialLow, onNe
   const exportCsv = () =>
     downloadCsv(
       'max-inventory',
-      [t('inventory.item'), t('inventory.unit'), t('inventory.currentQty'), t('inventory.minQty'), t('inventory.costPerUnit'), t('inventory.value'), t('common.status')],
-      rows.map((i) => [i.name_ar, t(`unit.${i.unit}`), Number(i.quantity), Number(i.min_quantity), Number(i.cost_per_unit), Math.max(0, Number(i.quantity)) * Number(i.cost_per_unit), t(`inventory.status.${stockLevel(i)}`)]),
+      [t('inventory.item'), t('inventory.unit'), t('inventory.currentQty'), t('inventory.minQty'), ...(costs.allowed ? [t('inventory.costPerUnit'), t('inventory.value')] : []), t('common.status')],
+      rows.map((i) => [
+        i.name_ar,
+        t(`unit.${i.unit}`),
+        Number(i.quantity),
+        Number(i.min_quantity),
+        ...(costs.allowed ? [costs.ingredient(i.id) ?? 0, Math.max(0, Number(i.quantity)) * (costs.ingredient(i.id) ?? 0)] : []),
+        t(`inventory.status.${stockLevel(i)}`),
+      ]),
     );
 
   return (

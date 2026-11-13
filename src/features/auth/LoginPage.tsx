@@ -3,7 +3,8 @@ import { Navigate } from 'react-router';
 import { motion } from 'motion/react';
 import { KeyRound, Lock, Mail } from 'lucide-react';
 import { useT } from '@/i18n';
-import { useAuth, AuthError, ROLE_HOME } from '@/app/providers/AuthProvider';
+import { useAuth, AuthError } from '@/app/providers/AuthProvider';
+import { homeFor, usePermissions } from '@/app/providers/PermissionsProvider';
 import { BrandMark } from '@/app/shell/BrandMark';
 import { LanguageSwitcher } from '@/app/shell/LanguageSwitcher';
 import { Button } from '@/components/ui/Button';
@@ -165,9 +166,10 @@ function PinForm() {
 export default function LoginPage() {
   const t = useT();
   const { status, role } = useAuth();
+  const { can, ready } = usePermissions();
   const [mode, setMode] = useState<'email' | 'pin'>(() => (window.matchMedia('(pointer: coarse)').matches ? 'pin' : 'email'));
 
-  if (status === 'signedIn' && role) return <Navigate to={ROLE_HOME[role]} replace />;
+  if (status === 'signedIn' && role && ready) return <Navigate to={homeFor(role, can)} replace />;
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1fr_1.1fr]">

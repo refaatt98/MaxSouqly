@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn';
 import { useI18n } from '@/i18n';
 import { useAuth } from '../providers/AuthProvider';
 import { navFor } from '../nav';
+import { usePermissions } from '../providers/PermissionsProvider';
 import { BrandMark } from './BrandMark';
 import { Avatar } from '@/components/ui/Avatar';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -11,7 +12,8 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { t } = useI18n();
   const { profile, role, signOut } = useAuth();
-  const items = navFor(role);
+  const { can } = usePermissions();
+  const items = navFor(role, can);
 
   return (
     <aside

@@ -5,7 +5,10 @@ import { useI18n } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/errors';
 import { downloadCsv } from '@/lib/csv';
-import { printKitchenTicket, printReceipt, receiptFromOrder } from '@/lib/print';
+import { optionNames, printKitchenTicket, printReceipt, receiptFromOrder } from '@/lib/print';
+import { ORDER_COLS } from '@/lib/columns';
+import { PaymentModal, type PaymentResult } from '@/features/pos/components/PaymentModal';
+import { addPayment } from '@/features/pos/api';
 import { rangeToTimestamps, toISODate } from '@/lib/dates';
 import { useQuery } from '@/hooks/useQuery';
 import { useRealtime } from '@/hooks/useRealtime';
@@ -54,6 +57,23 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [collecting, setCollecting] = useState(false);
+  const collect = async ({ payments }: PaymentResult) => {
+    if (!order) return;
+    setPending(true);
+    try {
+      const o = await addPayment(order.id, payments);
+      setOrder(o);
+      void printReceipt(receiptFromOrder(o), { t, f, settings }, lang);
+      toast.success(t('pos.collected', { number: f.digits(o.order_number) }));
+      setCollecting(false);
+      onChanged();
+    } catch (err) {
+      toast.error(errorMessage(t, err));
+    } finally {
+      setPending(false);
+    }
+  };
   const isManager = role === 'owner' || role === 'manager';
   const removeRecord = useDeleteRecord();
 
@@ -131,6 +151,11 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
             <Button variant="ghost" icon={<ChefHat className="size-4" />} onClick={() => void printKitchenTicket(receiptFromOrder(order), { t, f }, lang)}>
               {t('kitchen.ticket')}
             </Button>
+            {!voided && order.payment_status !== 'paid' && (isManager || order.cashier_id === profile?.id) && (
+              <Button variant="primary" onClick={() => setCollecting(true)}>
+                {t('pos.collect')}
+              </Button>
+            )}
             {order.status === 'ready' && (isManager || order.cashier_id === profile?.id) && (
               <Button variant="success" loading={pending} onClick={() => void markServed()}>
                 {t('orders.markServed')}
@@ -180,6 +205,11 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={STATUS_TONE[order.status]}>{t(`order.status.${order.status}`)}</Badge>
+            {!voided && order.payment_status !== 'paid' && (
+              <Badge tone={order.payment_status === 'partial' ? 'amber' : 'red'}>
+                {t(`payStatus.${order.payment_status}`)} · {f.money(Number(order.total) - Number(order.paid_amount))}
+              </Badge>
+            )}
             <Badge>
               {t(`order.type.${order.type}`)}
               {order.table_no ? ` · ${t('order.table', { table: f.digits(order.table_no) })}` : ''}
@@ -210,6 +240,7 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
                     <p className={i.voided_at ? 'line-through' : 'text-fg'}>
                       <span className="num text-fg-3">{f.number(i.quantity)}×</span> {name({ name_ar: i.name_snapshot, name_he: i.name_he_snapshot })}
                     </p>
+                    {optionNames(i.options).length > 0 && <p className="text-xs text-fg-2">+ {optionNames(i.options).join('، ')}</p>}
                     {i.notes && <p className="text-xs text-warning">• {i.notes}</p>}
                     {i.voided_at && <p className="text-xs">{t('edit.cancelledLine')}{i.void_reason ? ` — ${i.void_reason}` : ''}</p>}
                   </div>
@@ -266,6 +297,13 @@ function OrderDetails({ orderId, onClose, onChanged }: { orderId: string | null;
         <p className="mb-3 text-sm text-fg-2">{voidMode === 'refund' ? t('orders.refundHint') : t('orders.voidHint')}</p>
         <Textarea label={t('orders.reason')} value={reason} onChange={(e) => { setReason(e.target.value); setReasonError(null); }} error={reasonError} required maxLength={300} data-autofocus />
       </Modal>
+      <PaymentModal
+        open={collecting}
+        due={order ? Math.round((Number(order.total) - Number(order.paid_amount)) * 100) / 100 : 0}
+        onClose={() => setCollecting(false)}
+        onConfirm={(r) => void collect(r)}
+        pending={pending}
+      />
       <EditOrderModal
         order={
           editing && order
@@ -341,7 +379,7 @@ export default function OrdersPage() {
     const paymentsSel = filters.payment ? 'payments!inner(method, amount)' : 'payments(method, amount)';
     let q = supabase
       .from('orders')
-      .select(`*, cashier:profiles!orders_cashier_id_fkey(full_name), ${paymentsSel}, items:order_items(name_snapshot, quantity, voided_at)`)
+      .select(`${ORDER_COLS}, cashier:profiles!orders_cashier_id_fkey(full_name), ${paymentsSel}, items:order_items(name_snapshot, quantity, voided_at)`)
       .order('created_at', { ascending: false })
       .limit(limit);
     // a search looks across all dates
@@ -398,6 +436,7 @@ export default function OrdersPage() {
       .map((i) => `${i.quantity}× ${i.name_snapshot}`)
       .join('، ');
   const payText = (o: OrderRow) => {
+    if (!isVoid(o) && o.payment_status !== 'paid') return t(`payStatus.${o.payment_status}`);
     const k = paymentKind(o.payments.filter((p) => Number(p.amount) > 0).map((p) => p.method));
     return k ? t(`payment.${k}`) : t('common.none');
   };
@@ -449,7 +488,12 @@ export default function OrdersPage() {
         ),
       },
       { key: 'cashier', header: t('orders.cashier'), cell: (o) => <span className="text-fg-2">{o.cashier?.full_name ?? t('common.none')}</span>, hideBelow: 'md' },
-      { key: 'pay', header: t('orders.payment'), hideBelow: 'md', cell: (o) => <span className="text-fg-2">{payText(o)}</span> },
+      {
+        key: 'pay',
+        header: t('orders.payment'),
+        hideBelow: 'md',
+        cell: (o) => <span className={!isVoid(o) && o.payment_status !== 'paid' ? 'text-warning' : 'text-fg-2'}>{payText(o)}</span>,
+      },
       { key: 'status', header: t('common.status'), cell: (o) => <Badge tone={STATUS_TONE[o.status]}>{t(`order.status.${o.status}`)}</Badge> },
       { key: 'total', header: t('orders.total'), align: 'end', cell: (o) => <span className={cn('num font-medium', isVoid(o) ? 'text-fg-3 line-through' : 'text-fg')}>{f.money(Number(o.total))}</span> },
     ],

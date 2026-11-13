@@ -2,12 +2,28 @@ import { round2 } from '@/lib/format';
 import type { MenuItem, OrderType } from '@/types/models';
 import type { OrderPayload } from '@/lib/offlineQueue';
 
+export interface CartOption {
+  id: string;
+  name_ar: string;
+  name_he: string;
+  price: number;
+}
+
 export interface CartLine {
   lineId: string;
   item: Pick<MenuItem, 'id' | 'name_ar' | 'name_he' | 'price' | 'image_url'>;
   qty: number;
   notes: string;
+  /** chosen extras (cheese, sauce…); older saved carts may lack this */
+  options?: CartOption[];
 }
+
+/** Price of one unit of a line: the item plus its extras. */
+export function unitPrice(l: CartLine): number {
+  return round2(Number(l.item.price) + (l.options ?? []).reduce((s, o) => s + Number(o.price), 0));
+}
+
+const optionsKey = (opts: CartOption[] | undefined) => (opts ?? []).map((o) => o.id).sort().join(',');
 
 export interface CartState {
   clientRef: string;
@@ -24,7 +40,7 @@ export interface CartState {
 }
 
 export type CartAction =
-  | { type: 'add'; item: CartLine['item']; qty: number }
+  | { type: 'add'; item: CartLine['item']; qty: number; options?: CartOption[] }
   | { type: 'setQty'; lineId: string; qty: number }
   | { type: 'remove'; lineId: string }
   | { type: 'note'; lineId: string; notes: string }
@@ -53,8 +69,9 @@ export function newCart(): CartState {
 export function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'add': {
-      // merge into an existing line of the same item without notes
-      const existing = state.lines.find((l) => l.item.id === action.item.id && l.notes === '');
+      // tapping the same item again raises its quantity (same extras, no notes)
+      const key = optionsKey(action.options);
+      const existing = state.lines.find((l) => l.item.id === action.item.id && l.notes === '' && optionsKey(l.options) === key);
       if (existing) {
         return {
           ...state,
@@ -65,7 +82,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
       return {
         ...state,
         lastAddedId: action.item.id,
-        lines: [...state.lines, { lineId: crypto.randomUUID(), item: action.item, qty: Math.min(999, action.qty), notes: '' }],
+        lines: [...state.lines, { lineId: crypto.randomUUID(), item: action.item, qty: Math.min(999, action.qty), notes: '', options: action.options ?? [] }],
       };
     }
     case 'setQty':
@@ -98,7 +115,7 @@ export interface CartTotals {
 }
 
 export function cartTotals(state: CartState, vatPercent: number): CartTotals {
-  const subtotal = round2(state.lines.reduce((s, l) => s + Number(l.item.price) * l.qty, 0));
+  const subtotal = round2(state.lines.reduce((s, l) => s + unitPrice(l) * l.qty, 0));
   const raw = Number(state.discountValue) || 0;
   let discount = state.discountType === 'percent' ? round2((subtotal * Math.min(Math.max(raw, 0), 100)) / 100) : round2(Math.max(raw, 0));
   discount = Math.min(discount, subtotal);
@@ -129,18 +146,19 @@ export function validateCart(state: CartState, totals: CartTotals, maxDiscountPe
   return null;
 }
 
-export function buildPayload(state: CartState, totals: CartTotals, payments: OrderPayload['payments']): OrderPayload {
+export function buildPayload(state: CartState, totals: CartTotals, payments: OrderPayload['payments'], payLater = false): OrderPayload {
   return {
     client_ref: state.clientRef,
     type: state.type,
     table_no: state.type === 'dine_in' ? Number(state.tableNo) : null,
     customer_name: state.customerName.trim(),
     customer_phone: state.customerPhone.trim(),
-    customer_address: state.type === 'delivery' ? state.customerAddress.trim() : '',
+    customer_address: state.customerAddress.trim(),
     notes: state.notes.trim(),
     discount: totals.discount > 0 ? { type: state.discountType, value: Number(state.discountValue) } : null,
-    items: state.lines.map((l) => ({ menu_item_id: l.item.id, quantity: l.qty, notes: l.notes.trim() })),
+    items: state.lines.map((l) => ({ menu_item_id: l.item.id, quantity: l.qty, notes: l.notes.trim(), options: (l.options ?? []).map((o) => o.id) })),
     payments,
+    ...(payLater ? { pay_later: true } : {}),
   };
 }
 

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
-import { LockKeyhole, Plus, ScanBarcode, Search, ShoppingBag, WifiOff } from 'lucide-react';
+import { HandCoins, LockKeyhole, Plus, ReceiptText, ScanBarcode, Search, ShoppingBag, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useI18n } from '@/i18n';
 import { errorMessage, isNetworkError } from '@/lib/errors';
 import { enqueueOrder } from '@/lib/offlineQueue';
-import { printReceipt, receiptFromOrder, type ReceiptData } from '@/lib/print';
+import { printOrderBundle, printReceipt, receiptFromOrder, type ReceiptData } from '@/lib/print';
 import { playSuccess, unlockAudio } from '@/lib/sound';
 import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
@@ -20,9 +20,12 @@ import { SkeletonGrid } from '@/components/ui/Skeleton';
 import { ErrorState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
-import type { CashShift, MenuItem } from '@/types/models';
+import type { CashShift, MenuItem, MenuItemOption, OrderFull } from '@/types/models';
 import { fetchCatalog, fetchOpenShift, logCartCancel, placeOrder } from './api';
-import { buildPayload, cartReducer, cartTotals, loadHeld, newCart, saveHeld, validateCart, type HeldOrder } from './cart';
+import { buildPayload, cartReducer, cartTotals, loadHeld, newCart, saveHeld, unitPrice, validateCart, type CartOption, type HeldOrder } from './cart';
+import { OptionsModal } from './components/OptionsModal';
+import { AdvanceModal } from './components/AdvanceModal';
+import { UnpaidOrdersModal, fetchUnpaid } from './components/UnpaidOrdersModal';
 import { CategoryTabs } from './components/CategoryTabs';
 import { ProductGrid } from './components/ProductGrid';
 import { CartPanel } from './components/CartPanel';
@@ -42,7 +45,12 @@ export default function PosPage() {
 
   // ------------------------------------------------------------ catalog
   const catalog = useQuery(fetchCatalog, []);
-  useLiveRefetch(['menu_items', 'categories'], catalog.refetch);
+  useLiveRefetch(['menu_items', 'categories', 'menu_item_options', 'printers'], catalog.refetch);
+  const optionsByItem = useMemo(() => {
+    const m = new Map<string, MenuItemOption[]>();
+    for (const o of catalog.data?.options ?? []) m.set(o.menu_item_id, [...(m.get(o.menu_item_id) ?? []), o]);
+    return m;
+  }, [catalog.data]);
 
   const [category, setCategory] = useState<string | null>(null);
   const [search, setSearch] = useState(() => params.get('q') ?? '');
@@ -115,14 +123,21 @@ export default function PosPage() {
   const issue = validateCart(cart, totals, maxDiscount, tableCount);
   const [showIssue, setShowIssue] = useState(false);
 
+  // items with extras open a picker first; the rest go straight into the cart
+  const [picking, setPicking] = useState<{ item: MenuItem; qty: number } | null>(null);
+  const pushItem = useCallback((item: MenuItem, qty: number, options: CartOption[] = []) => {
+    dispatch({ type: 'add', item: { id: item.id, name_ar: item.name_ar, name_he: item.name_he, price: item.price, image_url: item.image_url }, qty, options });
+    setMultiplier(1);
+  }, []);
   const addItem = useCallback(
     (item: MenuItem, qty?: number) => {
       if (!item.is_available) return;
       void unlockAudio();
-      dispatch({ type: 'add', item: { id: item.id, name_ar: item.name_ar, name_he: item.name_he, price: item.price, image_url: item.image_url }, qty: qty ?? multiplier });
-      setMultiplier(1);
+      const n = qty ?? multiplier;
+      if (optionsByItem.has(item.id)) setPicking({ item, qty: n });
+      else pushItem(item, n);
     },
-    [multiplier],
+    [multiplier, optionsByItem, pushItem],
   );
 
   const addByBarcode = useCallback(
@@ -189,13 +204,39 @@ export default function PosPage() {
     customer_phone: cart.customerPhone,
     customer_address: cart.customerAddress,
     notes: cart.notes,
-    items: cart.lines.map((l) => ({ name: l.item.name_ar, qty: l.qty, unit_price: Number(l.item.price), notes: l.notes })),
+    items: cart.lines.map((l) => ({
+      name: l.item.name_ar,
+      qty: l.qty,
+      unit_price: unitPrice(l),
+      notes: l.notes,
+      options: (l.options ?? []).map((o) => o.name_ar),
+      menu_item_id: l.item.id,
+    })),
     subtotal: totals.subtotal,
     discount_amount: totals.discount,
     total: totals.total,
     vat_amount: totals.vat,
     payments,
   });
+
+  /** Receipt for the customer plus one kitchen ticket per station (printer set on the item or its category). */
+  const printSent = (r: ReceiptData, extra: { offline?: boolean } = {}) => {
+    const ctx = { t, f, settings, ...extra };
+    if (!settings?.print_kitchen_on_send) return void printReceipt(r, ctx, lang);
+    const items = catalog.data?.items ?? [];
+    const cats = new Map((catalog.data?.categories ?? []).map((c) => [c.id, c]));
+    const printers = (catalog.data?.printers ?? []).filter((p) => p.kind === 'kitchen');
+    const byId = new Map(printers.map((p) => [p.id, p]));
+    const groups = new Map<string, ReceiptData['items']>();
+    for (const line of r.items) {
+      const mi = items.find((i) => i.id === line.menu_item_id);
+      const pid = mi?.printer_id ?? (mi ? cats.get(mi.category_id)?.printer_id : null) ?? null;
+      const key = pid && byId.has(pid) ? pid : '';
+      groups.set(key, [...(groups.get(key) ?? []), line]);
+    }
+    const stations = [...groups.entries()].map(([pid, lines]) => ({ name: byId.get(pid)?.name ?? t('kitchen.title'), items: lines }));
+    void printOrderBundle(r, ctx, stations, lang);
+  };
 
   const printPreview = () => {
     if (cart.lines.length === 0) return;
@@ -222,11 +263,7 @@ export default function PosPage() {
     setPaying(true);
     const queueOffline = async () => {
       const q = await enqueueOrder(payload);
-      void printReceipt(
-        receiptFromCart(q.temp_number, payments.map((p) => ({ ...p, change: p.method === 'cash' ? Math.max((p.tendered ?? p.amount) - p.amount, 0) : 0 }))),
-        { t, f, settings, offline: true },
-        lang,
-      );
+      printSent(receiptFromCart(q.temp_number, payments.map((p) => ({ ...p, change: p.method === 'cash' ? Math.max((p.tendered ?? p.amount) - p.amount, 0) : 0 }))), { offline: true });
       setSuccess({ number: q.temp_number, change, total: totals.total, offline: true });
     };
     try {
@@ -234,7 +271,7 @@ export default function PosPage() {
         await queueOffline();
       } else {
         const order = await placeOrder(payload);
-        void printReceipt(receiptFromOrder(order), { t, f, settings }, lang);
+        printSent(receiptFromOrder(order));
         setSuccess({ number: `#${order.order_number}`, change, total: Number(order.total), offline: false });
       }
       playSuccess();
@@ -258,10 +295,58 @@ export default function PosPage() {
     }
   };
 
+  // ------------------------------------------------------------ send now, pay later
+  const [sending, setSending] = useState(false);
+  const sendOrder = async () => {
+    if (cart.lines.length === 0 || sending) return;
+    setShowIssue(true);
+    if (issue === 'table') return toast.error(t('errors.INVALID_TABLE'));
+    if (issue === 'delivery') return toast.error(t('errors.DELIVERY_DETAILS_REQUIRED'));
+    if (issue === 'discount') return toast.error(t('errors.DISCOUNT_LIMIT', { detail: f.number(maxDiscount) }));
+    if (issue === 'phone') return toast.error(t('validation.phone'));
+    const payload = buildPayload(cart, totals, [], true);
+    setSending(true);
+    const queueOffline = async () => {
+      const q = await enqueueOrder(payload);
+      printSent({ ...receiptFromCart(q.temp_number, []), due: totals.total }, { offline: true });
+      setSuccess({ number: q.temp_number, change: 0, total: totals.total, offline: true, unpaid: true });
+    };
+    try {
+      if (!online && settings?.offline_mode) await queueOffline();
+      else {
+        const order: OrderFull = await placeOrder(payload);
+        printSent(receiptFromOrder(order));
+        setSuccess({ number: `#${order.order_number}`, change: 0, total: Number(order.total), offline: false, unpaid: true });
+      }
+      playSuccess();
+      setShowIssue(false);
+      dispatch({ type: 'reset' });
+      setMobileCart(false);
+      void unpaid.refetch();
+    } catch (err) {
+      if (isNetworkError(err) && settings?.offline_mode) {
+        try {
+          await queueOffline();
+          dispatch({ type: 'reset' });
+          return;
+        } catch {
+          /* fall through */
+        }
+      }
+      toast.error(errorMessage(t, err));
+    } finally {
+      setSending(false);
+    }
+  };
+  const [unpaidOpen, setUnpaidOpen] = useState(false);
+  const [advanceOpen, setAdvanceOpen] = useState(false);
+  const unpaid = useQuery(fetchUnpaid, []);
+  useLiveRefetch(['orders', 'payments'], unpaid.refetch, 1200);
+
   // ------------------------------------------------------------ keyboard
   const [qtyOpen, setQtyOpen] = useState(false);
   const [mobileCart, setMobileCart] = useState(false);
-  const anyDialog = payOpen || cancelOpen || heldOpen || qtyOpen || closeShiftOpen || openShiftOpen || mobileCart || success !== null;
+  const anyDialog = payOpen || cancelOpen || heldOpen || qtyOpen || closeShiftOpen || openShiftOpen || mobileCart || success !== null || picking !== null || unpaidOpen || advanceOpen;
   const hotkeys = useMemo(() => {
     const map: Record<string, () => void> = {
       Enter: () => openPayment(),
@@ -291,6 +376,8 @@ export default function PosPage() {
       showIssue={showIssue}
       heldCount={held.length}
       onPay={openPayment}
+      onSend={() => void sendOrder()}
+      sending={sending}
       onCancel={() => setCancelOpen(true)}
       onPrint={printPreview}
       onHold={holdCurrent}
@@ -330,6 +417,15 @@ export default function PosPage() {
                 {t('shift.open')}
               </button>
             )}
+            <button type="button" onClick={() => setUnpaidOpen(true)} className="inline-flex items-center gap-1.5 rounded-[6px] border border-line px-2 py-0.5 text-xs text-fg-2 transition-colors hover:text-fg">
+              <ReceiptText className="size-3" />
+              {t('pos.unpaidTitle')}
+              {(unpaid.data?.length ?? 0) > 0 && <span className="num rounded bg-warning/20 px-1 text-warning">{f.number(unpaid.data?.length ?? 0)}</span>}
+            </button>
+            <button type="button" onClick={() => setAdvanceOpen(true)} className="inline-flex items-center gap-1.5 rounded-[6px] border border-line px-2 py-0.5 text-xs text-fg-2 transition-colors hover:text-fg">
+              <HandCoins className="size-3" />
+              {t('advance.title')}
+            </button>
             {catalog.data?.fromCache && (
               <Badge tone="amber" icon={<WifiOff className="size-3" />}>
                 {t('topbar.offline')}
@@ -430,6 +526,18 @@ export default function PosPage() {
       </Modal>
 
       <PaymentModal open={payOpen} due={totals.total} onClose={() => setPayOpen(false)} onConfirm={(r) => void completeSale(r)} pending={paying} />
+      <OptionsModal
+        item={picking?.item ?? null}
+        qty={picking?.qty ?? 1}
+        options={picking ? optionsByItem.get(picking.item.id) ?? [] : []}
+        onClose={() => setPicking(null)}
+        onAdd={(opts) => {
+          if (picking) pushItem(picking.item, picking.qty, opts);
+          setPicking(null);
+        }}
+      />
+      <UnpaidOrdersModal open={unpaidOpen} onClose={() => setUnpaidOpen(false)} />
+      <AdvanceModal open={advanceOpen} onClose={() => setAdvanceOpen(false)} />
       <CancelCartModal open={cancelOpen} onClose={() => setCancelOpen(false)} onConfirm={(r) => void confirmCancel(r)} pending={cancelPending} />
       <CustomQtyModal
         open={qtyOpen}

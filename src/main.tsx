@@ -9,6 +9,7 @@ import { router } from '@/app/router';
 import { SetupScreen } from '@/app/pages';
 import { ToastProvider } from '@/app/providers/ToastProvider';
 import { AuthProvider } from '@/app/providers/AuthProvider';
+import { PermissionsProvider } from '@/app/providers/PermissionsProvider';
 import { SettingsProvider } from '@/app/providers/SettingsProvider';
 import { ConnectionProvider } from '@/app/providers/ConnectionProvider';
 import { ConfirmProvider } from '@/app/providers/ConfirmProvider';
@@ -24,6 +25,7 @@ root.render(
         {isSupabaseConfigured ? (
           <ToastProvider>
             <AuthProvider>
+              <PermissionsProvider>
               <SettingsProvider>
                 <ConnectionProvider>
                   <ConfirmProvider>
@@ -33,6 +35,7 @@ root.render(
                   </ConfirmProvider>
                 </ConnectionProvider>
               </SettingsProvider>
+              </PermissionsProvider>
             </AuthProvider>
           </ToastProvider>
         ) : (

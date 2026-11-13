@@ -23,7 +23,9 @@ import { Select, TextInput, Textarea } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonRows } from '@/components/ui/Skeleton';
-import { ROLES, type AppRole, type Attendance, type Payroll, type Profile } from '@/types/models';
+import { ROLES, type AppRole, type Attendance, type Payroll, type Profile, type UserPermission } from '@/types/models';
+import type { Permission } from '@/app/providers/PermissionsProvider';
+import { GrantsModal } from './GrantsModal';
 import { createEmployeeUser, hoursBetween, resetUserPassword, type EmployeeRow } from '../api';
 
 // ===================================================================== shifts
@@ -285,6 +287,13 @@ export function PermissionsTab() {
   const isOwner = role === 'owner';
   const [creating, setCreating] = useState(false);
   const [resetting, setResetting] = useState<Profile | null>(null);
+  const [granting, setGranting] = useState<Profile | null>(null);
+  const grants = useQuery(async (): Promise<UserPermission[]> => {
+    const { data, error } = await supabase.from('user_permissions').select('*');
+    if (error) throw error;
+    return data;
+  }, []);
+  useLiveRefetch(['user_permissions'], grants.refetch);
 
   const update = async (u: Profile, next: { role?: AppRole; is_active?: boolean }) => {
     const { data, error } = await supabase.rpc('admin_update_profile', { p_user_id: u.id, p_role: next.role ?? u.role, p_is_active: next.is_active ?? u.is_active });
@@ -322,6 +331,30 @@ export function PermissionsTab() {
         ) : (
           <Badge tone={u.role === 'owner' ? 'gold' : 'neutral'}>{t(`role.${u.role}`)}</Badge>
         ),
+    },
+    {
+      key: 'grants',
+      header: t('perm.column'),
+      cell: (u) => {
+        if (u.role === 'owner') return <span className="text-xs text-fg-3">{t('perm.all')}</span>;
+        const mine = (grants.data ?? []).filter((g) => g.user_id === u.id && (!g.expires_at || new Date(g.expires_at) > new Date()));
+        return (
+          <div className="flex flex-wrap items-center gap-1">
+            {mine.map((g) => (
+              <Badge key={g.permission} tone={g.expires_at ? 'amber' : 'neutral'}>
+                {t(`perm.${g.permission as Permission}`)}
+                {g.expires_at && <span className="num"> · {f.date(g.expires_at)}</span>}
+              </Badge>
+            ))}
+            {mine.length === 0 && <span className="text-xs text-fg-3">{t('perm.none')}</span>}
+            {isOwner && (
+              <Button size="sm" variant="ghost" onClick={() => setGranting(u)}>
+                {t('perm.edit')}
+              </Button>
+            )}
+          </div>
+        );
+      },
     },
     { key: 'last', header: t('employees.lastLogin'), hideBelow: 'md', cell: (u) => <span className="num text-fg-2">{u.last_login_at ? f.dateTime(u.last_login_at) : t('employees.never')}</span> },
     {
@@ -365,6 +398,7 @@ export function PermissionsTab() {
       </Card>
       <NewUserModal open={creating} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); void users.refetch(); }} />
       <ResetPasswordModal user={resetting} onClose={() => setResetting(null)} />
+      <GrantsModal user={granting} grants={grants.data ?? []} onClose={() => setGranting(null)} onSaved={() => void grants.refetch()} />
     </>
   );
 }
@@ -590,6 +624,13 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
   const removeRecord = useDeleteRecord();
   const [month, setMonth] = useState(() => toISODate(startOfMonth(new Date())).slice(0, 7));
   const period = `${month}-01`;
+  const { settings } = useSettings();
+  const cycleDay = settings?.payroll_cycle_day ?? 1;
+  const cycle = useMemo(() => {
+    const [y, m] = month.split('-').map(Number);
+    if (!y || !m) return null;
+    return { from: new Date(y, m - 1, cycleDay).toISOString(), to: new Date(y, m, cycleDay - 1).toISOString() };
+  }, [month, cycleDay]);
   const rows = useQuery(async () => {
     const { data, error } = await supabase.from('payroll').select('*').eq('period_month', period);
     if (error) throw error;
@@ -637,7 +678,17 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
   const total = list.reduce((s, p) => s + Number(p.net_amount), 0);
   const columns: Column<Payroll>[] = [
     { key: 'emp', header: t('employees.shiftEmployee'), cell: (p) => <span className="font-semibold">{names.get(p.employee_id)?.full_name ?? t('common.unknown')}</span> },
-    { key: 'hours', header: t('employees.hours'), hideBelow: 'md', cell: (p) => <span className="num">{f.number(Number(p.hours_worked), 1)}</span> },
+    {
+      key: 'hours',
+      header: t('employees.worked'),
+      hideBelow: 'md',
+      cell: (p) =>
+        names.get(p.employee_id)?.salary_type === 'daily' ? (
+          <span className="num">{t('employees.daysCount', { count: f.number(p.days_worked) })}</span>
+        ) : (
+          <span className="num">{f.number(Number(p.hours_worked), 1)} {t('common.hoursShort')}</span>
+        ),
+    },
     { key: 'base', header: t('employees.base'), cell: (p) => <span className="num">{f.money(Number(p.base_amount))}</span> },
     { key: 'bonus', header: t('employees.bonuses'), hideBelow: 'lg', cell: (p) => <span className="num text-success">{f.money(Number(p.bonuses))}</span> },
     { key: 'adv', header: t('employees.advances'), hideBelow: 'lg', cell: (p) => <span className="num text-warning">{f.money(Number(p.advances))}</span> },
@@ -683,7 +734,7 @@ export function PayrollTab({ employees }: { employees: EmployeeRow[] }) {
         </Card>
       </div>
       <Card className="overflow-hidden">
-        <CardHeader title={f.monthYear(period)} className="pb-3" />
+        <CardHeader title={f.monthYear(period)} subtitle={cycle ? t('employees.cycleRange', { from: f.date(cycle.from), to: f.date(cycle.to) }) : undefined} className="pb-3" />
         <DataTable columns={columns} rows={list} rowKey={(p) => p.id} loading={rows.loading && !rows.data} empty={<EmptyState icon={<Wallet className="size-7" />} title={t('employees.payrollEmpty')} />} />
       </Card>
       <Modal

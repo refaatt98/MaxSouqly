@@ -7,7 +7,7 @@ import { useI18n } from '@/i18n';
 import { errorMessage } from '@/lib/errors';
 import { minutesSince } from '@/lib/dates';
 import { audioUnlocked, playChime, unlockAudio } from '@/lib/sound';
-import { printKitchenTicket } from '@/lib/print';
+import { optionNames, printKitchenTicket } from '@/lib/print';
 import { useNow } from '@/hooks/useNow';
 import { useQuery } from '@/hooks/useQuery';
 import { useRealtime } from '@/hooks/useRealtime';
@@ -127,7 +127,7 @@ function OrderCard({ order, now, fresh, onAdvance, onBack, onEdit }: {
                   type: order.type,
                   table_no: order.table_no,
                   notes: order.notes,
-                  items: order.items.filter((i) => !i.voided_at).map((i) => ({ name: i.name_snapshot, qty: i.quantity, unit_price: 0, notes: i.notes })),
+                  items: order.items.filter((i) => !i.voided_at).map((i) => ({ name: i.name_snapshot, qty: i.quantity, unit_price: 0, notes: i.notes, options: optionNames(i.options) })),
                   subtotal: 0,
                   discount_amount: 0,
                   total: 0,
@@ -164,6 +164,9 @@ function OrderCard({ order, now, fresh, onAdvance, onBack, onEdit }: {
               <FoodImage src={i.menu_item?.image_url ?? null} alt="" className="size-11 shrink-0" />
               <span>{lang === 'he' && i.name_he_snapshot ? i.name_he_snapshot : i.name_snapshot}</span>
             </div>
+            {optionNames(i.options).length > 0 && (
+              <p className="ms-[6.25rem] mt-1 text-base font-medium text-paper-ink">+ {optionNames(i.options).join('، ')}</p>
+            )}
             {i.notes && <p className="ms-[6.25rem] mt-1 border-s-2 border-danger ps-2 text-base font-medium text-[#b4242c]">{i.notes}</p>}
           </li>
         ))}

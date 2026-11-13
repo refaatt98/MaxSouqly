@@ -1,9 +1,10 @@
 import { supabase } from '@/lib/supabase';
+import { INGREDIENT_COLS } from '@/lib/columns';
 import type { Tone } from '@/components/ui/Badge';
 import type { Ingredient, Supplier, UnitType } from '@/types/models';
 
 export async function fetchIngredients(): Promise<Ingredient[]> {
-  const { data, error } = await supabase.from('ingredients').select('*').order('name_ar');
+  const { data, error } = await supabase.from('ingredients').select(INGREDIENT_COLS).order('name_ar');
   if (error) throw error;
   return data;
 }

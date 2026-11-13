@@ -68,7 +68,7 @@ function EmployeeModal({ employee, onClose, onSaved }: { employee: EmployeeRow |
       full_name: form.full_name.trim(),
       position: form.position.trim(),
       phone: form.phone.trim(),
-      salary_type: form.salary_type as 'monthly' | 'hourly',
+      salary_type: form.salary_type as 'monthly' | 'hourly' | 'daily',
       salary_amount: Number(form.salary_amount),
       hire_date: form.hire_date,
       is_active: active,
@@ -109,10 +109,14 @@ function EmployeeModal({ employee, onClose, onSaved }: { employee: EmployeeRow |
           label={t('employees.salaryType')}
           value={form.salary_type}
           onChange={(e) => set('salary_type', e.target.value)}
-          options={[{ value: 'monthly', label: t('employees.salary.monthly') }, { value: 'hourly', label: t('employees.salary.hourly') }]}
+          options={[
+            { value: 'monthly', label: t('employees.salary.monthly') },
+            { value: 'daily', label: t('employees.salary.daily') },
+            { value: 'hourly', label: t('employees.salary.hourly') },
+          ]}
         />
         <TextInput
-          label={form.salary_type === 'hourly' ? t('employees.hourlyRate') : t('employees.salaryAmount')}
+          label={form.salary_type === 'hourly' ? t('employees.hourlyRate') : form.salary_type === 'daily' ? t('employees.dailyRate') : t('employees.salaryAmount')}
           type="number"
           inputMode="decimal"
           min={0}

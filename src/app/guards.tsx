@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { ShieldCheck } from 'lucide-react';
-import { useAuth, ROLE_HOME } from './providers/AuthProvider';
+import { useAuth } from './providers/AuthProvider';
+import { homeFor, usePermissions, type Permission } from './providers/PermissionsProvider';
 import { useT } from '@/i18n';
 import { Button } from '@/components/ui/Button';
 import type { AppRole } from '@/types/models';
@@ -31,6 +32,7 @@ export function RequireAuth() {
 export function Forbidden() {
   const t = useT();
   const { role } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   return (
     <div className="grid min-h-[60dvh] place-items-center p-6 text-center">
@@ -40,7 +42,7 @@ export function Forbidden() {
         </div>
         <h1 className="text-2xl font-semibold">{t('forbidden.title')}</h1>
         <p className="mt-2 text-fg-3">{t('forbidden.body')}</p>
-        <Button className="mt-6" variant="primary" onClick={() => navigate(role ? ROLE_HOME[role] : '/')}>
+        <Button className="mt-6" variant="primary" onClick={() => navigate(role ? homeFor(role, can) : '/')}>
           {t('notFound.home')}
         </Button>
       </div>
@@ -48,10 +50,18 @@ export function Forbidden() {
   );
 }
 
-/** Role gate. With `redirectHome`, unauthorized users are sent to their role's home screen. */
-export function RequireRole({ roles, redirectHome = false }: { roles: AppRole[]; redirectHome?: boolean }) {
+/**
+ * Role gate, plus an owner-granted permission for non-owners when `perm` is set.
+ * With `redirectHome`, unauthorized users are sent to their own home screen.
+ */
+export function RequireRole({ roles, perm, redirectHome = false }: { roles: AppRole[]; perm?: Permission; redirectHome?: boolean }) {
   const { role } = useAuth();
+  const { can, ready } = usePermissions();
   if (!role) return null;
-  if (!roles.includes(role)) return redirectHome ? <Navigate to={ROLE_HOME[role]} replace /> : <Forbidden />;
+  if (perm && !ready) return <FullScreenLoader />;
+  if (!roles.includes(role) || (perm && !can(perm))) {
+    const home = homeFor(role, can);
+    return redirectHome && home !== '/' ? <Navigate to={home} replace /> : <Forbidden />;
+  }
   return <Outlet />;
 }

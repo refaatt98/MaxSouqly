@@ -6,6 +6,7 @@ import { downloadCsv } from '@/lib/csv';
 import { printA4Report } from '@/lib/print';
 import { presetRange, toISODate, type RangePreset } from '@/lib/dates';
 import { useSettings } from '@/app/providers/SettingsProvider';
+import { usePermissions } from '@/app/providers/PermissionsProvider';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Segmented, Tabs } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/Button';
@@ -21,8 +22,11 @@ export default function ReportsPage() {
   const { t, lang } = useI18n();
   const { f, settings } = useSettings();
   const [params, setParams] = useSearchParams();
+  const { can } = usePermissions();
+  // the staff report shows pay, so it also needs the employees grant
+  const tabs = TABS.filter((k) => k !== 'employees' || can('employees'));
   const raw = params.get('tab') as Tab | null;
-  const tab: Tab = raw && TABS.includes(raw) ? raw : 'sales';
+  const tab: Tab = raw && tabs.includes(raw) ? raw : 'sales';
   const [preset, setPreset] = useState<RangePreset>('7d');
   const [custom, setCustom] = useState(() => presetRange('30d'));
   const range = preset === 'custom' ? custom : presetRange(preset);
@@ -77,8 +81,8 @@ export default function ReportsPage() {
           { key: 'profit', label: t('reports.profit'), icon: <Coins className="size-4" /> },
           { key: 'expenses', label: t('reports.expenses'), icon: <Receipt className="size-4" /> },
           { key: 'inventory', label: t('reports.inventory'), icon: <Boxes className="size-4" /> },
-          { key: 'employees', label: t('reports.employees'), icon: <Users className="size-4" /> },
-        ]}
+          { key: 'employees' as Tab, label: t('reports.employees'), icon: <Users className="size-4" /> },
+        ].filter((x) => tabs.includes(x.key as Tab))}
       />
       {tab !== 'inventory' && (
         <div className="mb-5 flex flex-wrap items-end gap-3">

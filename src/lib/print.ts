@@ -71,12 +71,14 @@ export interface ReceiptData {
   customer_phone?: string;
   customer_address?: string;
   notes?: string;
-  items: { name: string; qty: number; unit_price: number; notes?: string }[];
+  items: { name: string; qty: number; unit_price: number; notes?: string; options?: string[]; menu_item_id?: string | null }[];
   subtotal: number;
   discount_amount: number;
   total: number;
   vat_amount: number;
   payments: { method: PaymentMethod; amount: number; tendered?: number | null; change?: number }[];
+  /** amount still owed when the order was sent before payment */
+  due?: number;
 }
 
 export function receiptFromOrder(o: OrderFull): ReceiptData {
@@ -90,13 +92,28 @@ export function receiptFromOrder(o: OrderFull): ReceiptData {
     customer_phone: o.customer_phone,
     customer_address: o.customer_address,
     notes: o.notes,
-    items: o.items.filter((i) => !i.voided_at).map((i) => ({ name: i.name_snapshot, qty: i.quantity, unit_price: Number(i.unit_price_snapshot), notes: i.notes })),
+    items: o.items
+      .filter((i) => !i.voided_at)
+      .map((i) => ({
+        name: i.name_snapshot,
+        qty: i.quantity,
+        unit_price: Number(i.unit_price_snapshot),
+        notes: i.notes,
+        options: optionNames(i.options),
+        menu_item_id: i.menu_item_id,
+      })),
     subtotal: Number(o.subtotal),
     discount_amount: Number(o.discount_amount),
     total: Number(o.total),
     vat_amount: Number(o.vat_amount),
     payments: o.payments.map((p) => ({ method: p.method, amount: Number(p.amount), tendered: p.tendered, change: Number(p.change_given) })),
+    due: Math.max(0, Math.round((Number(o.total) - Number(o.paid_amount ?? o.total)) * 100) / 100),
   };
+}
+
+/** Names of the extras stored on an order line (jsonb array of {name}). */
+export function optionNames(v: unknown): string[] {
+  return Array.isArray(v) ? v.map((o) => (o && typeof o === 'object' && 'name' in o ? String((o as { name: unknown }).name) : '')).filter(Boolean) : [];
 }
 
 const RECEIPT_CSS = `
@@ -131,7 +148,7 @@ export function receiptHtml(
     : `<div class="logo"><span>${escapeHtml(name)}</span></div>`;
   const items = r.items
     .map(
-      (i) => `<tr><td>${escapeHtml(i.name)}${i.notes ? `<div class="note">• ${escapeHtml(i.notes)}</div>` : ''}</td>
+      (i) => `<tr><td>${escapeHtml(i.name)}${(i.options ?? []).map((o) => `<div class="note">+ ${escapeHtml(o)}</div>`).join('')}${i.notes ? `<div class="note">• ${escapeHtml(i.notes)}</div>` : ''}</td>
       <td class="n">${f.number(i.qty)}</td><td class="n">${f.money(i.unit_price * i.qty)}</td></tr>`,
     )
     .join('');
@@ -169,6 +186,7 @@ export function receiptHtml(
   <div class="row big"><span>${t('pos.grandTotal')}</span><span>${f.money(r.total)}</span></div>
   <div class="row muted"><span>${t('receipt.vat', { rate: f.number(Number(settings?.vat_percent ?? 0)) })}</span><span>${f.money(r.vat_amount)}</span></div>
   ${pays ? `<hr>${pays}` : ''}
+  ${r.due && r.due > 0.009 ? `<hr><div class="c badge">${t(r.payments.length ? 'receipt.partial' : 'receipt.unpaid')}</div><div class="row big"><span>${t('receipt.due')}</span><span>${f.money(r.due)}</span></div>` : ''}
   ${r.notes ? `<hr><div class="muted">${escapeHtml(r.notes)}</div>` : ''}
   <hr>
   <div class="c">${t('receipt.thanks')}</div>
@@ -193,22 +211,48 @@ hr { border: 0; border-top: 2px dashed #000; margin: 8px 0; }
 .onote { font-size: 16px; border: 2px solid #000; padding: 4px; margin-top: 8px; }
 `;
 
-export function printKitchenTicket(r: ReceiptData, ctx: { t: TFunction; f: Formatter }, lang = 'ar'): Promise<void> {
+function kitchenBody(r: ReceiptData, ctx: { t: TFunction; f: Formatter }, station?: string): string {
   const { t, f } = ctx;
-  const body = `
+  return `
+  ${station ? `<div class="meta">${escapeHtml(station)}</div>` : ''}
   <div class="num">${escapeHtml(f.digits(r.number))}</div>
   <div class="meta">${t(`order.type.${r.type}`)}${r.table_no ? ` — ${t('order.table', { table: f.digits(r.table_no) })}` : ''}</div>
   <div class="time">${f.time(r.created_at)}</div>
   <hr>
   ${r.items
     .map(
-      (i) => `<div class="item"><span class="qty">${f.number(i.qty)}</span><span>${escapeHtml(i.name)}</span></div>${
-        i.notes ? `<div class="note">— ${escapeHtml(i.notes)}</div>` : ''
-      }`,
+      (i) => `<div class="item"><span class="qty">${f.number(i.qty)}</span><span>${escapeHtml(i.name)}</span></div>${(i.options ?? [])
+        .map((o) => `<div class="note">+ ${escapeHtml(o)}</div>`)
+        .join('')}${i.notes ? `<div class="note">— ${escapeHtml(i.notes)}</div>` : ''}`,
     )
     .join('')}
   ${r.notes ? `<div class="onote">${escapeHtml(r.notes)}</div>` : ''}`;
-  return printHtml(body, KITCHEN_CSS, lang);
+}
+
+export function printKitchenTicket(r: ReceiptData, ctx: { t: TFunction; f: Formatter }, lang = 'ar'): Promise<void> {
+  return printHtml(kitchenBody(r, ctx), KITCHEN_CSS, lang);
+}
+
+/** Kitchen ticket CSS scoped under .kt so it can sit next to the receipt in one job. */
+const KITCHEN_SCOPED_CSS = KITCHEN_CSS.replace(/^@page[^\n]*\n/m, '')
+  .replace(/^body \{[^\n]*\n/m, '')
+  .replace(/^(\.?\w+) \{/gm, '.kt $1 {');
+
+/**
+ * Everything printed when an order is sent: the customer receipt (all items),
+ * then one ticket per kitchen station. `stations` maps a station name to its items.
+ */
+export function printOrderBundle(
+  r: ReceiptData,
+  ctx: Parameters<typeof receiptHtml>[1],
+  stations: { name: string; items: ReceiptData['items'] }[],
+  lang = 'ar',
+): Promise<void> {
+  const tickets = stations
+    .filter((s) => s.items.length > 0)
+    .map((s) => `<section class="kt">${kitchenBody({ ...r, items: s.items }, ctx, s.name)}</section>`)
+    .join('');
+  return printHtml(`${receiptHtml(r, ctx)}${tickets}`, `${RECEIPT_CSS}\n.kt { break-before: page; page-break-before: always; }\n${KITCHEN_SCOPED_CSS}`, lang);
 }
 
 // ---------------------------------------------------------------- Z report

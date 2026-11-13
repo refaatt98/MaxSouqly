@@ -12,7 +12,8 @@ import { useToast } from './ToastProvider';
 
 export type DeletableEntity =
   | 'order' | 'purchase_order' | 'stock_count' | 'stock_movement' | 'expense' | 'payroll'
-  | 'menu_item' | 'category' | 'ingredient' | 'supplier' | 'employee' | 'attendance' | 'work_shift' | 'cash_shift';
+  | 'menu_item' | 'category' | 'ingredient' | 'supplier' | 'employee' | 'attendance' | 'work_shift' | 'cash_shift'
+  | 'customer' | 'advance';
 
 type Effect =
   | { t: 'stock'; name: string; unit: UnitType; change: number }

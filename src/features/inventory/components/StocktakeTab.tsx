@@ -3,6 +3,8 @@ import { ClipboardCheck, Search, Trash } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
+import { useCosts } from '@/hooks/useCosts';
+import { usePermissions } from '@/app/providers/PermissionsProvider';
 import { errorMessage } from '@/lib/errors';
 import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch } from '@/hooks/useRealtime';
@@ -26,6 +28,8 @@ interface Row extends StockCountItem {
 
 function CountEditor({ count, ingredients, onClose, onChanged }: { count: StockCount | null; ingredients: Ingredient[]; onClose: () => void; onChanged: () => void }) {
   const t = useT();
+  const costs = useCosts();
+  const { can } = usePermissions();
   const { f, name } = useSettings();
   const toast = useToast();
   const confirm = useConfirm();
@@ -56,7 +60,7 @@ function CountEditor({ count, ingredients, onClose, onChanged }: { count: StockC
   const done = (rows ?? []).filter((r) => r.counted !== '').length;
   const varianceValue = (rows ?? []).reduce((s, r) => {
     if (r.counted === '') return s;
-    return s + (Number(r.counted) - Number(r.expected_quantity)) * Number(byId.get(r.ingredient_id)?.cost_per_unit ?? 0);
+    return s + (Number(r.counted) - Number(r.expected_quantity)) * (costs.ingredient(r.ingredient_id) ?? 0);
   }, 0);
 
   const update = (id: string, patch: Partial<Row>) => setRows((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -121,9 +125,13 @@ function CountEditor({ count, ingredients, onClose, onChanged }: { count: StockC
         ) : (
           <>
             <Button variant="danger" className="me-auto" loading={pending === 'discard'} onClick={() => void act('discard')}>{t('count.discard')}</Button>
-            <span className="num text-sm text-fg-2">{t('count.varianceValue')}: <b className={varianceValue < 0 ? 'text-danger' : 'text-success'}>{f.money(varianceValue)}</b></span>
+            {costs.allowed && <span className="num text-sm text-fg-2">{t('count.varianceValue')}: <b className={varianceValue < 0 ? 'text-danger' : 'text-success'}>{f.money(varianceValue)}</b></span>}
             <Button loading={pending === 'save'} onClick={() => void act('save')}>{t('count.saveDraft')}</Button>
-            <Button variant="primary" loading={pending === 'apply'} onClick={() => void act('apply')}>{t('count.apply')}</Button>
+            {can('stocktake_approve') ? (
+              <Button variant="primary" loading={pending === 'apply'} onClick={() => void act('apply')}>{t('count.apply')}</Button>
+            ) : (
+              <span className="text-xs text-fg-3">{t('count.needsApproval')}</span>
+            )}
           </>
         )
       }

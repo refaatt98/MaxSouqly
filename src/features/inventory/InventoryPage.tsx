@@ -5,6 +5,7 @@ import { useT } from '@/i18n';
 import { useQuery } from '@/hooks/useQuery';
 import { useLiveRefetch, useRealtime } from '@/hooks/useRealtime';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAuth } from '@/app/providers/AuthProvider';
 import { Tabs } from '@/components/ui/Tabs';
 import { fetchIngredients, fetchSuppliers, stockLevel } from './api';
 import { MaterialsTab } from './components/MaterialsTab';
@@ -20,8 +21,11 @@ const TABS: Tab[] = ['materials', 'suppliers', 'purchases', 'stocktake', 'recipe
 export default function InventoryPage() {
   const t = useT();
   const [params, setParams] = useSearchParams();
+  const { role } = useAuth();
+  // cashiers only count stock; the rest of inventory is for the back office
+  const tabs: Tab[] = role === 'cashier' ? ['stocktake'] : TABS;
   const tabParam = params.get('tab') as Tab | null;
-  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : 'materials';
+  const tab: Tab = tabParam && tabs.includes(tabParam) ? tabParam : tabs[0];
   const ingredients = useQuery(fetchIngredients, []);
   const suppliers = useQuery(fetchSuppliers, []);
   const [newPo, setNewPo] = useState(false);
@@ -58,13 +62,13 @@ export default function InventoryPage() {
         value={tab}
         onChange={setTab}
         items={[
-          { key: 'materials', label: t('inventory.materials'), icon: <Boxes className="size-4" />, count: lowCount },
-          { key: 'suppliers', label: t('inventory.suppliers'), icon: <Truck className="size-4" /> },
-          { key: 'purchases', label: t('inventory.purchases'), icon: <ShoppingBag className="size-4" /> },
-          { key: 'stocktake', label: t('inventory.stocktake'), icon: <ClipboardCheck className="size-4" /> },
-          { key: 'recipes', label: t('inventory.recipes'), icon: <BookOpen className="size-4" /> },
-          { key: 'reports', label: t('inventory.reports'), icon: <ChartColumn className="size-4" /> },
-        ]}
+          { key: 'materials' as Tab, label: t('inventory.materials'), icon: <Boxes className="size-4" />, count: lowCount },
+          { key: 'suppliers' as Tab, label: t('inventory.suppliers'), icon: <Truck className="size-4" /> },
+          { key: 'purchases' as Tab, label: t('inventory.purchases'), icon: <ShoppingBag className="size-4" /> },
+          { key: 'stocktake' as Tab, label: t('inventory.stocktake'), icon: <ClipboardCheck className="size-4" /> },
+          { key: 'recipes' as Tab, label: t('inventory.recipes'), icon: <BookOpen className="size-4" /> },
+          { key: 'reports' as Tab, label: t('inventory.reports'), icon: <ChartColumn className="size-4" /> },
+        ].filter((x) => tabs.includes(x.key as Tab))}
       />
       {tab === 'materials' && (
         <MaterialsTab

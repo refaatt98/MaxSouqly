@@ -4,6 +4,8 @@ import { Pencil, Plus, Search, Trash, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
+import { useCosts } from '@/hooks/useCosts';
+import { MENU_ITEM_COLS } from '@/lib/columns';
 import { errorMessage } from '@/lib/errors';
 import { deleteImage } from '@/lib/r2';
 import { hasErrors, v, type Errors } from '@/lib/validation';
@@ -23,24 +25,27 @@ import { EmptyState, ErrorState } from '@/components/ui/EmptyState';
 import { SkeletonGrid } from '@/components/ui/Skeleton';
 import { CATEGORY_ICONS, CategoryIcon } from '@/components/ui/CategoryIcon';
 import { ImageUploader, useImageField } from '@/components/ui/ImageUploader';
-import type { Category, MenuItem } from '@/types/models';
+import type { Category, MenuItem, Printer } from '@/types/models';
+import { OptionsEditor, PrinterSelect } from './components/OptionsEditor';
 
 async function fetchMenu() {
-  const [cats, items, recipes] = await Promise.all([
+  const [cats, items, recipes, printers] = await Promise.all([
     supabase.from('categories').select('*').order('sort_order').order('name_ar'),
-    supabase.from('menu_items').select('*').order('sort_order').order('name_ar'),
+    supabase.from('menu_items').select(MENU_ITEM_COLS).order('sort_order').order('name_ar'),
     supabase.from('recipe_items').select('menu_item_id'),
+    supabase.from('printers').select('*').order('sort_order').order('name'),
   ]);
   if (cats.error) throw cats.error;
   if (items.error) throw items.error;
   // recipe_items may be hidden from some roles; a missing set just hides the badge
   const withRecipe = recipes.error ? null : new Set(recipes.data.map((r) => r.menu_item_id));
-  return { categories: cats.data, items: items.data, withRecipe };
+  return { categories: cats.data, items: items.data, withRecipe, printers: printers.data ?? [] };
 }
 
 type ItemField = 'name_ar' | 'name_he' | 'price' | 'category_id' | 'description' | 'barcode' | 'sort_order';
 
-function ItemModal({ item, categories, defaultCategory, onClose, onSaved }: {
+function ItemModal({ item, categories, printers, defaultCategory, onClose, onSaved }: {
+  printers: Printer[];
   item: MenuItem | 'new' | null;
   categories: Category[];
   defaultCategory: string | null;
@@ -48,12 +53,14 @@ function ItemModal({ item, categories, defaultCategory, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const t = useT();
+  const costs = useCosts();
   const { f } = useSettings();
   const toast = useToast();
   const editing = item !== null && item !== 'new' ? item : null;
   const image = useImageField(editing?.image_url ?? null);
   const [form, setForm] = useState<Record<ItemField, string>>({ name_ar: '', name_he: '', price: '', category_id: '', description: '', barcode: '', sort_order: '0' });
   const [available, setAvailable] = useState(true);
+  const [printerId, setPrinterId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Errors<ItemField>>({});
   const [pending, setPending] = useState(false);
 
@@ -69,6 +76,7 @@ function ItemModal({ item, categories, defaultCategory, onClose, onSaved }: {
       sort_order: String(editing?.sort_order ?? 0),
     });
     setAvailable(editing?.is_available ?? true);
+    setPrinterId(editing?.printer_id ?? null);
     setErrors({});
     image.reset(editing?.image_url ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,6 +106,7 @@ function ItemModal({ item, categories, defaultCategory, onClose, onSaved }: {
       sort_order: Number(form.sort_order),
       is_available: available,
       image_url: image.url,
+      printer_id: printerId,
     };
     const { error } = editing ? await supabase.from('menu_items').update(row).eq('id', editing.id) : await supabase.from('menu_items').insert(row);
     setPending(false);
@@ -115,7 +124,8 @@ function ItemModal({ item, categories, defaultCategory, onClose, onSaved }: {
     onClose();
   };
 
-  const margin = editing && Number(form.price) > 0 ? ((Number(form.price) - Number(editing.cost_cache)) / Number(form.price)) * 100 : null;
+  const itemCost = editing ? costs.menuItem(editing.id) : null;
+  const margin = itemCost !== null && Number(form.price) > 0 ? ((Number(form.price) - itemCost) / Number(form.price)) * 100 : null;
 
   return (
     <Modal
@@ -141,19 +151,25 @@ function ItemModal({ item, categories, defaultCategory, onClose, onSaved }: {
         <ImageUploader className="md:col-span-2" label={t('menu.image')} value={image.url} onChange={image.setUrl} folder="menu" />
         <div className="md:col-span-2">
           <Toggle id="item-available" label={t('menu.available')} checked={available} onChange={setAvailable} />
-          {editing && (
+          {editing && itemCost !== null && (
             <p className="text-sm text-fg-3">
-              {t('menu.costFromRecipe')}: <span className="num text-fg">{f.money(Number(editing.cost_cache))}</span>
+              {t('menu.costFromRecipe')}: <span className="num text-fg">{f.money(itemCost)}</span>
               {margin !== null && <> · {t('menu.margin')}: <span className={cn('num font-semibold', margin < 50 ? 'text-warning' : 'text-success')}>{f.percent(margin)}</span></>}
             </p>
           )}
+        </div>
+        {printers.some((p) => p.kind === 'kitchen') && (
+          <PrinterSelect value={printerId} onChange={setPrinterId} printers={printers} label={t('printers.station')} inheritLabel={t('printers.fromCategory')} />
+        )}
+        <div className="md:col-span-2">
+          {editing ? <OptionsEditor menuItemId={editing.id} /> : <p className="text-xs text-fg-3">{t('opts.saveFirst')}</p>}
         </div>
       </div>
     </Modal>
   );
 }
 
-function CategoryModal({ category, onClose, onSaved }: { category: Category | 'new' | null; onClose: () => void; onSaved: () => void }) {
+function CategoryModal({ category, printers, onClose, onSaved }: { category: Category | 'new' | null; printers: Printer[]; onClose: () => void; onSaved: () => void }) {
   const t = useT();
   const toast = useToast();
   const editing = category !== null && category !== 'new' ? category : null;
@@ -162,6 +178,7 @@ function CategoryModal({ category, onClose, onSaved }: { category: Category | 'n
   const [icon, setIcon] = useState('burger');
   const [sort, setSort] = useState('0');
   const [active, setActive] = useState(true);
+  const [printerId, setPrinterId] = useState<string | null>(null);
   const image = useImageField(editing?.image_url ?? null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -173,6 +190,7 @@ function CategoryModal({ category, onClose, onSaved }: { category: Category | 'n
     setIcon(editing?.icon ?? 'burger');
     setSort(String(editing?.sort_order ?? 0));
     setActive(editing?.is_active ?? true);
+    setPrinterId(editing?.printer_id ?? null);
     image.reset(editing?.image_url ?? null);
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -183,7 +201,7 @@ function CategoryModal({ category, onClose, onSaved }: { category: Category | 'n
     setError(err);
     if (err) return;
     setPending(true);
-    const row = { name_ar: nameAr.trim(), name_he: nameHe.trim(), icon, sort_order: Number(sort) || 0, is_active: active, image_url: image.url };
+    const row = { name_ar: nameAr.trim(), name_he: nameHe.trim(), icon, sort_order: Number(sort) || 0, is_active: active, image_url: image.url, printer_id: printerId };
     const { error: e } = editing ? await supabase.from('categories').update(row).eq('id', editing.id) : await supabase.from('categories').insert(row);
     setPending(false);
     if (e) return toast.error(errorMessage(t, e));
@@ -232,6 +250,9 @@ function CategoryModal({ category, onClose, onSaved }: { category: Category | 'n
           </div>
         </div>
         <TextInput label={t('menu.sortOrder')} type="number" value={sort} onChange={(e) => setSort(e.target.value)} />
+        {printers.some((p) => p.kind === 'kitchen') && (
+          <PrinterSelect value={printerId} onChange={setPrinterId} printers={printers} label={t('printers.station')} inheritLabel={t('printers.mainKitchen')} />
+        )}
         <Toggle id="cat-active" label={t('common.active')} checked={active} onChange={setActive} />
       </div>
     </Modal>
@@ -240,6 +261,7 @@ function CategoryModal({ category, onClose, onSaved }: { category: Category | 'n
 
 export default function MenuPage() {
   const t = useT();
+  const costs = useCosts();
   const { f, name } = useSettings();
   const toast = useToast();
   const removeRecord = useDeleteRecord();
@@ -270,7 +292,7 @@ export default function MenuPage() {
   }, [menu.data, category, search]);
 
   const toggleAvailable = async (item: MenuItem) => {
-    menu.setData((d) => ({ categories: d?.categories ?? [], withRecipe: d?.withRecipe ?? null, items: (d?.items ?? []).map((i) => (i.id === item.id ? { ...i, is_available: !i.is_available } : i)) }));
+    menu.setData((d) => ({ categories: d?.categories ?? [], withRecipe: d?.withRecipe ?? null, printers: d?.printers ?? [], items: (d?.items ?? []).map((i) => (i.id === item.id ? { ...i, is_available: !i.is_available } : i)) }));
     const { error } = await supabase.from('menu_items').update({ is_available: !item.is_available }).eq('id', item.id);
     if (error) {
       toast.error(errorMessage(t, error));
@@ -346,7 +368,8 @@ export default function MenuPage() {
             ) : (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] sm:gap-3">
                 {items.map((i) => {
-                  const margin = Number(i.price) > 0 ? ((Number(i.price) - Number(i.cost_cache)) / Number(i.price)) * 100 : 0;
+                  const cost = costs.menuItem(i.id);
+                  const margin = cost !== null && Number(i.price) > 0 ? ((Number(i.price) - cost) / Number(i.price)) * 100 : null;
                   return (
                     <Card key={i.id} className={cn('flex flex-col p-3', !i.is_available && 'opacity-60')}>
                       <button type="button" onClick={() => setEditItem(i)} className="text-start">
@@ -355,7 +378,7 @@ export default function MenuPage() {
                       </button>
                       <div className="mt-1 flex items-center justify-between">
                         <span className="num text-[1.0625rem] font-medium text-fg">{f.money(Number(i.price))}</span>
-                        <span className={cn('num text-xs', margin >= 40 ? 'text-fg-3' : 'text-danger')}>{t('menu.margin')} {f.percent(margin)}</span>
+                        {margin !== null && <span className={cn('num text-xs', margin >= 40 ? 'text-fg-3' : 'text-danger')}>{t('menu.margin')} {f.percent(margin)}</span>}
                       </div>
                       {menu.data?.withRecipe && !menu.data.withRecipe.has(i.id) && (
                         <p className="mt-1.5 text-xs text-warning">{t('menu.noRecipe')}</p>
@@ -376,6 +399,7 @@ export default function MenuPage() {
         </div>
       )}
       <ItemModal
+        printers={menu.data?.printers ?? []}
         item={editItem}
         categories={menu.data?.categories ?? []}
         defaultCategory={category}
@@ -386,6 +410,7 @@ export default function MenuPage() {
         }}
       />
       <CategoryModal
+        printers={menu.data?.printers ?? []}
         category={editCat}
         onClose={() => setEditCat(null)}
         onSaved={() => {

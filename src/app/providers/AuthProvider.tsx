@@ -198,10 +198,3 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-export const ROLE_HOME: Record<AppRole, string> = {
-  owner: '/',
-  manager: '/',
-  cashier: '/pos',
-  kitchen: '/kitchen',
-  inventory: '/inventory',
-};

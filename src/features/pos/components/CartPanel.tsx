@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Armchair, Bike, CirclePause, Minus, Plus, Printer, ShoppingBag, StickyNote, Wallet, X } from 'lucide-react';
+import { Armchair, Bike, CirclePause, Minus, Plus, Printer, Send, ShoppingBag, StickyNote, Wallet, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { useSettings } from '@/app/providers/SettingsProvider';
@@ -9,7 +9,8 @@ import { Segmented } from '@/components/ui/Tabs';
 import { TextInput } from '@/components/ui/Input';
 import { FoodImage } from '@/components/ui/FoodImage';
 import { CountBadge } from '@/components/ui/Badge';
-import type { CartAction, CartIssue, CartLine, CartState, CartTotals } from '../cart';
+import { unitPrice, type CartAction, type CartIssue, type CartLine, type CartState, type CartTotals } from '../cart';
+import { CustomerField } from './CustomerField';
 
 function QtyStepper({ line, dispatch }: { line: CartLine; dispatch: (a: CartAction) => void }) {
   const t = useT();
@@ -62,8 +63,11 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
         <FoodImage src={line.item.image_url} alt="" className="size-14 shrink-0 rounded-btn bg-fg/[0.03]" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-fg">{name(line.item)}</p>
-          <p className="num text-xs text-fg-3">{f.money(Number(line.item.price))}</p>
-          <p className="num text-sm font-medium text-fg">{f.money(Number(line.item.price) * line.qty)}</p>
+          {(line.options ?? []).length > 0 && (
+            <p className="truncate text-xs text-fg-2">+ {(line.options ?? []).map((o) => name(o)).join('، ')}</p>
+          )}
+          <p className="num text-xs text-fg-3">{f.money(unitPrice(line))}</p>
+          <p className="num text-sm font-medium text-fg">{f.money(unitPrice(line) * line.qty)}</p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <QtyStepper line={line} dispatch={dispatch} />
@@ -112,6 +116,9 @@ export interface CartPanelProps {
   showIssue: boolean;
   heldCount: number;
   onPay: () => void;
+  /** send to the kitchen and print now; payment is collected later */
+  onSend: () => void;
+  sending: boolean;
   onCancel: () => void;
   onPrint: () => void;
   onHold: () => void;
@@ -165,34 +172,13 @@ export function CartPanel(p: CartPanelProps) {
             error={p.showIssue && p.issue === 'table' ? t('errors.INVALID_TABLE') : null}
           />
         )}
-        {state.type !== 'delivery' && (
-          <div className="grid grid-cols-2 gap-2">
-            <TextInput placeholder={t('pos.nameOptional')} aria-label={t('pos.nameOptional')} value={state.customerName} onChange={(e) => dispatch({ type: 'field', field: 'customerName', value: e.target.value })} />
-            <TextInput
-              placeholder={t('pos.phoneOptional')}
-              aria-label={t('pos.phoneOptional')}
-              type="tel"
-              dir="ltr"
-              inputMode="tel"
-              value={state.customerPhone}
-              onChange={(e) => dispatch({ type: 'field', field: 'customerPhone', value: e.target.value })}
-              error={p.showIssue && p.issue === 'phone' ? t('validation.phone') : null}
-            />
-          </div>
-        )}
-        {state.type === 'delivery' && (
-          <div className="grid grid-cols-2 gap-2">
-            <TextInput label={t('pos.customerName')} value={state.customerName} onChange={(e) => dispatch({ type: 'field', field: 'customerName', value: e.target.value })} />
-            <TextInput label={t('pos.customerPhone')} type="tel" dir="ltr" inputMode="tel" value={state.customerPhone} onChange={(e) => dispatch({ type: 'field', field: 'customerPhone', value: e.target.value })} />
-            <TextInput
-              className="col-span-2"
-              label={t('pos.customerAddress')}
-              value={state.customerAddress}
-              onChange={(e) => dispatch({ type: 'field', field: 'customerAddress', value: e.target.value })}
-              error={p.showIssue && p.issue === 'delivery' ? t('errors.DELIVERY_DETAILS_REQUIRED') : null}
-            />
-          </div>
-        )}
+        <CustomerField
+          state={state}
+          dispatch={dispatch}
+          delivery={state.type === 'delivery'}
+          phoneError={p.showIssue && p.issue === 'phone' ? t('validation.phone') : null}
+          addressError={p.showIssue && p.issue === 'delivery' ? t('errors.DELIVERY_DETAILS_REQUIRED') : null}
+        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
@@ -270,12 +256,15 @@ export function CartPanel(p: CartPanelProps) {
             {f.money(totals.total)}
           </motion.p>
         </div>
-        <div className="grid grid-cols-[1fr_1fr_2fr] gap-2 pt-1">
-          <Button variant="ghost" size="lg" onClick={p.onCancel} disabled={empty}>
+        <div className="grid grid-cols-[auto_auto_1fr_1fr] gap-2 pt-1">
+          <Button variant="ghost" size="lg" onClick={p.onCancel} disabled={empty} className="px-3">
             {t('pos.cancel')}
           </Button>
-          <Button variant="secondary" size="lg" icon={<Printer className="size-4" />} onClick={p.onPrint} disabled={empty}>
-            {t('pos.print')}
+          <Button variant="ghost" size="lg" onClick={p.onPrint} disabled={empty} aria-label={t('pos.print')} className="px-3">
+            <Printer className="size-[1.125rem]" />
+          </Button>
+          <Button variant="secondary" size="lg" icon={<Send className="size-4 rtl:-scale-x-100" />} onClick={p.onSend} disabled={empty} loading={p.sending} className="text-base">
+            {t('pos.send')}
           </Button>
           <Button variant="primary" size="lg" icon={<Wallet className="size-[1.125rem]" strokeWidth={1.5} />} onClick={p.onPay} disabled={empty} className="text-base">
             {t('pos.pay')}

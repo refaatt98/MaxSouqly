@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { useAuth } from '../providers/AuthProvider';
 import { navFor } from '../nav';
+import { usePermissions } from '../providers/PermissionsProvider';
 import { Modal } from '@/components/ui/Modal';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
@@ -13,7 +14,8 @@ export function BottomNav() {
   const t = useT();
   const { role, signOut } = useAuth();
   const [more, setMore] = useState(false);
-  const items = navFor(role);
+  const { can } = usePermissions();
+  const items = navFor(role, can);
   const primary = items.slice(0, 4);
   const rest = items.slice(4);
 

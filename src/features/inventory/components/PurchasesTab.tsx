@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { PackageCheck, Plus, Send, ShoppingBag, Trash, X } from 'lucide-react';
 import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
+import { PO_COLS, PO_ITEM_COLS } from '@/lib/columns';
+import { cn } from '@/lib/cn';
+import { useCosts } from '@/hooks/useCosts';
 import { errorMessage } from '@/lib/errors';
 import { round2 } from '@/lib/format';
 import { useQuery } from '@/hooks/useQuery';
@@ -30,7 +33,7 @@ interface Line {
 }
 
 async function fetchPurchaseOrders(): Promise<PurchaseOrder[]> {
-  const { data, error } = await supabase.from('purchase_orders').select('*').order('created_at', { ascending: false }).limit(200);
+  const { data, error } = await supabase.from('purchase_orders').select(PO_COLS).order('created_at', { ascending: false }).limit(200);
   if (error) throw error;
   return data;
 }
@@ -43,6 +46,7 @@ function PoEditor({ po, suppliers, ingredients, onClose, onChanged }: {
   onChanged: () => void;
 }) {
   const t = useT();
+  const costs = useCosts();
   const { f, name } = useSettings();
   const toast = useToast();
   const confirm = useConfirm();
@@ -64,22 +68,22 @@ function PoEditor({ po, suppliers, ingredients, onClose, onChanged }: {
     setNotes(existing?.notes ?? '');
     setLines([]);
     if (existing) {
-      void supabase
-        .from('purchase_order_items')
-        .select('*')
-        .eq('purchase_order_id', existing.id)
-        .then(({ data }) =>
-          setLines(
-            (data ?? []).map((l: PurchaseOrderItem) => ({ key: l.id, ingredient_id: l.ingredient_id, quantity: String(l.quantity), unit_cost: String(l.unit_cost) })),
-          ),
+      void Promise.all([
+        supabase.from('purchase_order_items').select(PO_ITEM_COLS).eq('purchase_order_id', existing.id),
+        costs.allowed ? supabase.rpc('po_item_costs', { p_po_id: existing.id }) : Promise.resolve({ data: null }),
+      ]).then(([{ data }, { data: c }]) => {
+        const lineCosts = c as Record<string, number> | null;
+        setLines(
+          (data ?? []).map((l: PurchaseOrderItem) => ({ key: l.id, ingredient_id: l.ingredient_id, quantity: String(l.quantity), unit_cost: String(lineCosts?.[l.id] ?? '') })),
         );
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [po]);
 
   const addLine = (ingredientId = '') => {
     const ing = ingredientMap.get(ingredientId);
-    setLines((ls) => [...ls, { key: crypto.randomUUID(), ingredient_id: ingredientId, quantity: '', unit_cost: ing ? String(ing.cost_per_unit) : '' }]);
+    setLines((ls) => [...ls, { key: crypto.randomUUID(), ingredient_id: ingredientId, quantity: '', unit_cost: ing ? String(costs.ingredient(ing.id) ?? '') : '' }]);
   };
   const suggestLow = () => {
     const low = ingredients.filter((i) => i.is_active && stockLevel(i) !== 'ok' && (!supplierId || i.supplier_id === supplierId) && !lines.some((l) => l.ingredient_id === i.id));
@@ -89,7 +93,7 @@ function PoEditor({ po, suppliers, ingredients, onClose, onChanged }: {
         key: crypto.randomUUID(),
         ingredient_id: i.id,
         quantity: String(Math.max(1, Math.ceil(Number(i.min_quantity) * 2 - Number(i.quantity)))),
-        unit_cost: String(i.cost_per_unit),
+        unit_cost: String(costs.ingredient(i.id) ?? ''),
       })),
     ]);
   };
@@ -97,7 +101,7 @@ function PoEditor({ po, suppliers, ingredients, onClose, onChanged }: {
   const total = round2(lines.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unit_cost) || 0), 0));
 
   const validLines = () => {
-    const ok = lines.filter((l) => l.ingredient_id && Number(l.quantity) > 0 && Number(l.unit_cost) >= 0);
+    const ok = lines.filter((l) => l.ingredient_id && Number(l.quantity) > 0 && (!costs.allowed || Number(l.unit_cost) >= 0));
     if (ok.length === 0 || ok.length !== lines.length) {
       setError(t('po.noLines'));
       return null;
@@ -123,7 +127,7 @@ function PoEditor({ po, suppliers, ingredients, onClose, onChanged }: {
     }
     const { error: li } = await supabase
       .from('purchase_order_items')
-      .insert(ok.map((l) => ({ purchase_order_id: id as string, ingredient_id: l.ingredient_id, quantity: Number(l.quantity), unit_cost: Number(l.unit_cost) })));
+      .insert(ok.map((l) => ({ purchase_order_id: id as string, ingredient_id: l.ingredient_id, quantity: Number(l.quantity), unit_cost: costs.allowed ? Number(l.unit_cost) || 0 : 0 })));
     if (li) throw li;
     return id ?? null;
   };
@@ -201,22 +205,26 @@ function PoEditor({ po, suppliers, ingredients, onClose, onChanged }: {
         {lines.map((l) => {
           const ing = ingredientMap.get(l.ingredient_id);
           return (
-            <div key={l.key} className="grid grid-cols-[1fr_auto] items-end gap-2 rounded-card border border-line bg-card p-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+            <div key={l.key} className={cn('grid grid-cols-[1fr_auto] items-end gap-2 rounded-card border border-line bg-card p-3', costs.allowed ? 'md:grid-cols-[2fr_1fr_1fr_1fr_auto]' : 'md:grid-cols-[2fr_1fr_auto]')}>
               <Select
                 className="col-span-2 md:col-span-1"
                 label={t('recipes.ingredient')}
                 value={l.ingredient_id}
-                onChange={(e) => update(l.key, { ingredient_id: e.target.value, unit_cost: String(ingredientMap.get(e.target.value)?.cost_per_unit ?? '') })}
+                onChange={(e) => update(l.key, { ingredient_id: e.target.value, unit_cost: String(costs.ingredient(e.target.value) ?? '') })}
                 placeholder="—"
                 options={ingredients.map((i) => ({ value: i.id, label: name(i) }))}
                 disabled={!editable}
               />
               <TextInput label={t('common.quantity')} type="number" inputMode="decimal" min={0} value={l.quantity} onChange={(e) => update(l.key, { quantity: e.target.value })} suffix={ing ? t(`unit.${ing.unit}`) : undefined} disabled={!editable} />
-              <TextInput label={t('po.unitCost')} type="number" inputMode="decimal" min={0} step="0.01" value={l.unit_cost} onChange={(e) => update(l.key, { unit_cost: e.target.value })} disabled={!editable} />
-              <div className="pb-2.5">
-                <p className="text-xs text-fg-3">{t('po.lineTotal')}</p>
-                <p className="num font-semibold">{f.money((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0))}</p>
-              </div>
+              {costs.allowed && (
+                <>
+                  <TextInput label={t('po.unitCost')} type="number" inputMode="decimal" min={0} step="0.01" value={l.unit_cost} onChange={(e) => update(l.key, { unit_cost: e.target.value })} disabled={!editable} />
+                  <div className="pb-2.5">
+                    <p className="text-xs text-fg-3">{t('po.lineTotal')}</p>
+                    <p className="num font-semibold">{f.money((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0))}</p>
+                  </div>
+                </>
+              )}
               {editable && (
                 <IconButton label={t('common.delete')} onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} className="hover:text-danger">
                   <X className="size-4" />
@@ -228,10 +236,12 @@ function PoEditor({ po, suppliers, ingredients, onClose, onChanged }: {
         {lines.length === 0 && <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-3">{t('po.noLines')}</p>}
       </div>
       {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
-      <div className="mt-4 flex justify-end gap-3 text-lg font-semibold">
-        <span>{t('common.total')}</span>
-        <span className="num">{f.money(total)}</span>
-      </div>
+      {costs.allowed && (
+        <div className="mt-4 flex justify-end gap-3 text-lg font-semibold">
+          <span>{t('common.total')}</span>
+          <span className="num">{f.money(total)}</span>
+        </div>
+      )}
     </Modal>
   );
 }
@@ -245,6 +255,7 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
 }) {
   const removeRecord = useDeleteRecord();
   const t = useT();
+  const costs = useCosts();
   const { f } = useSettings();
   const orders = useQuery(fetchPurchaseOrders, []);
   useLiveRefetch(['purchase_orders', 'purchase_order_items'], orders.refetch);
@@ -271,7 +282,9 @@ export function PurchasesTab({ suppliers, ingredients, newRequest, onNewHandled,
     { key: 'date', header: t('common.date'), hideBelow: 'sm', cell: (p) => <span className="num text-fg-2">{f.dateTime(p.created_at)}</span> },
     { key: 'expected', header: t('po.expectedDate'), hideBelow: 'md', cell: (p) => (p.expected_date ? f.date(p.expected_date) : t('common.none')) },
     { key: 'status', header: t('common.status'), cell: (p) => <Badge tone={STATUS_TONE[p.status]}>{t(`po.status.${p.status}`)}</Badge> },
-    { key: 'total', header: t('common.total'), align: 'end', cell: (p) => <span className="num font-semibold">{f.money(Number(p.total))}</span> },
+    ...(costs.allowed
+      ? ([{ key: 'total', header: t('common.total'), align: 'end', cell: (p: PurchaseOrder) => <span className="num font-semibold">{f.money(costs.po(p.id) ?? 0)}</span> }] as Column<PurchaseOrder>[])
+      : []),
     {
       key: 'actions',
       header: '',

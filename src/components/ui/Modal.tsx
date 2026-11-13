@@ -83,7 +83,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
         >
-          <div className="absolute inset-0 bg-black/35" onClick={close} aria-hidden />
+          <div className="absolute inset-0 bg-black/55" onClick={close} aria-hidden />
           <motion.div
             ref={ref}
             role="dialog"
@@ -95,7 +95,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             exit={{ opacity: 0, y: 6 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              'glass relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-panel border border-line-strong shadow-panel sm:rounded-panel',
+              'relative flex max-h-[92dvh] bg-card w-full flex-col overflow-hidden rounded-t-panel border border-line-strong shadow-panel sm:rounded-panel',
               sizes[size],
               className,
             )}
@@ -144,7 +144,7 @@ export function Drawer({ open, onClose, title, children, footer, width = 'max-w-
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-black/35" onClick={onClose} aria-hidden />
+          <div className="absolute inset-0 bg-black/55" onClick={onClose} aria-hidden />
           <motion.aside
             ref={ref}
             role="dialog"
@@ -156,7 +156,7 @@ export function Drawer({ open, onClose, title, children, footer, width = 'max-w-
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className={cn('glass absolute inset-y-0 end-0 flex w-full flex-col border-s border-line-strong shadow-panel', width)}
+            className={cn('absolute inset-y-0 bg-card end-0 flex w-full flex-col border-s border-line-strong shadow-panel', width)}
           >
             <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
               <h2 id={titleId} className="truncate text-lg font-medium">{title}</h2>

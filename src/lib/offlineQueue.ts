@@ -10,9 +10,11 @@ export interface OrderPayload {
   customer_address?: string;
   notes?: string;
   discount?: { type: 'percent' | 'fixed'; value: number } | null;
-  items: { menu_item_id: string; quantity: number; notes?: string }[];
+  items: { menu_item_id: string; quantity: number; notes?: string; options?: string[] }[];
   payments: { method: 'cash' | 'card'; amount: number; tendered?: number | null }[];
   offline_created_at?: string;
+  /** send now, collect payment later (payments may be partial or empty) */
+  pay_later?: boolean;
 }
 
 export interface QueuedOrder {

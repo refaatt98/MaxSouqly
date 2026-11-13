@@ -132,6 +132,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           image_url: string | null;
+          printer_id: string | null;
         };
         Insert: {
           id?: string;
@@ -143,6 +144,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           image_url?: string | null;
+          printer_id?: string | null;
         };
         Update: {
           id?: string;
@@ -154,6 +156,48 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           image_url?: string | null;
+          printer_id?: string | null;
+        };
+        Relationships: [
+          { foreignKeyName: "categories_printer_id_fkey"; columns: ["printer_id"]; isOneToOne: false; referencedRelation: "printers"; referencedColumns: ["id"] },
+        ];
+      };
+      customers: {
+        Row: {
+          id: string;
+          name: string;
+          phone: string;
+          address: string;
+          notes: string;
+          orders_count: number;
+          total_spent: number;
+          last_order_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name?: string;
+          phone: string;
+          address?: string;
+          notes?: string;
+          orders_count?: number;
+          total_spent?: number;
+          last_order_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          phone?: string;
+          address?: string;
+          notes?: string;
+          orders_count?: number;
+          total_spent?: number;
+          last_order_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
         ];
@@ -294,6 +338,44 @@ export type Database = {
           { foreignKeyName: "ingredients_supplier_id_fkey"; columns: ["supplier_id"]; isOneToOne: false; referencedRelation: "suppliers"; referencedColumns: ["id"] },
         ];
       };
+      menu_item_options: {
+        Row: {
+          id: string;
+          menu_item_id: string;
+          name_ar: string;
+          name_he: string;
+          price: number;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          menu_item_id: string;
+          name_ar: string;
+          name_he?: string;
+          price?: number;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          menu_item_id?: string;
+          name_ar?: string;
+          name_he?: string;
+          price?: number;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "menu_item_options_menu_item_id_fkey"; columns: ["menu_item_id"]; isOneToOne: false; referencedRelation: "menu_items"; referencedColumns: ["id"] },
+        ];
+      };
       menu_items: {
         Row: {
           id: string;
@@ -309,6 +391,7 @@ export type Database = {
           sort_order: number;
           created_at: string;
           updated_at: string;
+          printer_id: string | null;
         };
         Insert: {
           id?: string;
@@ -324,6 +407,7 @@ export type Database = {
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
+          printer_id?: string | null;
         };
         Update: {
           id?: string;
@@ -339,9 +423,11 @@ export type Database = {
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
+          printer_id?: string | null;
         };
         Relationships: [
           { foreignKeyName: "menu_items_category_id_fkey"; columns: ["category_id"]; isOneToOne: false; referencedRelation: "categories"; referencedColumns: ["id"] },
+          { foreignKeyName: "menu_items_printer_id_fkey"; columns: ["printer_id"]; isOneToOne: false; referencedRelation: "printers"; referencedColumns: ["id"] },
         ];
       };
       notifications: {
@@ -399,6 +485,7 @@ export type Database = {
           voided_at: string | null;
           void_reason: string | null;
           voided_by: string | null;
+          options: Json;
         };
         Insert: {
           id?: string;
@@ -417,6 +504,7 @@ export type Database = {
           voided_at?: string | null;
           void_reason?: string | null;
           voided_by?: string | null;
+          options?: Json;
         };
         Update: {
           id?: string;
@@ -435,6 +523,7 @@ export type Database = {
           voided_at?: string | null;
           void_reason?: string | null;
           voided_by?: string | null;
+          options?: Json;
         };
         Relationships: [
           { foreignKeyName: "order_items_menu_item_id_fkey"; columns: ["menu_item_id"]; isOneToOne: false; referencedRelation: "menu_items"; referencedColumns: ["id"] },
@@ -471,6 +560,9 @@ export type Database = {
           served_at: string | null;
           created_at: string;
           updated_at: string;
+          customer_id: string | null;
+          payment_status: Database["public"]["Enums"]["payment_status"];
+          paid_amount: number;
         };
         Insert: {
           id?: string;
@@ -500,6 +592,9 @@ export type Database = {
           served_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          customer_id?: string | null;
+          payment_status?: Database["public"]["Enums"]["payment_status"];
+          paid_amount?: number;
         };
         Update: {
           id?: string;
@@ -529,9 +624,13 @@ export type Database = {
           served_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          customer_id?: string | null;
+          payment_status?: Database["public"]["Enums"]["payment_status"];
+          paid_amount?: number;
         };
         Relationships: [
           { foreignKeyName: "orders_cashier_id_fkey"; columns: ["cashier_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "orders_customer_id_fkey"; columns: ["customer_id"]; isOneToOne: false; referencedRelation: "customers"; referencedColumns: ["id"] },
           { foreignKeyName: "orders_shift_id_fkey"; columns: ["shift_id"]; isOneToOne: false; referencedRelation: "cash_shifts"; referencedColumns: ["id"] },
           { foreignKeyName: "orders_voided_by_fkey"; columns: ["voided_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
@@ -546,6 +645,7 @@ export type Database = {
           change_given: number;
           created_at: string;
           updated_at: string;
+          shift_id: string | null;
         };
         Insert: {
           id?: string;
@@ -556,6 +656,7 @@ export type Database = {
           change_given?: number;
           created_at?: string;
           updated_at?: string;
+          shift_id?: string | null;
         };
         Update: {
           id?: string;
@@ -566,9 +667,11 @@ export type Database = {
           change_given?: number;
           created_at?: string;
           updated_at?: string;
+          shift_id?: string | null;
         };
         Relationships: [
           { foreignKeyName: "payments_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "orders"; referencedColumns: ["id"] },
+          { foreignKeyName: "payments_shift_id_fkey"; columns: ["shift_id"]; isOneToOne: false; referencedRelation: "cash_shifts"; referencedColumns: ["id"] },
         ];
       };
       payroll: {
@@ -587,6 +690,7 @@ export type Database = {
           notes: string;
           created_at: string;
           updated_at: string;
+          days_worked: number;
         };
         Insert: {
           id?: string;
@@ -603,6 +707,7 @@ export type Database = {
           notes?: string;
           created_at?: string;
           updated_at?: string;
+          days_worked?: number;
         };
         Update: {
           id?: string;
@@ -619,9 +724,50 @@ export type Database = {
           notes?: string;
           created_at?: string;
           updated_at?: string;
+          days_worked?: number;
         };
         Relationships: [
           { foreignKeyName: "payroll_employee_id_fkey"; columns: ["employee_id"]; isOneToOne: false; referencedRelation: "employees_meta"; referencedColumns: ["id"] },
+        ];
+      };
+      printers: {
+        Row: {
+          id: string;
+          name: string;
+          kind: string;
+          connection: string;
+          address: string;
+          paper_width: number;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          kind?: string;
+          connection?: string;
+          address?: string;
+          paper_width?: number;
+          is_active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          kind?: string;
+          connection?: string;
+          address?: string;
+          paper_width?: number;
+          is_active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
         ];
       };
       profiles: {
@@ -811,6 +957,8 @@ export type Database = {
           timezone: string;
           created_at: string;
           updated_at: string;
+          payroll_cycle_day: number;
+          print_kitchen_on_send: boolean;
         };
         Insert: {
           id?: string;
@@ -837,6 +985,8 @@ export type Database = {
           timezone?: string;
           created_at?: string;
           updated_at?: string;
+          payroll_cycle_day?: number;
+          print_kitchen_on_send?: boolean;
         };
         Update: {
           id?: string;
@@ -863,8 +1013,44 @@ export type Database = {
           timezone?: string;
           created_at?: string;
           updated_at?: string;
+          payroll_cycle_day?: number;
+          print_kitchen_on_send?: boolean;
         };
         Relationships: [
+        ];
+      };
+      salary_advances: {
+        Row: {
+          id: string;
+          employee_id: string;
+          amount: number;
+          note: string;
+          shift_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          amount: number;
+          note?: string;
+          shift_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          amount?: number;
+          note?: string;
+          shift_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "salary_advances_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "salary_advances_employee_id_fkey"; columns: ["employee_id"]; isOneToOne: false; referencedRelation: "employees_meta"; referencedColumns: ["id"] },
+          { foreignKeyName: "salary_advances_shift_id_fkey"; columns: ["shift_id"]; isOneToOne: false; referencedRelation: "cash_shifts"; referencedColumns: ["id"] },
         ];
       };
       stock_count_items: {
@@ -1021,6 +1207,33 @@ export type Database = {
         Relationships: [
         ];
       };
+      user_permissions: {
+        Row: {
+          user_id: string;
+          permission: string;
+          expires_at: string | null;
+          granted_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          permission: string;
+          expires_at?: string | null;
+          granted_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          permission?: string;
+          expires_at?: string | null;
+          granted_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "user_permissions_granted_by_fkey"; columns: ["granted_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "user_permissions_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       work_shifts: {
         Row: {
           id: string;
@@ -1059,6 +1272,7 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      add_payment: { Args: { p_order_id: string; p_payments: Json }; Returns: Json };
       adjust_stock: { Args: { p_ingredient_id: string; p_change: number; p_reason: Database["public"]["Enums"]["stock_reason"]; p_note: string }; Returns: number };
       admin_create_user: { Args: { p_email: string; p_password: string; p_full_name: string; p_role: Database["public"]["Enums"]["app_role"]; p_phone?: string; p_pin?: string; p_employee_id?: string }; Returns: string };
       admin_set_password: { Args: { p_user_id: string; p_password: string }; Returns: undefined };
@@ -1070,23 +1284,31 @@ export type Database = {
       clock_out: { Args: { p_employee_id?: string }; Returns: Database["public"]["Tables"]["attendance"]["Row"] };
       close_shift: { Args: { p_counted_cash: number; p_notes?: string }; Returns: Json };
       compute_payroll: { Args: { p_month: string }; Returns: number };
+      cost_data: { Args: Record<PropertyKey, never>; Returns: Json };
       create_stock_count: { Args: { p_notes?: string }; Returns: string };
       current_user_role: { Args: Record<PropertyKey, never>; Returns: Database["public"]["Enums"]["app_role"] };
       dashboard_today: { Args: Record<PropertyKey, never>; Returns: Json };
       delete_record: { Args: { p_entity: string; p_id: string; p_dry_run?: boolean }; Returns: Json };
+      find_customers: { Args: { p_query: string }; Returns: Json };
       get_order: { Args: { p_order_id: string }; Returns: Json };
+      has_perm: { Args: { p: string }; Returns: boolean };
       has_role: { Args: { roles: Database["public"]["Enums"]["app_role"][] }; Returns: boolean };
       import_backup: { Args: { p_data: Json }; Returns: Json };
       is_manager: { Args: Record<PropertyKey, never>; Returns: boolean };
+      kiosk_clock: { Args: { p_employee_id: string; p_action: string }; Returns: Json };
       local_date: { Args: { p_ts: string }; Returns: string };
       log_pos_cancel: { Args: { p_reason: string; p_items: number; p_total: number }; Returns: undefined };
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: undefined };
-      menu_item_cost: { Args: { p_menu_item_id: string }; Returns: number };
+      my_permissions: { Args: Record<PropertyKey, never>; Returns: string[] };
+      normalize_phone: { Args: { p: string }; Returns: string };
       open_shift: { Args: { p_opening_float: number }; Returns: Database["public"]["Tables"]["cash_shifts"]["Row"] };
+      payroll_range: { Args: { p_month: string }; Returns: unknown[] };
       place_order: { Args: { payload: Json }; Returns: Json };
+      po_item_costs: { Args: { p_po_id: string }; Returns: Json };
       range_end: { Args: { p_to: string }; Returns: string };
       range_start: { Args: { p_from: string }; Returns: string };
       receive_purchase_order: { Args: { p_po_id: string }; Returns: Database["public"]["Tables"]["purchase_orders"]["Row"] };
+      record_advance: { Args: { p_employee_id: string; p_amount: number; p_note?: string }; Returns: string };
       replace_order_item: { Args: { p_item_id: string; p_menu_item_id: string; p_quantity: number; p_notes: string; p_reason: string }; Returns: Json };
       report_cashiers: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_employees: { Args: { p_from: string; p_to: string }; Returns: Json };
@@ -1095,9 +1317,11 @@ export type Database = {
       report_profit: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_sales: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_top_items: { Args: { p_from: string; p_to: string; p_limit?: number }; Returns: Json };
+      require_perm: { Args: { p: string }; Returns: undefined };
       restaurant_tz: { Args: Record<PropertyKey, never>; Returns: string };
       set_pin: { Args: { p_user_id: string; p_pin: string }; Returns: undefined };
       shift_report: { Args: { p_shift_id: string }; Returns: Json };
+      staff_board: { Args: Record<PropertyKey, never>; Returns: Json };
       touch_last_login: { Args: Record<PropertyKey, never>; Returns: undefined };
       unit_factor: { Args: { p_from: Database["public"]["Enums"]["unit_type"]; p_to: Database["public"]["Enums"]["unit_type"] }; Returns: number };
       void_order: { Args: { p_order_id: string; p_reason: string; p_refund?: boolean }; Returns: Json };
@@ -1112,9 +1336,10 @@ export type Database = {
       order_status: "new" | "preparing" | "ready" | "served" | "cancelled" | "refunded";
       order_type: "dine_in" | "takeaway" | "delivery";
       payment_method: "cash" | "card";
+      payment_status: "paid" | "partial" | "unpaid";
       payroll_status: "draft" | "paid";
       po_status: "draft" | "sent" | "received" | "cancelled";
-      salary_type: "monthly" | "hourly";
+      salary_type: "monthly" | "hourly" | "daily";
       stock_count_status: "draft" | "applied";
       stock_reason: "sale" | "purchase" | "adjustment" | "waste" | "void";
       unit_type: "kg" | "g" | "l" | "ml" | "piece" | "carton";
@@ -1140,9 +1365,10 @@ export const Constants = {
       order_status: ["new", "preparing", "ready", "served", "cancelled", "refunded"],
       order_type: ["dine_in", "takeaway", "delivery"],
       payment_method: ["cash", "card"],
+      payment_status: ["paid", "partial", "unpaid"],
       payroll_status: ["draft", "paid"],
       po_status: ["draft", "sent", "received", "cancelled"],
-      salary_type: ["monthly", "hourly"],
+      salary_type: ["monthly", "hourly", "daily"],
       stock_count_status: ["draft", "applied"],
       stock_reason: ["sale", "purchase", "adjustment", "waste", "void"],
       unit_type: ["kg", "g", "l", "ml", "piece", "carton"],

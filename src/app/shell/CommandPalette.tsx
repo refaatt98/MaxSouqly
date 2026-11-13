@@ -6,9 +6,11 @@ import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { supabase } from '@/lib/supabase';
+import { MENU_ITEM_COLS } from '@/lib/columns';
 import { useAuth } from '../providers/AuthProvider';
 import { useSettings } from '../providers/SettingsProvider';
 import { canAccess, navFor } from '../nav';
+import { usePermissions } from '../providers/PermissionsProvider';
 import { FoodImage } from '@/components/ui/FoodImage';
 import type { MenuItem } from '@/types/models';
 
@@ -24,6 +26,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const t = useT();
   const navigate = useNavigate();
   const { role } = useAuth();
+  const { can } = usePermissions();
   const { name, f } = useSettings();
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
@@ -36,18 +39,18 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     setActive(0);
     setTimeout(() => inputRef.current?.focus(), 30);
     if (products.length === 0) {
-      void supabase.from('menu_items').select('*').order('name_ar').then(({ data }) => data && setProducts(data));
+      void supabase.from('menu_items').select(MENU_ITEM_COLS).order('name_ar').then(({ data }) => data && setProducts(data));
     }
   }, [open, products.length]);
 
   const entries = useMemo<{ section: string; items: Entry[] }[]>(() => {
     const needle = q.trim().toLowerCase();
     const match = (s: string) => !needle || s.toLowerCase().includes(needle);
-    const screens = navFor(role)
+    const screens = navFor(role, can)
       .filter((n) => match(t(n.label)))
       .map<Entry>((n) => ({ id: n.path, label: t(n.label), icon: <n.icon className="size-4" />, go: () => navigate(n.path) }));
-    const toPos = canAccess(role, '/pos');
-    const toMenu = canAccess(role, '/menu');
+    const toPos = canAccess(role, '/pos', can);
+    const toMenu = canAccess(role, '/menu', can);
     const prods =
       needle && (toPos || toMenu)
         ? products
@@ -65,7 +68,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       { section: t('command.screens'), items: screens },
       { section: t('command.products'), items: prods },
     ].filter((s) => s.items.length > 0);
-  }, [q, role, t, navigate, products, name, f]);
+  }, [q, role, can, t, navigate, products, name, f]);
 
   const flat = entries.flatMap((s) => s.items);
 

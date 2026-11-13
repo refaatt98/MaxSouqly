@@ -139,6 +139,8 @@ export interface SuccessInfo {
   change: number;
   total: number;
   offline: boolean;
+  /** sent to the kitchen before payment */
+  unpaid?: boolean;
 }
 
 export function SuccessOverlay({ info, onDone }: { info: SuccessInfo | null; onDone: () => void }) {
@@ -171,9 +173,10 @@ export function SuccessOverlay({ info, onDone }: { info: SuccessInfo | null; onD
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3, delay: 0.08, ease: [0.22, 1, 0.36, 1] }} className="relative mx-auto mb-5 grid size-16 place-items-center rounded-full border border-success/30 bg-success/10 text-success">
               {info.offline ? <WifiOff className="size-7" strokeWidth={1.5} /> : <CircleCheck className="size-8" strokeWidth={1.5} />}
             </motion.div>
-            <h2 className="relative text-xl font-medium">{t('pos.successTitle')}</h2>
+            <h2 className="relative text-xl font-medium">{info.unpaid ? t('pos.sentTitle') : t('pos.successTitle')}</h2>
             <p className="num relative mt-1 text-[0.9375rem] text-fg-2">{t('pos.successOrder', { number: f.digits(info.number) })}</p>
             {info.offline && <p className="relative mt-2 text-sm text-warning">{t('pos.offlineSaved')}</p>}
+            {info.unpaid && <p className="relative mt-2 text-sm text-warning">{t('pos.sentUnpaid')}</p>}
             {info.change > 0 && (
               <div className="relative mt-6 rounded-card border border-line bg-card p-4">
                 <p className="text-sm text-fg-2">{t('pos.successChange')}</p>

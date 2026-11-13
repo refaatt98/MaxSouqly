@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
-import { Database, Download, Globe, Info, KeyRound, LogIn, LogOut, Settings as SettingsIcon, Upload, User } from 'lucide-react';
+import { Database, Download, Globe, Info, KeyRound, Printer as PrinterIcon, LogIn, LogOut, Settings as SettingsIcon, Upload, User } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useI18n, type Language } from '@/i18n';
 import { supabase } from '@/lib/supabase';
@@ -18,6 +18,7 @@ import { BrandMark } from '@/app/shell/BrandMark';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Tabs } from '@/components/ui/Tabs';
+import { PrintersTab } from './PrintersTab';
 import { Button } from '@/components/ui/Button';
 import { TextInput, Textarea } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
@@ -27,7 +28,7 @@ import { ImageUploader, useImageField } from '@/components/ui/ImageUploader';
 import { PinModal } from '@/features/employees/components/EmployeesList';
 import type { Settings } from '@/types/models';
 
-type Tab = 'system' | 'interface' | 'backup' | 'about';
+type Tab = 'system' | 'interface' | 'backup' | 'about' | 'printers';
 
 function Section({ title, children, icon }: { title: string; children: ReactNode; icon?: ReactNode }) {
   return (
@@ -42,9 +43,9 @@ function Section({ title, children, icon }: { title: string; children: ReactNode
 type Field =
   | 'name' | 'slogan' | 'phone' | 'address' | 'vat_percent' | 'receipt_header' | 'receipt_footer'
   | 'kitchen_warn_minutes' | 'kitchen_late_minutes' | 'table_count' | 'seating_capacity'
-  | 'currency_symbol' | 'max_discount_cashier_percent' | 'max_discount_manager_percent';
+  | 'currency_symbol' | 'max_discount_cashier_percent' | 'max_discount_manager_percent' | 'payroll_cycle_day';
 
-const FIELDS: Field[] = ['name', 'slogan', 'phone', 'address', 'vat_percent', 'receipt_header', 'receipt_footer', 'kitchen_warn_minutes', 'kitchen_late_minutes', 'table_count', 'seating_capacity', 'currency_symbol', 'max_discount_cashier_percent', 'max_discount_manager_percent'];
+const FIELDS: Field[] = ['name', 'slogan', 'phone', 'address', 'vat_percent', 'receipt_header', 'receipt_footer', 'kitchen_warn_minutes', 'kitchen_late_minutes', 'table_count', 'seating_capacity', 'currency_symbol', 'max_discount_cashier_percent', 'max_discount_manager_percent', 'payroll_cycle_day'];
 
 function SystemTab({ settings }: { settings: Settings }) {
   const { t } = useI18n();
@@ -83,6 +84,7 @@ function SystemTab({ settings }: { settings: Settings }) {
       currency_symbol: v.required(t, form.currency_symbol) ?? v.maxLen(t, form.currency_symbol, 5),
       max_discount_cashier_percent: v.number(t, form.max_discount_cashier_percent, { min: 0, max: 100 }),
       max_discount_manager_percent: v.number(t, form.max_discount_manager_percent, { min: 0, max: 100 }),
+      payroll_cycle_day: int('payroll_cycle_day', 1, 28),
     };
     setErrors(e);
     if (hasErrors(e)) return;
@@ -103,6 +105,7 @@ function SystemTab({ settings }: { settings: Settings }) {
         seating_capacity: Number(form.seating_capacity),
         max_discount_cashier_percent: Number(form.max_discount_cashier_percent),
         max_discount_manager_percent: Number(form.max_discount_manager_percent),
+        payroll_cycle_day: Number(form.payroll_cycle_day),
         logo_url: logo.url,
       });
       await logo.commit();
@@ -157,6 +160,18 @@ function SystemTab({ settings }: { settings: Settings }) {
             </div>
             {num('max_discount_cashier_percent', t('settings.cashierDiscount'), '%')}
             {num('max_discount_manager_percent', t('settings.managerDiscount'), '%')}
+            <TextInput
+              className="sm:col-span-2"
+              label={t('settings.payrollCycle')}
+              hint={t('settings.payrollCycleHint', { day: form.payroll_cycle_day })}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={28}
+              value={form.payroll_cycle_day}
+              onChange={(e) => set('payroll_cycle_day', e.target.value)}
+              error={errors.payroll_cycle_day}
+            />
           </div>
         </Section>
         <div className="flex justify-end">
@@ -409,6 +424,7 @@ export default function SettingsPage() {
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
     ...(isOwner ? [{ key: 'system' as Tab, label: t('settings.system'), icon: <SettingsIcon className="size-4" /> }] : []),
     { key: 'interface', label: t('settings.interface'), icon: <Globe className="size-4" /> },
+    ...(isOwner ? [{ key: 'printers' as Tab, label: t('printers.title'), icon: <PrinterIcon className="size-4" /> }] : []),
     ...(isOwner ? [{ key: 'backup' as Tab, label: t('settings.backup'), icon: <Database className="size-4" /> }] : []),
     { key: 'about', label: t('settings.about'), icon: <Info className="size-4" /> },
   ];
@@ -434,6 +450,7 @@ export default function SettingsPage() {
       />
       {tab === 'system' && (settings ? <SystemTab key={settings.id} settings={settings} /> : <Skeleton className="h-96" />)}
       {tab === 'interface' && <InterfaceTab />}
+      {tab === 'printers' && <PrintersTab />}
       {tab === 'backup' && <BackupTab />}
       {tab === 'about' && <AboutTab />}
     </div>

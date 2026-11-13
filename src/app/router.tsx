@@ -65,7 +65,7 @@ export const router = createBrowserRouter([
         errorElement: <ErrorPage />,
         children: [
           {
-            element: <RequireRole roles={['owner', 'manager']} redirectHome />,
+            element: <RequireRole roles={['owner', 'manager']} perm="reports" redirectHome />,
             children: [{ index: true, lazy: page(() => import('@/features/dashboard/DashboardPage')) }],
           },
           {
@@ -85,24 +85,30 @@ export const router = createBrowserRouter([
           },
           {
             path: 'inventory',
-            element: <RequireRole roles={['owner', 'manager', 'inventory']} />,
+            element: <RequireRole roles={['owner', 'manager', 'inventory', 'cashier']} />,
             children: [{ index: true, lazy: page(() => import('@/features/inventory/InventoryPage')) }],
           },
           {
             path: 'employees',
-            element: <RequireRole roles={['owner', 'manager']} />,
+            element: <RequireRole roles={['owner', 'manager']} perm="employees" />,
             children: [{ index: true, lazy: page(() => import('@/features/employees/EmployeesPage')) }],
           },
           {
             path: 'reports',
-            element: <RequireRole roles={['owner', 'manager']} />,
+            element: <RequireRole roles={['owner', 'manager']} perm="reports" />,
             children: [{ index: true, lazy: page(() => import('@/features/reports/ReportsPage')) }],
           },
           {
             path: 'activity',
-            element: <RequireRole roles={['owner', 'manager']} />,
+            element: <RequireRole roles={['owner', 'manager']} perm="activity" />,
             children: [{ index: true, lazy: page(() => import('@/features/activity/ActivityPage')) }],
           },
+          {
+            path: 'customers',
+            element: <RequireRole roles={['owner', 'manager']} perm="customers" />,
+            children: [{ index: true, lazy: page(() => import('@/features/customers/CustomersPage')) }],
+          },
+          { path: 'attendance', lazy: page(() => import('@/features/attendance/AttendancePage')) },
           { path: 'settings', lazy: page(() => import('@/features/settings/SettingsPage')) },
           { path: '*', element: <NotFound /> },
         ],

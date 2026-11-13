@@ -8,6 +8,7 @@ import { useNotifications } from '../providers/NotificationsProvider';
 import { useAuth } from '../providers/AuthProvider';
 import { useFormat } from '../providers/SettingsProvider';
 import { canAccess } from '../nav';
+import { usePermissions } from '../providers/PermissionsProvider';
 import type { AppNotification } from '@/types/models';
 
 const icon = {
@@ -22,6 +23,7 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
   const f = useFormat();
   const navigate = useNavigate();
   const { role } = useAuth();
+  const { can } = usePermissions();
   const { items, isUnread, markAllRead, markRead } = useNotifications();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -42,8 +44,8 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
   const openItem = (n: AppNotification) => {
     void markRead(n.id);
     onClose();
-    if (n.type === 'low_stock' && canAccess(role, '/inventory')) navigate('/inventory');
-    else if ((n.type === 'new_order' || n.type === 'void') && n.ref_id && canAccess(role, '/orders')) navigate(`/orders?id=${n.ref_id}`);
+    if (n.type === 'low_stock' && canAccess(role, '/inventory', can)) navigate('/inventory');
+    else if ((n.type === 'new_order' || n.type === 'void') && n.ref_id && canAccess(role, '/orders', can)) navigate(`/orders?id=${n.ref_id}`);
   };
 
   return (
