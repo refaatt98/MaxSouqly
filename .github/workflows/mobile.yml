@@ -88,3 +88,8 @@ jobs:
             --title "MAX Management — Phone" \
             --notes "Android: MAX-Management-…-android.apk · iPhone/iPad: MAX-Management-…-ios.ipa (install with a sideloading tool). The app opens the MAX system; updates to the system appear automatically."
           gh release upload mobile-latest out/* --clobber
+          # remove files from older versions (e.g. a previous version number)
+          for f in $(gh release view mobile-latest --json assets -q '.assets[].name'); do
+            case "$f" in *android*) ls out/*android* >/dev/null 2>&1 && [ ! -f "out/$f" ] && gh release delete-asset mobile-latest "$f" --yes ;; esac
+            case "$f" in *ios*) ls out/*ios* >/dev/null 2>&1 && [ ! -f "out/$f" ] && gh release delete-asset mobile-latest "$f" --yes ;; esac
+          done; true
