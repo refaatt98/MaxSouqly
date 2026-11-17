@@ -12,7 +12,9 @@ import android.print.PrintAttributes;
 import android.print.PrintManager;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -23,6 +25,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.window.OnBackInvokedDispatcher;
 import android.widget.Toast;
 
 import java.io.File;
@@ -48,6 +51,20 @@ public class MainActivity extends Activity {
         web.setBackgroundColor(0xFF131110);
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
+        // Android 15+ draws behind the status / navigation bars: keep the page inside them (and above the keyboard)
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.graphics.Insets b = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
+                v.setPadding(b.left, b.top, b.right, b.bottom);
+            } else {
+                v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            }
+            return insets;
+        });
+        if (Build.VERSION.SDK_INT >= 33) {
+            // the back gesture: go back in the app's history, else leave
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::goBack);
+        }
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -56,7 +73,15 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setSupportMultipleWindows(false); // target=_blank opens in the same view
-        s.setLoadWithOverviewMode(true);
+        // behave like an app, not a browser: the page fills the screen exactly, no zooming,
+        // and the phone's font-size setting does not stretch the layout
+        s.setSupportZoom(false);
+        s.setBuiltInZoomControls(false);
+        s.setDisplayZoomControls(false);
+        s.setTextZoom(100);
+        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        web.setVerticalScrollBarEnabled(false);
+        web.setHorizontalScrollBarEnabled(false);
         s.setUserAgentString(s.getUserAgentString() + " MaxManagementApp/1.0 (Android)");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
@@ -92,10 +117,15 @@ public class MainActivity extends Activity {
         CookieManager.getInstance().flush();
     }
 
-    @Override
-    public void onBackPressed() {
+    private void goBack() {
         if (web.canGoBack()) web.goBack();
         else moveTaskToBack(true);
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onBackPressed() {
+        goBack(); // Android 12 and older
     }
 
     @Override
@@ -106,6 +136,12 @@ public class MainActivity extends Activity {
             return;
         }
         super.onActivityResult(request, result, data);
+    }
+
+    static boolean appLink(Uri u) {
+        String h = u.getHost() == null ? "" : u.getHost();
+        return h.equals("wa.me") || h.endsWith("whatsapp.com") || h.equals("maps.app.goo.gl") || h.startsWith("maps.google.")
+            || (h.endsWith("google.com") && u.getPath() != null && u.getPath().startsWith("/maps")) || h.endsWith("waze.com");
     }
 
     static boolean ours(Uri u) {
@@ -126,7 +162,9 @@ public class MainActivity extends Activity {
             Uri u = req.getUrl();
             String scheme = u.getScheme();
             if (ours(u) || "file".equals(scheme) || "about".equals(scheme) || "data".equals(scheme) || "blob".equals(scheme)) return false;
-            openOutside(u); // phone numbers, WhatsApp, maps and other sites open in their own apps
+            // web pages stay inside the app; only calls, WhatsApp, maps and e-mail go to their own apps
+            if (("https".equals(scheme) || "http".equals(scheme)) && !appLink(u)) return false;
+            openOutside(u);
             return true;
         }
 

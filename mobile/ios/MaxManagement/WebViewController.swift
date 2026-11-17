@@ -8,7 +8,6 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     static let background = UIColor(red: 19 / 255, green: 17 / 255, blue: 16 / 255, alpha: 1)
 
     private var web: WKWebView!
-    private let refresh = UIRefreshControl()
 
     override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
 
@@ -22,19 +21,26 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         let controller = WKUserContentController()
         controller.add(WeakHandler(self), name: "maxPrint")
         controller.add(WeakHandler(self), name: "maxSave")
+        // app feel: no long-press link menus, no tap flash, no zooming
+        controller.addUserScript(WKUserScript(source: """
+            var s = document.createElement('style');
+            s.textContent = '*{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent} input,textarea,[contenteditable]{-webkit-touch-callout:default}';
+            document.documentElement.appendChild(s);
+            """, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         config.userContentController = controller
 
         web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = self
         web.uiDelegate = self
         web.allowsBackForwardNavigationGestures = true
+        web.allowsLinkPreview = false
         web.isOpaque = false
         web.backgroundColor = Self.background
         web.scrollView.backgroundColor = Self.background
         web.scrollView.contentInsetAdjustmentBehavior = .never
-        refresh.tintColor = .white
-        refresh.addTarget(self, action: #selector(reload), for: .valueChanged)
-        web.scrollView.refreshControl = refresh
+        web.scrollView.bounces = false
+        web.scrollView.showsVerticalScrollIndicator = false
+        web.scrollView.showsHorizontalScrollIndicator = false
 
         let root = UIView()
         root.backgroundColor = Self.background
@@ -54,8 +60,10 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         web.load(URLRequest(url: Self.home))
     }
 
-    @objc private func reload() {
-        if web.url == nil || web.url?.isFileURL == true { web.load(URLRequest(url: Self.home)) } else { web.reload() }
+    private static func isAppLink(_ url: URL) -> Bool {
+        let h = url.host ?? ""
+        return h == "wa.me" || h.hasSuffix("whatsapp.com") || h == "maps.apple.com" || h == "maps.app.goo.gl"
+            || h.hasPrefix("maps.google.") || (h.hasSuffix("google.com") && url.path.hasPrefix("/maps")) || h.hasSuffix("waze.com")
     }
 
     private static func isOurs(_ url: URL?) -> Bool {
@@ -70,7 +78,10 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         if Self.isOurs(url) || ["about", "blob", "data", "file"].contains(scheme) {
             return decisionHandler(.allow)
         }
-        // only links the person taps leave the app (phone numbers, WhatsApp, maps, other sites)
+        // web pages stay inside the app; only calls, WhatsApp, maps and e-mail go to their own apps
+        if (scheme == "https" || scheme == "http") && !Self.isAppLink(url) {
+            return decisionHandler(.allow)
+        }
         if action.targetFrame?.isMainFrame != false {
             UIApplication.shared.open(url)
             return decisionHandler(.cancel)
@@ -81,21 +92,12 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     /// target=_blank / window.open: open in the same view (or outside for other sites)
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = action.request.url {
-            if Self.isOurs(url) { webView.load(action.request) } else { UIApplication.shared.open(url) }
+            if Self.isAppLink(url) || !(url.scheme == "https" || url.scheme == "http") { UIApplication.shared.open(url) } else { webView.load(action.request) }
         }
         return nil
     }
 
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        refresh.endRefreshing()
-    }
-
-    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        refresh.endRefreshing()
-    }
-
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        refresh.endRefreshing()
         if (error as NSError).code == NSURLErrorCancelled { return }
         showOffline()
     }

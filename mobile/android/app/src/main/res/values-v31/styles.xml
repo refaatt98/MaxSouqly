@@ -1,0 +1,12 @@
+<resources>
+    <!-- Android 12+ always shows a launch screen: make it an empty screen in the site's own color (no logo) -->
+    <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF131110</item>
+        <item name="android:colorAccent">#FFE11D2E</item>
+        <item name="android:statusBarColor">#FF131110</item>
+        <item name="android:navigationBarColor">#FF131110</item>
+        <item name="android:windowSplashScreenBackground">#FF131110</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/transparent</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+    </style>
+</resources>

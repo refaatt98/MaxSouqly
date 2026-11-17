@@ -29,11 +29,11 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.14.3'
       - run: gradle --no-daemon assembleRelease
       - run: |
           mkdir -p ../../out
-          cp app/build/outputs/apk/release/app-release.apk ../../out/MAX-Management-1.0.0-android.apk
+          cp app/build/outputs/apk/release/app-release.apk ../../out/MAX-Management-1.0.1-android.apk
       - uses: actions/upload-artifact@v4
         with:
           name: max-management-android
