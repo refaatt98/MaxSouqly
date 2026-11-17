@@ -1,0 +1,88 @@
+# Builds the MAX Management phone apps (Android .apk, iPhone/iPad .ipa)
+# and publishes them on the "mobile-latest" release page of this repository.
+name: Mobile app
+
+on:
+  push:
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-app
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - run: gradle --no-daemon assembleRelease
+      - run: |
+          mkdir -p ../../out
+          cp app/build/outputs/apk/release/app-release.apk ../../out/MAX-Management-1.0.0-android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: max-management-android
+          path: out/*.apk
+          if-no-files-found: error
+
+  ios:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile/ios
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: xcodegen generate
+      - name: Build (unsigned)
+        run: |
+          xcodebuild -project MaxManagement.xcodeproj -scheme MaxManagement -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      - name: Package .ipa
+        run: |
+          mkdir -p Payload ../../out
+          cp -R build/Build/Products/Release-iphoneos/MaxManagement.app Payload/
+          zip -qry ../../out/MAX-Management-1.0.0-ios.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: max-management-ios
+          path: out/*.ipa
+          if-no-files-found: error
+
+  release:
+    needs: [android, ios]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Publish download page
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -la out
+          test -n "$(ls out)"
+          gh release delete mobile-latest --yes --cleanup-tag || true
+          gh release create mobile-latest out/* \
+            --target "${{ github.sha }}" \
+            --title "MAX Management — Phone" \
+            --notes "Android: MAX-Management-…-android.apk · iPhone/iPad: MAX-Management-…-ios.ipa (install with a sideloading tool). The app opens the MAX system; updates to the system appear automatically."

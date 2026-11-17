@@ -4,6 +4,8 @@ import type { OrderFull, OrderType, PaymentMethod, Settings, ShiftReport } from 
 
 // Printing via a hidden iframe + window.print() (no library).
 
+import { nativePrint } from './native';
+
 function escapeHtml(s: string | number | null | undefined): string {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
@@ -16,6 +18,15 @@ const FONT_LINK =
   '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Heebo:wght@400;600;700&display=swap">';
 
 export function printHtml(body: string, css: string, lang = 'ar', title = 'MAX'): Promise<void> {
+  // inside the phone app the system print dialog is opened by the app
+  if (
+    nativePrint(
+      `<!doctype html><html lang="${lang}" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(title)}</title>${FONT_LINK}<style>${css}</style></head><body>${body}</body></html>`,
+      title,
+    )
+  ) {
+    return Promise.resolve();
+  }
   return new Promise((resolve) => {
     const iframe = document.createElement('iframe');
     iframe.setAttribute('aria-hidden', 'true');

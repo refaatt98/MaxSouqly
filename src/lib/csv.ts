@@ -1,3 +1,4 @@
+import { nativeSave } from './native';
 // CSV export with UTF-8 BOM so Excel opens Arabic/Hebrew correctly (no library).
 export type CsvCell = string | number | boolean | null | undefined;
 
@@ -12,6 +13,8 @@ export function toCsv(headers: string[], rows: CsvCell[][]): string {
 }
 
 export function downloadFile(filename: string, content: BlobPart, type: string): void {
+  // inside the phone app the file is saved / shared by the app
+  if (typeof content === 'string' && nativeSave(filename, type, content)) return;
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
