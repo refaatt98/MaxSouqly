@@ -1,0 +1,94 @@
+default_platform(:ios)
+
+BUNDLE_ID = "com.souqly.maxmanagement"
+
+def apple_api_key
+  app_store_connect_api_key(
+    key_id: ENV.fetch("ASC_KEY_ID"),
+    issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+    key_content: ENV.fetch("ASC_KEY_CONTENT"),
+    is_key_content_base64: false,
+    in_house: false
+  )
+end
+
+def signing_assets(api_key:, readonly:)
+  match(
+    type: "appstore",
+    storage_mode: "git",
+    git_url: ENV.fetch("MATCH_GIT_URL"),
+    git_branch: "ios-signing",
+    git_basic_authorization: ENV.fetch("MATCH_GIT_BASIC_AUTHORIZATION"),
+    app_identifier: [BUNDLE_ID],
+    team_id: ENV.fetch("APPLE_TEAM_ID"),
+    api_key: api_key,
+    readonly: readonly,
+    generate_apple_certs: true,
+    keychain_name: ENV.fetch("MATCH_KEYCHAIN_NAME"),
+    keychain_password: ENV.fetch("MATCH_KEYCHAIN_PASSWORD")
+  )
+end
+
+platform :ios do
+  before_all do
+    # Create a temporary, unlocked keychain on the disposable GitHub runner.
+    # setup_ci also configures match's keychain environment variables.
+    setup_ci
+  end
+
+  desc "One-time creation/reuse of Apple Distribution signing assets; no upload"
+  lane :initialize_signing do
+    # Explicitly writable only in this separately selected initialization lane.
+    # This may create a distribution certificate and App Store provisioning profile.
+    signing_assets(api_key: apple_api_key, readonly: false)
+  end
+
+  desc "Build with existing signing assets and upload to internal TestFlight"
+  lane :testflight do
+    api_key = apple_api_key
+    signing_assets(api_key: api_key, readonly: true)
+
+    # XcodeGen writes a concrete Info.plist; do not require agvtool versioning.
+    build_number = "#{ENV.fetch('GITHUB_RUN_NUMBER')}.#{ENV.fetch('GITHUB_RUN_ATTEMPT')}"
+    set_info_plist_value(
+      path: "MaxManagement/Info.plist",
+      key: "CFBundleVersion",
+      value: build_number
+    )
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "MaxManagement.xcodeproj",
+      team_id: ENV.fetch("APPLE_TEAM_ID"),
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore #{BUNDLE_ID}",
+      targets: ["MaxManagement"],
+      build_configurations: ["Release"]
+    )
+
+    build_app(
+      project: "MaxManagement.xcodeproj",
+      scheme: "MaxManagement",
+      configuration: "Release",
+      clean: true,
+      xcargs: "CURRENT_PROJECT_VERSION=#{build_number}",
+      export_method: "app-store",
+      export_team_id: ENV.fetch("APPLE_TEAM_ID"),
+      export_options: {
+        signingStyle: "manual",
+        provisioningProfiles: lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
+      },
+      output_directory: "build/app-store",
+      output_name: "MAX-Management.ipa"
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: BUNDLE_ID,
+      ipa: "build/app-store/MAX-Management.ipa",
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      skip_submission: true
+    )
+  end
+end
