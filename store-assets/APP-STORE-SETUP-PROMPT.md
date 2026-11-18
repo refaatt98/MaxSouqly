@@ -6,7 +6,7 @@ Facts:
 - Primary language: Arabic · SKU: MAXMGMT001 · Category: Business · Price: Free
 - Privacy policy URL: https://maxsouqly.netlify.app/privacy.html
 - Support URL: https://maxsouqly.netlify.app/support.html · Marketing URL: https://maxsouqly.netlify.app
-- Demo account for App Review: demo@maxsouqly.app / MaxDemo2026 (owner access, sign in with "Email & password")
+- Demo account for App Review: demo@maxsouqly.app / (password: ask me) (owner access, sign in with "Email & password")
 - Screenshots: AppStore-Screenshots.zip in my Downloads (iphone-*.png = 6.9" 1290×2796, ipad-*.png = 13" 2064×2752)
 - The app icon is inside the build; App Store Connect takes it from the upload, nothing to upload by hand.
 - Builds are uploaded by a GitHub Actions workflow in github.com/refaatt98/MaxSouqly ("iOS App Store upload").
@@ -35,7 +35,7 @@ Steps:
    - Upload the iPhone 6.9" and iPad 13" screenshots from the zip.
    - Copyright: 2026 MAX Mexicani & Burger · Age rating: answer "None" to everything (4+).
    - Select the uploaded build.
-   - App Review Information: sign-in required → demo@maxsouqly.app / MaxDemo2026; contact = my name, email and phone (ask me). Notes:
+   - App Review Information: sign-in required → demo@maxsouqly.app / (password: ask me); contact = my name, email and phone (ask me). Notes:
      "MAX Management is the management system of the MAX Mexicani & Burger restaurant, used by its owner and staff. Accounts are created by the owner, so please use the demo account (full owner access). The app adds native printing of receipts and reports (AirPrint) and native saving/sharing of exported Excel files. Arabic/Hebrew interface."
 8. App Privacy: data collected = Name, Email Address, Phone Number, Photos, Other User Content; all "App Functionality", linked to the user, NOT used for tracking. Publish the privacy answers.
 9. Pricing and Availability: Free, all countries.
