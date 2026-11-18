@@ -7,6 +7,15 @@ export interface CartOption {
   name_ar: string;
   name_he: string;
   price: number;
+  /** how many of this extra (default 1) */
+  qty?: number;
+  /** 'variant' = meat type: its price is the full price of the dish */
+  kind?: 'extra' | 'variant';
+}
+
+/** "Extra cheese ×2" */
+export function optionLabel(label: string, qty?: number): string {
+  return qty && qty > 1 ? `${label} ×${qty}` : label;
 }
 
 export interface CartLine {
@@ -20,10 +29,23 @@ export interface CartLine {
 
 /** Price of one unit of a line: the item plus its extras. */
 export function unitPrice(l: CartLine): number {
-  return round2(Number(l.item.price) + (l.options ?? []).reduce((s, o) => s + Number(o.price), 0));
+  const opts = l.options ?? [];
+  const variant = opts.find((o) => o.kind === 'variant');
+  const base = variant ? Number(variant.price) : Number(l.item.price);
+  return round2(base + opts.filter((o) => o.kind !== 'variant').reduce((s, o) => s + Number(o.price) * (o.qty ?? 1), 0));
 }
 
-const optionsKey = (opts: CartOption[] | undefined) => (opts ?? []).map((o) => o.id).sort().join(',');
+const optionsKey = (opts: CartOption[] | undefined) => (opts ?? []).map((o) => `${o.id}:${o.qty ?? 1}`).sort().join(',');
+
+/** What the server needs for one line: the meat type and the extras with their counts. */
+function lineOptions(l: CartLine): { variant_id?: string; options: { id: string; qty: number }[] } {
+  const opts = l.options ?? [];
+  const variant = opts.find((o) => o.kind === 'variant');
+  return {
+    ...(variant ? { variant_id: variant.id } : {}),
+    options: opts.filter((o) => o.kind !== 'variant').map((o) => ({ id: o.id, qty: o.qty ?? 1 })),
+  };
+}
 
 export interface CartState {
   clientRef: string;
@@ -168,7 +190,7 @@ export function buildPayload(state: CartState, totals: CartTotals, payments: Ord
       table_no: null,
       notes: state.notes.trim(),
       discount: null,
-      items: state.lines.map((l) => ({ menu_item_id: l.item.id, quantity: l.qty, notes: l.notes.trim(), options: (l.options ?? []).map((o) => o.id) })),
+      items: state.lines.map((l) => ({ menu_item_id: l.item.id, quantity: l.qty, notes: l.notes.trim(), ...lineOptions(l) })),
       payments: [],
       pay_later: true,
       staff_employee_id: state.staffId,
@@ -183,7 +205,7 @@ export function buildPayload(state: CartState, totals: CartTotals, payments: Ord
     customer_address: state.customerAddress.trim(),
     notes: state.notes.trim(),
     discount: totals.discount > 0 ? { type: state.discountType, value: Number(state.discountValue) } : null,
-    items: state.lines.map((l) => ({ menu_item_id: l.item.id, quantity: l.qty, notes: l.notes.trim(), options: (l.options ?? []).map((o) => o.id) })),
+    items: state.lines.map((l) => ({ menu_item_id: l.item.id, quantity: l.qty, notes: l.notes.trim(), ...lineOptions(l) })),
     payments,
     ...(payLater ? { pay_later: true } : {}),
   };

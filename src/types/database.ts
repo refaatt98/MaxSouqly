@@ -352,6 +352,8 @@ export type Database = {
           is_active: boolean;
           created_at: string;
           updated_at: string;
+          kind: string;
+          max_qty: number;
         };
         Insert: {
           id?: string;
@@ -363,6 +365,8 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
+          kind?: string;
+          max_qty?: number;
         };
         Update: {
           id?: string;
@@ -374,6 +378,8 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
+          kind?: string;
+          max_qty?: number;
         };
         Relationships: [
           { foreignKeyName: "menu_item_options_menu_item_id_fkey"; columns: ["menu_item_id"]; isOneToOne: false; referencedRelation: "menu_items"; referencedColumns: ["id"] },
@@ -431,6 +437,39 @@ export type Database = {
         Relationships: [
           { foreignKeyName: "menu_items_category_id_fkey"; columns: ["category_id"]; isOneToOne: false; referencedRelation: "categories"; referencedColumns: ["id"] },
           { foreignKeyName: "menu_items_printer_id_fkey"; columns: ["printer_id"]; isOneToOne: false; referencedRelation: "printers"; referencedColumns: ["id"] },
+        ];
+      };
+      menu_option_recipes: {
+        Row: {
+          id: string;
+          option_id: string;
+          ingredient_id: string;
+          quantity: number;
+          unit: Database["public"]["Enums"]["unit_type"];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          option_id: string;
+          ingredient_id: string;
+          quantity: number;
+          unit: Database["public"]["Enums"]["unit_type"];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          option_id?: string;
+          ingredient_id?: string;
+          quantity?: number;
+          unit?: Database["public"]["Enums"]["unit_type"];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "menu_option_recipes_ingredient_id_fkey"; columns: ["ingredient_id"]; isOneToOne: false; referencedRelation: "ingredients"; referencedColumns: ["id"] },
+          { foreignKeyName: "menu_option_recipes_option_id_fkey"; columns: ["option_id"]; isOneToOne: false; referencedRelation: "menu_item_options"; referencedColumns: ["id"] },
         ];
       };
       notifications: {

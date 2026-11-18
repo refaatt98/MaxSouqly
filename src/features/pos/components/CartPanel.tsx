@@ -10,7 +10,7 @@ import { Select, TextInput } from '@/components/ui/Input';
 import { useQuery } from '@/hooks/useQuery';
 import { FoodImage } from '@/components/ui/FoodImage';
 import { CountBadge } from '@/components/ui/Badge';
-import { unitPrice, type CartAction, type CartIssue, type CartLine, type CartState, type CartTotals } from '../cart';
+import { optionLabel, unitPrice, type CartAction, type CartIssue, type CartLine, type CartState, type CartTotals } from '../cart';
 import { CustomerField } from './CustomerField';
 import { fetchStaffBoard } from '../api';
 
@@ -85,7 +85,7 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-fg">{name(line.item)}</p>
           {(line.options ?? []).length > 0 && (
-            <p className="truncate text-xs text-fg-2">+ {(line.options ?? []).map((o) => name(o)).join('، ')}</p>
+            <p className="truncate text-xs text-fg-2">+ {(line.options ?? []).map((o) => optionLabel(name(o), o.qty)).join('، ')}</p>
           )}
           <p className="num text-xs text-fg-3">{f.money(unitPrice(line))}</p>
           <p className="num text-sm font-medium text-fg">{f.money(unitPrice(line) * line.qty)}</p>

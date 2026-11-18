@@ -23,7 +23,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import type { CashShift, MenuItem, MenuItemOption, OrderFull } from '@/types/models';
 import { fetchCatalog, fetchOpenShift, logCartCancel, placeOrder } from './api';
-import { buildPayload, cartReducer, cartTotals, loadHeld, newCart, saveHeld, unitPrice, validateCart, type CartOption, type HeldOrder } from './cart';
+import { buildPayload, optionLabel, cartReducer, cartTotals, loadHeld, newCart, saveHeld, unitPrice, validateCart, type CartOption, type HeldOrder } from './cart';
 import { OptionsModal } from './components/OptionsModal';
 import { AdvanceModal } from './components/AdvanceModal';
 import { UnpaidOrdersModal, fetchUnpaid } from './components/UnpaidOrdersModal';
@@ -211,7 +211,7 @@ export default function PosPage() {
       qty: l.qty,
       unit_price: unitPrice(l),
       notes: l.notes,
-      options: (l.options ?? []).map((o) => o.name_ar),
+      options: (l.options ?? []).map((o) => optionLabel(o.name_ar, o.qty)),
       menu_item_id: l.item.id,
     })),
     subtotal: totals.subtotal,
@@ -500,7 +500,15 @@ export default function PosPage() {
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-28 md:p-5 lg:pb-5">
-          <ProductGrid items={visibleItems} selectedId={cart.lastAddedId} onAdd={(i) => addItem(i)} />
+          <ProductGrid
+            items={visibleItems}
+            selectedId={cart.lastAddedId}
+            onAdd={(i) => addItem(i)}
+            priceFrom={(i) => {
+              const v = (optionsByItem.get(i.id) ?? []).filter((o) => o.kind === 'variant').map((o) => Number(o.price));
+              return v.length ? Math.min(...v) : null;
+            }}
+          />
         </div>
       </section>
 

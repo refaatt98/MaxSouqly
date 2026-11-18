@@ -7,7 +7,13 @@ import { FoodImage } from '@/components/ui/FoodImage';
 import { EmptyState } from '@/components/ui/EmptyState';
 import type { MenuItem } from '@/types/models';
 
-export function ProductGrid({ items, selectedId, onAdd }: { items: MenuItem[]; selectedId: string | null; onAdd: (item: MenuItem) => void }) {
+export function ProductGrid({ items, selectedId, onAdd, priceFrom }: {
+  items: MenuItem[];
+  selectedId: string | null;
+  onAdd: (item: MenuItem) => void;
+  /** lowest meat-type price, for items whose price depends on the meat */
+  priceFrom?: (item: MenuItem) => number | null;
+}) {
   const t = useT();
   const { name, f } = useSettings();
   if (items.length === 0) return <EmptyState icon={<SearchX className="size-7" />} title={t('common.noResults')} />;
@@ -32,7 +38,12 @@ export function ProductGrid({ items, selectedId, onAdd }: { items: MenuItem[]; s
           >
             <FoodImage src={item.image_url} alt="" className="aspect-[4/3] w-full rounded-[6px] p-1.5" />
             <span className="mt-1.5 line-clamp-2 min-h-8 text-xs leading-4 text-fg sm:mt-2 sm:min-h-10 sm:text-sm sm:leading-5">{name(item)}</span>
-            <span className="num mt-1 text-[0.8125rem] font-medium text-fg-2 sm:text-[0.9375rem]">{f.money(Number(item.price))}</span>
+            <span className="num mt-1 text-[0.8125rem] font-medium text-fg-2 sm:text-[0.9375rem]">
+              {(() => {
+                const from = priceFrom?.(item);
+                return from !== null && from !== undefined ? t('pos.priceFrom', { price: f.money(from) }) : f.money(Number(item.price));
+              })()}
+            </span>
             {selected && <span className="slash absolute start-3 top-3" aria-hidden />}
             {!item.is_available && (
               <span className="absolute start-2 top-2 rounded-[4px] bg-bg/90 px-1.5 py-0.5 text-[0.6875rem] text-fg-2">{t('pos.unavailable')}</span>

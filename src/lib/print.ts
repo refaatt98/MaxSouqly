@@ -123,8 +123,17 @@ export function receiptFromOrder(o: OrderFull): ReceiptData {
 }
 
 /** Names of the extras stored on an order line (jsonb array of {name}). */
+/** Names of the chosen meat type / extras of an order line, with counts ("جبنة ×2"). */
 export function optionNames(v: unknown): string[] {
-  return Array.isArray(v) ? v.map((o) => (o && typeof o === 'object' && 'name' in o ? String((o as { name: unknown }).name) : '')).filter(Boolean) : [];
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((o) => {
+      if (!o || typeof o !== 'object' || !('name' in o)) return '';
+      const qty = Number((o as { qty?: unknown }).qty ?? 1);
+      const label = String((o as { name: unknown }).name);
+      return qty > 1 ? `${label} ×${qty}` : label;
+    })
+    .filter(Boolean);
 }
 
 const RECEIPT_CSS = `

@@ -10,7 +10,7 @@ export interface OrderPayload {
   customer_address?: string;
   notes?: string;
   discount?: { type: 'percent' | 'fixed'; value: number } | null;
-  items: { menu_item_id: string; quantity: number; notes?: string; options?: string[] }[];
+  items: { menu_item_id: string; quantity: number; notes?: string; variant_id?: string; options?: (string | { id: string; qty: number })[] }[];
   payments: { method: 'cash' | 'card'; amount: number; tendered?: number | null }[];
   offline_created_at?: string;
   /** send now, collect payment later (payments may be partial or empty) */

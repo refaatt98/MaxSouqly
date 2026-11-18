@@ -27,6 +27,7 @@ export type StockCountItem = Tables<'stock_count_items'>;
 export type Order = Omit<Tables<'orders'>, 'cost_total'>;
 export type OrderItem = Omit<Tables<'order_items'>, 'unit_cost_snapshot'>;
 export type MenuItemOption = Tables<'menu_item_options'>;
+export type MenuOptionRecipe = Tables<'menu_option_recipes'>;
 export type Customer = Tables<'customers'>;
 export type Printer = Tables<'printers'>;
 export type SalaryAdvance = Tables<'salary_advances'>;
