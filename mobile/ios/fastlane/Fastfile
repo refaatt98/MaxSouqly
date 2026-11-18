@@ -38,9 +38,18 @@ platform :ios do
 
   desc "One-time creation/reuse of Apple Distribution signing assets; no upload"
   lane :initialize_signing do
+    api_key = apple_api_key
+    # The API-key action authenticates Spaceship. Reuse the ID if it exists.
+    unless Spaceship::ConnectAPI::BundleId.find(BUNDLE_ID)
+      Spaceship::ConnectAPI::BundleId.create(
+        name: "MAX Management",
+        platform: "IOS",
+        identifier: BUNDLE_ID
+      )
+    end
     # Explicitly writable only in this separately selected initialization lane.
     # This may create a distribution certificate and App Store provisioning profile.
-    signing_assets(api_key: apple_api_key, readonly: false)
+    signing_assets(api_key: api_key, readonly: false)
   end
 
   desc "Build with existing signing assets and upload to internal TestFlight"
