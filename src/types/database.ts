@@ -1359,6 +1359,7 @@ export type Database = {
       my_permissions: { Args: Record<PropertyKey, never>; Returns: string[] };
       normalize_phone: { Args: { p: string }; Returns: string };
       open_shift: { Args: { p_opening_float: number }; Returns: Database["public"]["Tables"]["cash_shifts"]["Row"] };
+      options_out_of_stock: { Args: Record<PropertyKey, never>; Returns: Json };
       payroll_range: { Args: { p_month: string }; Returns: unknown[] };
       perm_locked: { Args: { p_role: Database["public"]["Enums"]["app_role"]; p: string }; Returns: boolean };
       place_order: { Args: { payload: Json }; Returns: Json };

@@ -13,9 +13,11 @@ import type { CartOption } from '../cart';
  * Picked before an item goes into the cart:
  * the meat type (choose one; its price is the full price of the dish) and extras, each as many times as needed.
  */
-export function OptionsModal({ item, options, qty, onClose, onAdd }: {
+export function OptionsModal({ item, options, soldOut, qty, onClose, onAdd }: {
   item: MenuItem | null;
   options: MenuItemOption[];
+  /** ids whose ingredients ran out */
+  soldOut: Set<string>;
   qty: number;
   onClose: () => void;
   onAdd: (picked: CartOption[]) => void;
@@ -33,10 +35,12 @@ export function OptionsModal({ item, options, qty, onClose, onAdd }: {
     setTried(false);
   }, [item]);
 
-  const chosenVariant = variants.find((v) => v.id === variant);
+  const isOut = (o: MenuItemOption) => !o.is_active || soldOut.has(o.id);
+  const chosenVariant = variants.find((v) => v.id === variant && !isOut(v));
   const base = chosenVariant ? Number(chosenVariant.price) : Number(item?.price ?? 0);
   const unit = base + extras.reduce((s, o) => s + Number(o.price) * (counts[o.id] ?? 0), 0);
   const needVariant = variants.length > 0 && !chosenVariant;
+  const allOut = variants.length > 0 && variants.every(isOut);
   const step = (o: MenuItemOption, d: number) =>
     setCounts((c) => ({ ...c, [o.id]: Math.max(0, Math.min(o.max_qty, (c[o.id] ?? 0) + d)) }));
 
@@ -45,7 +49,7 @@ export function OptionsModal({ item, options, qty, onClose, onAdd }: {
     const picked: CartOption[] = [];
     if (chosenVariant) picked.push({ id: chosenVariant.id, name_ar: chosenVariant.name_ar, name_he: chosenVariant.name_he, price: Number(chosenVariant.price), kind: 'variant', qty: 1 });
     for (const o of extras) {
-      const n = counts[o.id] ?? 0;
+      const n = isOut(o) ? 0 : counts[o.id] ?? 0;
       if (n > 0) picked.push({ id: o.id, name_ar: o.name_ar, name_he: o.name_he, price: Number(o.price), kind: 'extra', qty: n });
     }
     onAdd(picked);
@@ -60,7 +64,7 @@ export function OptionsModal({ item, options, qty, onClose, onAdd }: {
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button variant="primary" icon={<Plus className="size-4" />} onClick={add}>
+          <Button variant="primary" icon={<Plus className="size-4" />} onClick={add} disabled={allOut}>
             {t('pos.addToCart')}
             {!needVariant && <> · <span className="num">{f.money(unit * qty)}</span></>}
           </Button>
@@ -72,7 +76,7 @@ export function OptionsModal({ item, options, qty, onClose, onAdd }: {
           <div className="flex items-center gap-3">
             <FoodImage src={item.image_url} alt="" className="size-16 shrink-0 rounded-btn" />
             <p className="num text-lg text-fg">
-              {needVariant ? t('pos.chooseVariantFirst') : f.money(unit)}
+              {allOut ? t('pos.allVariantsOut') : needVariant ? t('pos.chooseVariantFirst') : f.money(unit)}
               {qty > 1 && <span className="text-sm text-fg-3"> × {f.number(qty)}</span>}
             </p>
           </div>
@@ -83,15 +87,17 @@ export function OptionsModal({ item, options, qty, onClose, onAdd }: {
               <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('pos.chooseVariant')}>
                 {variants.map((v) => {
                   const on = v.id === variant;
+                  const out = isOut(v);
                   return (
                     <button
                       key={v.id}
                       type="button"
                       role="radio"
                       aria-checked={on}
+                      disabled={out}
                       onClick={() => setVariant(v.id)}
                       className={cn(
-                        'flex min-h-14 items-center gap-2 rounded-card border px-3 py-2 text-start transition-colors',
+                        'flex min-h-14 items-center gap-2 rounded-card border px-3 py-2 text-start transition-colors disabled:cursor-not-allowed disabled:opacity-50',
                         on ? 'border-brand/60 bg-brand/10 text-fg' : tried && needVariant ? 'border-danger/50 bg-card text-fg-2' : 'border-line bg-card text-fg-2 hover:border-line-strong',
                       )}
                     >
@@ -100,7 +106,11 @@ export function OptionsModal({ item, options, qty, onClose, onAdd }: {
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm">{name(v)}</span>
-                        <span className="num block text-xs text-fg-3">{f.money(Number(v.price))}</span>
+                        {out ? (
+                          <span className="block text-xs font-medium text-danger">{t('pos.soldOut')}</span>
+                        ) : (
+                          <span className="num block text-xs text-fg-3">{f.money(Number(v.price))}</span>
+                        )}
                       </span>
                     </button>
                   );
@@ -115,18 +125,23 @@ export function OptionsModal({ item, options, qty, onClose, onAdd }: {
               <ul className="space-y-2">
                 {extras.map((o) => {
                   const n = counts[o.id] ?? 0;
+                  const out = isOut(o);
                   return (
-                    <li key={o.id} className={cn('flex items-center gap-3 rounded-card border px-3 py-2', n > 0 ? 'border-brand/60 bg-brand/10' : 'border-line bg-card')}>
+                    <li key={o.id} className={cn('flex items-center gap-3 rounded-card border px-3 py-2', out ? 'border-line bg-card opacity-50' : n > 0 ? 'border-brand/60 bg-brand/10' : 'border-line bg-card')}>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm text-fg">{name(o)}</span>
-                        <span className="num block text-xs text-fg-3">{Number(o.price) > 0 ? `+${f.money(Number(o.price))}` : t('pos.free')}</span>
+                        {out ? (
+                          <span className="block text-xs font-medium text-danger">{t('pos.soldOut')}</span>
+                        ) : (
+                          <span className="num block text-xs text-fg-3">{Number(o.price) > 0 ? `+${f.money(Number(o.price))}` : t('pos.free')}</span>
+                        )}
                       </span>
                       <div className="flex items-center rounded-btn border border-line bg-surface" dir="ltr">
                         <button type="button" onClick={() => step(o, -1)} disabled={n === 0} className="grid size-10 place-items-center text-fg-2 hover:text-fg disabled:opacity-30" aria-label={`${name(o)} -1`}>
                           <Minus className="size-4" />
                         </button>
                         <span className="num w-7 text-center text-[0.9375rem]">{f.number(n)}</span>
-                        <button type="button" onClick={() => step(o, 1)} disabled={n >= o.max_qty} className="grid size-10 place-items-center text-fg-2 hover:text-fg disabled:opacity-30" aria-label={`${name(o)} +1`}>
+                        <button type="button" onClick={() => step(o, 1)} disabled={out || n >= o.max_qty} className="grid size-10 place-items-center text-fg-2 hover:text-fg disabled:opacity-30" aria-label={`${name(o)} +1`}>
                           <Plus className="size-4" />
                         </button>
                       </div>

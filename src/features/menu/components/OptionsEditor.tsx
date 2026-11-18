@@ -117,7 +117,7 @@ export function OptionsEditor({ menuItemId }: { menuItemId: string }) {
                   <Button size="sm" variant={open === o.id ? 'secondary' : 'ghost'} onClick={() => setOpen((x) => (x === o.id ? null : o.id))}>
                     {t('opts.ingredients')}
                   </Button>
-                  <Toggle id={`opt-${o.id}`} checked={o.is_active} onChange={(v) => void patch(o, { is_active: v })} label="" />
+                  <Toggle id={`opt-${o.id}`} checked={o.is_active} onChange={(v) => void patch(o, { is_active: v })} label={t('opts.available')} />
                   <IconButton label={t('common.delete')} size="sm" className="hover:text-danger" onClick={() => void remove(o)}>
                     <Trash className="size-4" />
                   </IconButton>

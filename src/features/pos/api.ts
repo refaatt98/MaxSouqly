@@ -8,6 +8,8 @@ export interface Catalog {
   items: MenuItem[];
   /** active extras, by menu item */
   options: MenuItemOption[];
+  /** meat types / extras whose ingredients ran out */
+  outOfStock: string[];
   printers: Printer[];
   fromCache: boolean;
 }
@@ -17,21 +19,23 @@ const CATALOG_KEY = 'catalog';
 /** Menu + categories, cached in IndexedDB so the POS keeps working offline. */
 export async function fetchCatalog(): Promise<Catalog> {
   try {
-    const [cats, items, opts, printers] = await Promise.all([
+    const [cats, items, opts, printers, out] = await Promise.all([
       supabase.from('categories').select('*').eq('is_active', true).order('sort_order').order('name_ar'),
       supabase.from('menu_items').select(MENU_ITEM_COLS).order('sort_order').order('name_ar'),
-      supabase.from('menu_item_options').select('*').eq('is_active', true).order('sort_order').order('name_ar'),
+      // switched-off options are loaded too: the cashier sees them as "sold out"
+      supabase.from('menu_item_options').select('*').order('sort_order').order('name_ar'),
       supabase.from('printers').select('*').eq('is_active', true).order('sort_order').order('name'),
+      supabase.rpc('options_out_of_stock'),
     ]);
     if (cats.error) throw cats.error;
     if (items.error) throw items.error;
     if (opts.error) throw opts.error;
-    const catalog = { categories: cats.data, items: items.data, options: opts.data, printers: printers.data ?? [] };
+    const catalog = { categories: cats.data, items: items.data, options: opts.data, outOfStock: (out.data as string[] | null) ?? [], printers: printers.data ?? [] };
     void cacheSet(CATALOG_KEY, catalog);
     return { ...catalog, fromCache: false };
   } catch (err) {
     const cached = await cacheGet<Omit<Catalog, 'fromCache'>>(CATALOG_KEY);
-    if (cached) return { ...cached, options: cached.options ?? [], printers: cached.printers ?? [], fromCache: true };
+    if (cached) return { ...cached, options: cached.options ?? [], outOfStock: cached.outOfStock ?? [], printers: cached.printers ?? [], fromCache: true };
     throw err;
   }
 }

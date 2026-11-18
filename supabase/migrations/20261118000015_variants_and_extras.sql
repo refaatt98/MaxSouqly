@@ -95,6 +95,23 @@ end;
 $$;
 revoke execute on function public.move_options_stock(jsonb, numeric, public.stock_reason, uuid, text) from public, anon, authenticated;
 
+-- meat types / extras that cannot be served right now (an ingredient has run out) — for the cashier screen
+create or replace function public.options_out_of_stock()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(jsonb_agg(distinct mr.option_id), '[]'::jsonb)
+  from public.menu_option_recipes mr
+  join public.ingredients i on i.id = mr.ingredient_id
+  where i.quantity < mr.quantity * public.unit_factor(mr.unit, i.unit)
+    and public.current_user_role() is not null
+$$;
+revoke execute on function public.options_out_of_stock() from public, anon;
+grant execute on function public.options_out_of_stock() to authenticated;
+
 -- place_order: variant (full price) + extras with quantities, their cost and their stock
 do $$
 declare
@@ -110,7 +127,8 @@ begin
   v_opts_cost numeric;
   v_req jsonb;
   v_n integer;
-  v_var public.menu_item_options;');
+  v_var public.menu_item_options;
+  v_out text;');
 
   patched := replace(patched,
 '    select coalesce(jsonb_agg(jsonb_build_object(''id'', o.id, ''name'', o.name_ar, ''name_he'', o.name_he, ''price'', o.price) order by o.sort_order, o.name_ar), ''[]''::jsonb),
@@ -141,6 +159,17 @@ begin
     if v_n <> jsonb_array_length(v_req) then
       raise exception ''INVALID_OPTIONS'' using errcode = ''22023'';
     end if;
+    -- an extra whose ingredients ran out cannot be sold
+    select o.name_ar into v_out
+    from jsonb_to_recordset(v_req) r(id uuid, qty integer)
+    join public.menu_item_options o on o.id = r.id
+    join public.menu_option_recipes mr on mr.option_id = r.id
+    join public.ingredients i on i.id = mr.ingredient_id
+    where i.quantity < mr.quantity * public.unit_factor(mr.unit, i.unit) * r.qty * v_qty
+    limit 1;
+    if v_out is not null then
+      raise exception ''OPTION_OUT:%'', v_out using errcode = ''22023'';
+    end if;
 
     -- variant (meat type): required when the item has any; its price is the full price of the dish
     if exists (select 1 from public.menu_item_options where menu_item_id = v_menu.id and is_active and kind = ''variant'') then
@@ -148,6 +177,10 @@ begin
       where id = nullif(v_item ->> ''variant_id'', '''')::uuid and menu_item_id = v_menu.id and is_active and kind = ''variant'';
       if not found then
         raise exception ''VARIANT_REQUIRED:%'', v_menu.name_ar using errcode = ''22023'';
+      end if;
+      if exists (select 1 from public.menu_option_recipes mr join public.ingredients i on i.id = mr.ingredient_id
+                 where mr.option_id = v_var.id and i.quantity < mr.quantity * public.unit_factor(mr.unit, i.unit) * v_qty) then
+        raise exception ''OPTION_OUT:%'', v_var.name_ar using errcode = ''22023'';
       end if;
       v_menu.price := v_var.price;
       v_unit_cost := v_unit_cost + public.option_cost(v_var.id);

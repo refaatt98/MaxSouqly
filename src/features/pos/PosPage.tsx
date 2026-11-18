@@ -47,7 +47,8 @@ export default function PosPage() {
 
   // ------------------------------------------------------------ catalog
   const catalog = useQuery(fetchCatalog, []);
-  useLiveRefetch(['menu_items', 'categories', 'menu_item_options', 'printers'], catalog.refetch);
+  useLiveRefetch(['menu_items', 'categories', 'menu_item_options', 'menu_option_recipes', 'ingredients', 'printers'], catalog.refetch, 1500);
+  const soldOut = useMemo(() => new Set(catalog.data?.outOfStock ?? []), [catalog.data]);
   const optionsByItem = useMemo(() => {
     const m = new Map<string, MenuItemOption[]>();
     for (const o of catalog.data?.options ?? []) m.set(o.menu_item_id, [...(m.get(o.menu_item_id) ?? []), o]);
@@ -505,7 +506,7 @@ export default function PosPage() {
             selectedId={cart.lastAddedId}
             onAdd={(i) => addItem(i)}
             priceFrom={(i) => {
-              const v = (optionsByItem.get(i.id) ?? []).filter((o) => o.kind === 'variant').map((o) => Number(o.price));
+              const v = (optionsByItem.get(i.id) ?? []).filter((o) => o.kind === 'variant' && o.is_active).map((o) => Number(o.price));
               return v.length ? Math.min(...v) : null;
             }}
           />
@@ -542,6 +543,7 @@ export default function PosPage() {
         item={picking?.item ?? null}
         qty={picking?.qty ?? 1}
         options={picking ? optionsByItem.get(picking.item.id) ?? [] : []}
+        soldOut={soldOut}
         onClose={() => setPicking(null)}
         onAdd={(opts) => {
           if (picking) pushItem(picking.item, picking.qty, opts);
