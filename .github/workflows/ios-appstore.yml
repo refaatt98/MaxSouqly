@@ -1,0 +1,65 @@
+# Signs the iPhone/iPad app and uploads it to App Store Connect (TestFlight / App Store).
+# Needs four repository secrets (Settings → Secrets and variables → Actions):
+#   APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (full text of the AuthKey_XXXX.p8 file)
+name: iOS App Store upload
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['mobile/ios/**', '.github/workflows/ios-appstore.yml']
+
+concurrency:
+  group: ios-appstore
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: macos-15
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile/ios
+    env:
+      TEAM: ${{ secrets.APPLE_TEAM_ID }}
+      KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+      KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secrets
+        id: check
+        run: |
+          if [ -z "$TEAM" ] || [ -z "$KEY_ID" ] || [ -z "$ISSUER" ] || [ -z "$KEY_P8" ]; then
+            echo "App Store secrets are not set yet; skipping upload."; echo "ok=false" >> "$GITHUB_OUTPUT"
+          else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.check.outputs.ok == 'true'
+        run: brew install xcodegen && xcodegen generate
+      - name: Archive (signed automatically with the API key)
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys" && printf '%s' "$KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8"
+          xcodebuild archive -project MaxManagement.xcodeproj -scheme MaxManagement -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Max.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION="${{ github.run_number }}"
+      - name: Upload to App Store Connect
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Max.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+            -exportPath "$RUNNER_TEMP/export" -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER"
+      - if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
