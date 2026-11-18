@@ -1,4 +1,4 @@
-import { Boxes, ChartColumn, ChefHat, Clock, ClipboardList, Contact, LayoutDashboard, MonitorSmartphone, ScrollText, Settings, Users, UtensilsCrossed, type LucideIcon } from 'lucide-react';
+import { Boxes, ChartColumn, ChefHat, Clock, ClipboardList, Contact, LayoutDashboard, MonitorSmartphone, Sandwich, ScrollText, Settings, Users, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import type { TranslationKey } from '@/i18n';
 import type { AppRole } from '@/types/models';
 import type { Permission } from './providers/PermissionsProvider';
@@ -22,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/inventory', label: 'nav.inventory', icon: Boxes, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'inventory' },
   { path: '/attendance', label: 'nav.attendance', icon: Clock, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'attendance' },
   { path: '/employees', label: 'nav.employees', icon: Users, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'employees' },
+  { path: '/staff-meals', label: 'nav.staffMeals', icon: Sandwich, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'employees' },
   { path: '/reports', label: 'nav.reports', icon: ChartColumn, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'reports' },
   { path: '/activity', label: 'nav.activity', icon: ScrollText, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'], perm: 'activity' },
   { path: '/settings', label: 'nav.settings', icon: Settings, roles: ['owner', 'manager', 'cashier', 'kitchen', 'inventory'] },

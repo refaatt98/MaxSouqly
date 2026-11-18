@@ -99,6 +99,11 @@ export const router = createBrowserRouter([
             children: [{ index: true, lazy: page(() => import('@/features/reports/ReportsPage')) }],
           },
           {
+            path: 'staff-meals',
+            element: <RequireRole roles={['owner', 'manager', 'cashier', 'kitchen', 'inventory']} perm="employees" />,
+            children: [{ index: true, lazy: page(() => import('@/features/staff-meals/StaffMealsPage')) }],
+          },
+          {
             path: 'activity',
             element: <RequireRole roles={['owner', 'manager', 'cashier', 'kitchen', 'inventory']} perm="activity" />,
             children: [{ index: true, lazy: page(() => import('@/features/activity/ActivityPage')) }],
