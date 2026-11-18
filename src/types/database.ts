@@ -489,6 +489,7 @@ export type Database = {
           void_reason: string | null;
           voided_by: string | null;
           options: Json;
+          staff_price: number | null;
         };
         Insert: {
           id?: string;
@@ -508,6 +509,7 @@ export type Database = {
           void_reason?: string | null;
           voided_by?: string | null;
           options?: Json;
+          staff_price?: number | null;
         };
         Update: {
           id?: string;
@@ -527,6 +529,7 @@ export type Database = {
           void_reason?: string | null;
           voided_by?: string | null;
           options?: Json;
+          staff_price?: number | null;
         };
         Relationships: [
           { foreignKeyName: "order_items_menu_item_id_fkey"; columns: ["menu_item_id"]; isOneToOne: false; referencedRelation: "menu_items"; referencedColumns: ["id"] },
@@ -566,6 +569,7 @@ export type Database = {
           customer_id: string | null;
           payment_status: Database["public"]["Enums"]["payment_status"];
           paid_amount: number;
+          staff_employee_id: string | null;
         };
         Insert: {
           id?: string;
@@ -598,6 +602,7 @@ export type Database = {
           customer_id?: string | null;
           payment_status?: Database["public"]["Enums"]["payment_status"];
           paid_amount?: number;
+          staff_employee_id?: string | null;
         };
         Update: {
           id?: string;
@@ -630,11 +635,13 @@ export type Database = {
           customer_id?: string | null;
           payment_status?: Database["public"]["Enums"]["payment_status"];
           paid_amount?: number;
+          staff_employee_id?: string | null;
         };
         Relationships: [
           { foreignKeyName: "orders_cashier_id_fkey"; columns: ["cashier_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "orders_customer_id_fkey"; columns: ["customer_id"]; isOneToOne: false; referencedRelation: "customers"; referencedColumns: ["id"] },
           { foreignKeyName: "orders_shift_id_fkey"; columns: ["shift_id"]; isOneToOne: false; referencedRelation: "cash_shifts"; referencedColumns: ["id"] },
+          { foreignKeyName: "orders_staff_employee_id_fkey"; columns: ["staff_employee_id"]; isOneToOne: false; referencedRelation: "employees_meta"; referencedColumns: ["id"] },
           { foreignKeyName: "orders_voided_by_fkey"; columns: ["voided_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
@@ -1334,6 +1341,7 @@ export type Database = {
       report_purchases: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_sales: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_staff: { Args: { p_from: string; p_to: string }; Returns: Json };
+      report_staff_meals: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_tax: { Args: { p_from: string; p_to: string }; Returns: Json };
       report_top_items: { Args: { p_from: string; p_to: string; p_limit?: number }; Returns: Json };
       require_perm: { Args: { p: string }; Returns: undefined };

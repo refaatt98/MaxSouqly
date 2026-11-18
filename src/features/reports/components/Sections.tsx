@@ -26,7 +26,7 @@ import { fetchTopItems } from '../api';
 import { FoodImage } from '@/components/ui/FoodImage';
 
 type Range = { from: string; to: string };
-type Fn = 'report_orders' | 'report_payments' | 'report_tax' | 'report_purchases' | 'report_cash' | 'report_staff';
+type Fn = 'report_orders' | 'report_payments' | 'report_tax' | 'report_purchases' | 'report_cash' | 'report_staff' | 'report_staff_meals';
 
 /** Same-length period right before [from, to]. */
 export function previousRange(r: Range): Range {
@@ -615,6 +615,11 @@ export function CashSection({ range, register }: { range: Range; register: Regis
 }
 
 // ================================================================ staff, wages & advances
+interface MealsRep {
+  employees: { id: string; name: string; meals: number; items: number; value: number; cost?: number | null }[];
+  meals: { id: string; order_number: number; created_at: string; employee: string; by: string | null; items: string | null; value: number }[];
+}
+
 interface StaffRep {
   employees: { id: string; name: string; position: string; salary_type: string; salary_amount: number; hours: number; days: number; absences: number; advances: number; payroll: number; paid: number }[];
   advances: { id: string; amount: number; note: string; created_at: string; employee: string; by: string | null }[];
@@ -625,6 +630,8 @@ export function StaffSection({ range, register }: { range: Range; register: Regi
   const { f } = useSettings();
   const { cur } = useReport<StaffRep>('report_staff', range, ['attendance', 'salary_advances', 'payroll']);
   const d = cur.data;
+  const meals = useReport<MealsRep>('report_staff_meals', range, ['orders', 'order_items']).cur.data;
+  const showCost = (meals?.employees ?? []).some((e) => e.cost !== null && e.cost !== undefined);
   const [search, setSearch] = useState('');
   const emps = (d?.employees ?? []).filter((e) => !search.trim() || e.name.includes(search.trim()) || e.position.includes(search.trim()));
   const wage = (e: StaffRep['employees'][number]) => `${f.money(Number(e.salary_amount))} / ${t(`employees.salary.${e.salary_type as 'daily'}`)}`;
@@ -636,11 +643,17 @@ export function StaffSection({ range, register }: { range: Range; register: Regi
       sections: [
         { heading: t('rep.staff'), table: { headers: [t('common.name'), t('employees.salaryType'), t('employees.hours'), t('rep.days'), t('rep.absences'), t('rep.advances'), t('rep.payroll'), t('rep.paid')], rows: emps.map((e) => [e.name, wage(e), f.number(Number(e.hours), 1), f.number(e.days), f.number(e.absences), f.money(Number(e.advances)), f.money(Number(e.payroll)), f.money(Number(e.paid))]) } },
         { heading: t('rep.advancesList'), table: { headers: [t('common.date'), t('employees.shiftEmployee'), t('common.amount'), t('common.notes'), t('rep.by')], rows: d.advances.map((a) => [f.dateTime(a.created_at), a.employee, f.money(Number(a.amount)), a.note, a.by ?? '']) } },
+        ...(meals && meals.employees.length
+          ? [
+              { heading: t('rep.staffMeals'), table: { headers: [t('common.name'), t('rep.meals'), t('rep.mealItems'), t('rep.mealValue'), ...(showCost ? [t('rep.mealCost')] : [])], rows: meals.employees.map((e) => [e.name, f.number(e.meals), f.number(e.items), f.money(Number(e.value)), ...(showCost ? [f.money(Number(e.cost))] : [])]) } },
+              { heading: t('rep.staffMealsLog'), table: { headers: [t('common.date'), t('employees.shiftEmployee'), t('rep.mealItems'), t('rep.mealValue'), t('rep.by')], rows: meals.meals.map((m) => [f.dateTime(m.created_at), m.employee, m.items ?? '', f.money(Number(m.value)), m.by ?? '']) } },
+            ]
+          : []),
       ],
       csv: { headers: [t('common.name'), t('employees.salaryType'), t('employees.salaryAmount'), t('employees.hours'), t('rep.days'), t('rep.absences'), t('rep.advances'), t('rep.payroll'), t('rep.paid')], rows: emps.map((e) => [e.name, t(`employees.salary.${e.salary_type as 'daily'}`), Number(e.salary_amount), Number(e.hours), e.days, e.absences, Number(e.advances), Number(e.payroll), Number(e.paid)]) },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d, emps.length, register]);
+  }, [d, emps.length, meals, register]);
 
   return (
     <Loading error={cur.error} retry={() => void cur.refetch()} ready={Boolean(d)}>
@@ -687,6 +700,37 @@ export function StaffSection({ range, register }: { range: Range; register: Regi
               empty={<p className="p-5 text-sm text-fg-3">{t('rep.noAdvances')}</p>}
             />
           </Card>
+          <Card className="overflow-hidden">
+            <CardHeader title={t('rep.staffMeals')} subtitle={t('rep.staffMealsHint')} />
+            <DataTable
+              columns={[
+                { key: 'n', header: t('common.name'), cell: (e) => <span className="text-fg">{e.name}</span> },
+                { key: 'm', header: t('rep.meals'), cell: (e) => <span className="num">{f.number(e.meals)}</span> },
+                { key: 'i', header: t('rep.mealItems'), hideBelow: 'sm', cell: (e) => <span className="num">{f.number(e.items)}</span> },
+                ...(showCost ? [{ key: 'c', header: t('rep.mealCost'), hideBelow: 'sm' as const, cell: (e: MealsRep['employees'][number]) => <span className="num text-fg-2">{f.money(Number(e.cost))}</span> }] : []),
+                { key: 'v', header: t('rep.mealValue'), align: 'end', cell: (e) => <span className="num">{f.money(Number(e.value))}</span> },
+              ]}
+              rows={meals?.employees ?? []}
+              rowKey={(e) => e.id}
+              empty={<p className="p-5 text-sm text-fg-3">{t('common.noResults')}</p>}
+            />
+          </Card>
+          {(meals?.meals.length ?? 0) > 0 && (
+            <Card className="overflow-hidden">
+              <CardHeader title={t('rep.staffMealsLog')} />
+              <DataTable
+                columns={[
+                  { key: 'd', header: t('common.date'), cell: (m) => <span className="num text-fg-2">{f.dateTime(m.created_at)}</span> },
+                  { key: 'e', header: t('employees.shiftEmployee'), cell: (m) => <span className="text-fg">{m.employee}</span> },
+                  { key: 'i', header: t('rep.mealItems'), hideBelow: 'sm', cell: (m) => <span className="text-fg-2">{m.items ?? '—'}</span> },
+                  { key: 'b', header: t('rep.by'), hideBelow: 'md', cell: (m) => <span className="text-fg-2">{m.by ?? '—'}</span> },
+                  { key: 'v', header: t('rep.mealValue'), align: 'end', cell: (m) => <span className="num">{f.money(Number(m.value))}</span> },
+                ]}
+                rows={meals?.meals ?? []}
+                rowKey={(m) => m.id}
+              />
+            </Card>
+          )}
         </div>
       )}
     </Loading>

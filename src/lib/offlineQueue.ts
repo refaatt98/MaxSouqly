@@ -15,6 +15,8 @@ export interface OrderPayload {
   offline_created_at?: string;
   /** send now, collect payment later (payments may be partial or empty) */
   pay_later?: boolean;
+  /** staff meal for this employee: no payment, not a sale */
+  staff_employee_id?: string;
 }
 
 export interface QueuedOrder {

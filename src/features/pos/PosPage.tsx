@@ -252,6 +252,7 @@ export default function PosPage() {
 
   const openPayment = () => {
     if (cart.lines.length === 0) return;
+    if (cart.staffMeal) return void sendOrder();
     setShowIssue(true);
     if (issue === 'table') return toast.error(t('errors.INVALID_TABLE'));
     if (issue === 'delivery') return toast.error(t('errors.DELIVERY_DETAILS_REQUIRED'));
@@ -306,19 +307,20 @@ export default function PosPage() {
     if (issue === 'delivery') return toast.error(t('errors.DELIVERY_DETAILS_REQUIRED'));
     if (issue === 'discount') return toast.error(t('errors.DISCOUNT_LIMIT', { detail: f.number(maxDiscount) }));
     if (issue === 'phone') return toast.error(t('validation.phone'));
+    if (issue === 'staff') return toast.error(t('pos.chooseEmployee'));
     const payload = buildPayload(cart, totals, [], true);
     setSending(true);
     const queueOffline = async () => {
       const q = await enqueueOrder(payload);
       printSent({ ...receiptFromCart(q.temp_number, []), due: totals.total }, { offline: true });
-      setSuccess({ number: q.temp_number, change: 0, total: totals.total, offline: true, unpaid: true });
+      setSuccess({ number: q.temp_number, change: 0, total: totals.total, offline: true, unpaid: !payload.staff_employee_id });
     };
     try {
       if (!online && settings?.offline_mode) await queueOffline();
       else {
         const order: OrderFull = await placeOrder(payload);
         printSent(receiptFromOrder(order));
-        setSuccess({ number: `#${order.order_number}`, change: 0, total: Number(order.total), offline: false, unpaid: true });
+        setSuccess({ number: `#${order.order_number}`, change: 0, total: Number(order.total), offline: false, unpaid: !payload.staff_employee_id });
       }
       playSuccess();
       setShowIssue(false);

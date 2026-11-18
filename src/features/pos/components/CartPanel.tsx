@@ -1,16 +1,37 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Armchair, Bike, CirclePause, Minus, Plus, Printer, Send, ShoppingBag, StickyNote, Wallet, X } from 'lucide-react';
+import { Armchair, Bike, CirclePause, Minus, Plus, Printer, Send, ShoppingBag, StickyNote, UtensilsCrossed, Wallet, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { useSettings } from '@/app/providers/SettingsProvider';
 import { Button } from '@/components/ui/Button';
 import { Segmented } from '@/components/ui/Tabs';
-import { TextInput } from '@/components/ui/Input';
+import { Select, TextInput } from '@/components/ui/Input';
+import { useQuery } from '@/hooks/useQuery';
 import { FoodImage } from '@/components/ui/FoodImage';
 import { CountBadge } from '@/components/ui/Badge';
 import { unitPrice, type CartAction, type CartIssue, type CartLine, type CartState, type CartTotals } from '../cart';
 import { CustomerField } from './CustomerField';
+import { fetchStaffBoard } from '../api';
+
+/** Which employee the meal is for (from the staff list). */
+function StaffPicker({ value, onChange, error }: { value: string; onChange: (id: string) => void; error: string | null }) {
+  const t = useT();
+  const staff = useQuery(fetchStaffBoard, []);
+  return (
+    <div className="space-y-1.5">
+      <Select
+        label={t('pos.staffMealFor')}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={staff.loading ? '…' : t('pos.chooseEmployee')}
+        options={(staff.data ?? []).map((s) => ({ value: s.id, label: s.position ? `${s.full_name} · ${s.position}` : s.full_name }))}
+        error={error}
+      />
+      <p className="text-xs text-fg-3">{t('pos.staffMealHint')}</p>
+    </div>
+  );
+}
 
 function QtyStepper({ line, dispatch }: { line: CartLine; dispatch: (a: CartAction) => void }) {
   const t = useT();
@@ -149,10 +170,11 @@ export function CartPanel(p: CartPanelProps) {
       </div>
 
       <div className="space-y-3 border-b border-line px-4 py-3">
+        <div className="flex items-center gap-2">
         <Segmented
-          className="w-full"
+          className="min-w-0 flex-1"
           layoutId="pos-type"
-          value={state.type}
+          value={state.staffMeal ? ('' as typeof state.type) : state.type}
           onChange={(v) => dispatch({ type: 'orderType', value: v })}
           items={[
             { key: 'dine_in', label: t('order.type.dine_in'), icon: <Armchair className="size-4" /> },
@@ -160,7 +182,23 @@ export function CartPanel(p: CartPanelProps) {
             { key: 'delivery', label: t('order.type.delivery'), icon: <Bike className="size-4" /> },
           ]}
         />
-        {state.type === 'dine_in' && (
+          <button
+            type="button"
+            aria-pressed={Boolean(state.staffMeal)}
+            onClick={() => dispatch({ type: 'staffMeal', on: !state.staffMeal })}
+            className={cn(
+              'flex h-10 shrink-0 items-center gap-1.5 rounded-btn border px-2.5 text-sm transition-colors',
+              state.staffMeal ? 'border-brand bg-brand text-white' : 'border-line-strong text-fg-2 hover:text-fg',
+            )}
+          >
+            <UtensilsCrossed className="size-4" />
+            {t('pos.staffMeal')}
+          </button>
+        </div>
+        {state.staffMeal && (
+          <StaffPicker value={state.staffId ?? ''} onChange={(id) => dispatch({ type: 'staff', id })} error={p.showIssue && p.issue === 'staff' ? t('pos.chooseEmployee') : null} />
+        )}
+        {!state.staffMeal && state.type === 'dine_in' && (
           <TextInput
             label={t('pos.tableNo')}
             type="number"
@@ -172,13 +210,13 @@ export function CartPanel(p: CartPanelProps) {
             error={p.showIssue && p.issue === 'table' ? t('errors.INVALID_TABLE') : null}
           />
         )}
-        <CustomerField
+        {!state.staffMeal && <CustomerField
           state={state}
           dispatch={dispatch}
           delivery={state.type === 'delivery'}
           phoneError={p.showIssue && p.issue === 'phone' ? t('validation.phone') : null}
           addressError={p.showIssue && p.issue === 'delivery' ? t('errors.DELIVERY_DETAILS_REQUIRED') : null}
-        />
+        />}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
@@ -211,9 +249,25 @@ export function CartPanel(p: CartPanelProps) {
 
       <div className="space-y-2 border-t border-line bg-surface/60 px-4 py-3">
         <div className="flex justify-between text-sm text-fg-2">
-          <span>{t('pos.subtotal')}</span>
+          <span>{state.staffMeal ? t('pos.staffMealValue') : t('pos.subtotal')}</span>
           <span className="num font-semibold text-fg">{f.money(totals.subtotal)}</span>
         </div>
+        {state.staffMeal ? (
+          <>
+            <p className="rounded-btn bg-fg/[0.04] px-3 py-2 text-xs text-fg-2">{t('pos.staffMealNoCash')}</p>
+            <div className="grid grid-cols-[auto_auto_1fr] gap-2 pt-1">
+              <Button variant="ghost" size="lg" onClick={p.onCancel} disabled={empty} className="px-3">
+                {t('pos.cancel')}
+              </Button>
+              <Button variant="ghost" size="lg" onClick={p.onPrint} disabled={empty} aria-label={t('pos.print')} className="px-3">
+                <Printer className="size-[1.125rem]" />
+              </Button>
+              <Button variant="primary" size="lg" icon={<UtensilsCrossed className="size-4" />} onClick={p.onSend} disabled={empty} loading={p.sending} className="text-base">
+                {t('pos.staffMealSave')}
+              </Button>
+            </div>
+          </>
+        ) : (<>
         <div className="flex items-center justify-between gap-2 text-sm text-fg-2">
           <span>{t('pos.discount')}</span>
           <div className="flex items-center gap-1.5">
@@ -270,6 +324,7 @@ export function CartPanel(p: CartPanelProps) {
             {t('pos.pay')}
           </Button>
         </div>
+        </>)}
       </div>
     </div>
   );

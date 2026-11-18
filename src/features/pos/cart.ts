@@ -37,6 +37,9 @@ export interface CartState {
   discountType: 'percent' | 'fixed';
   discountValue: string;
   lastAddedId: string | null;
+  /** staff meal: the employee eating it (no payment, not counted as a sale) */
+  staffMeal?: boolean;
+  staffId?: string;
 }
 
 export type CartAction =
@@ -46,6 +49,8 @@ export type CartAction =
   | { type: 'note'; lineId: string; notes: string }
   | { type: 'field'; field: 'tableNo' | 'customerName' | 'customerPhone' | 'customerAddress' | 'notes' | 'discountValue'; value: string }
   | { type: 'orderType'; value: OrderType }
+  | { type: 'staffMeal'; on: boolean }
+  | { type: 'staff'; id: string }
   | { type: 'discountType'; value: 'percent' | 'fixed' }
   | { type: 'load'; state: CartState }
   | { type: 'reset' };
@@ -95,7 +100,11 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
     case 'field':
       return { ...state, [action.field]: action.value };
     case 'orderType':
-      return { ...state, type: action.value };
+      return { ...state, type: action.value, staffMeal: false, staffId: '' };
+    case 'staffMeal':
+      return { ...state, staffMeal: action.on, staffId: action.on ? (state.staffId ?? '') : '', discountValue: '' };
+    case 'staff':
+      return { ...state, staffId: action.id };
     case 'discountType':
       return { ...state, discountType: action.value, discountValue: '' };
     case 'load':
@@ -116,6 +125,10 @@ export interface CartTotals {
 
 export function cartTotals(state: CartState, vatPercent: number): CartTotals {
   const subtotal = round2(state.lines.reduce((s, l) => s + unitPrice(l) * l.qty, 0));
+  if (state.staffMeal) {
+    // the meal's menu value is shown, but nothing is charged
+    return { count: state.lines.reduce((s, l) => s + l.qty, 0), subtotal, discount: 0, total: 0, vat: 0, discountPercent: 0 };
+  }
   const raw = Number(state.discountValue) || 0;
   let discount = state.discountType === 'percent' ? round2((subtotal * Math.min(Math.max(raw, 0), 100)) / 100) : round2(Math.max(raw, 0));
   discount = Math.min(discount, subtotal);
@@ -130,10 +143,11 @@ export function cartTotals(state: CartState, vatPercent: number): CartTotals {
   };
 }
 
-export type CartIssue = 'empty' | 'table' | 'delivery' | 'discount' | 'phone';
+export type CartIssue = 'empty' | 'table' | 'delivery' | 'discount' | 'phone' | 'staff';
 
 export function validateCart(state: CartState, totals: CartTotals, maxDiscountPercent: number, tableCount: number): CartIssue | null {
   if (state.lines.length === 0) return 'empty';
+  if (state.staffMeal) return state.staffId ? null : 'staff';
   if (state.type === 'dine_in') {
     const n = Number(state.tableNo);
     if (!Number.isInteger(n) || n < 1 || (tableCount > 0 && n > tableCount)) return 'table';
@@ -147,6 +161,19 @@ export function validateCart(state: CartState, totals: CartTotals, maxDiscountPe
 }
 
 export function buildPayload(state: CartState, totals: CartTotals, payments: OrderPayload['payments'], payLater = false): OrderPayload {
+  if (state.staffMeal && state.staffId) {
+    return {
+      client_ref: state.clientRef,
+      type: 'takeaway',
+      table_no: null,
+      notes: state.notes.trim(),
+      discount: null,
+      items: state.lines.map((l) => ({ menu_item_id: l.item.id, quantity: l.qty, notes: l.notes.trim(), options: (l.options ?? []).map((o) => o.id) })),
+      payments: [],
+      pay_later: true,
+      staff_employee_id: state.staffId,
+    };
+  }
   return {
     client_ref: state.clientRef,
     type: state.type,
