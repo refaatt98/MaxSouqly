@@ -1,0 +1,105 @@
+name: iOS App Store
+
+# Manual only: merging this workflow does not spend runner time or upload an app.
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Initialize signing once, or build and upload to TestFlight
+        required: true
+        default: testflight
+        type: choice
+        options:
+          - initialize-signing
+          - testflight
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-app-store
+  cancel-in-progress: false
+
+jobs:
+  distribute:
+    runs-on: macos-15
+    timeout-minutes: 60
+    # match stores only password-encrypted signing assets on the ios-signing branch.
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: mobile/ios
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      MATCH_GIT_URL: https://github.com/${{ github.repository }}.git
+      FASTLANE_SKIP_UPDATE_CHECK: "true"
+      FASTLANE_HIDE_CHANGELOG: "true"
+      FASTLANE_DISABLE_COLORS: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check required configuration without printing values
+        run: |
+          python3 - <<'PY'
+          import os
+          required = ["ASC_KEY_ID", "ASC_ISSUER_ID", "ASC_KEY_CONTENT",
+                      "MATCH_PASSWORD", "APPLE_TEAM_ID"]
+          missing = [name for name in required if not os.environ.get(name, "").strip()]
+          if missing:
+              raise SystemExit("Missing GitHub secrets/variables: " + ", ".join(missing))
+          PY
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          working-directory: mobile/ios
+          bundler-cache: true
+
+      - name: Verify supported Xcode and generate project
+        run: |
+          xcodebuild -version
+          python3 - <<'PY'
+          import re, subprocess
+          version = subprocess.check_output(["xcodebuild", "-version"], text=True)
+          if int(re.search(r"Xcode (\d+)", version).group(1)) < 26:
+              raise SystemExit("Select Xcode 26 or newer on this GitHub macOS runner.")
+          PY
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Configure encrypted signing storage access
+        env:
+          GH_SIGNING_TOKEN: ${{ github.token }}
+        run: |
+          # GitHub masks its token; mask the derived basic-auth value as well.
+          auth="$(printf 'x-access-token:%s' "$GH_SIGNING_TOKEN" | base64 | tr -d '\n')"
+          printf '::add-mask::%s\n' "$auth"
+          printf 'MATCH_GIT_BASIC_AUTHORIZATION=%s\n' "$auth" >> "$GITHUB_ENV"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Initialize encrypted signing assets
+        if: inputs.operation == 'initialize-signing'
+        run: bundle exec fastlane ios initialize_signing
+
+      - name: Build and upload to TestFlight
+        if: inputs.operation == 'testflight'
+        run: bundle exec fastlane ios testflight
+
+      - name: Save signed build privately
+        if: success() && inputs.operation == 'testflight'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MAX-Management-AppStore-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            mobile/ios/build/app-store/*.ipa
+            mobile/ios/build/app-store/*.dSYM.zip
+          if-no-files-found: error
+          retention-days: 7
