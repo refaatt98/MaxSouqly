@@ -126,53 +126,147 @@ export function OptionsEditor({ menuItemId }: { menuItemId: string }) {
               </li>
             ))}
           </ul>
-          <AddOption kind={kind} count={list.data?.length ?? 0} menuItemId={menuItemId} onAdded={() => void list.refetch()} />
+          <AddOption
+            kind={kind}
+            count={list.data?.length ?? 0}
+            menuItemId={menuItemId}
+            ingredients={ingredients.data ?? []}
+            onAdded={(id, custom) => {
+              void list.refetch();
+              // a custom one (e.g. mix) needs its ingredients: open them right away
+              if (custom) setOpen(id);
+            }}
+          />
         </div>
       ))}
     </section>
   );
 }
 
-function AddOption({ kind, count, menuItemId, onAdded }: { kind: Kind; count: number; menuItemId: string; onAdded: () => void }) {
+const CUSTOM = '__custom';
+
+/**
+ * Add a meat type / extra: pick it from the stock list (its name comes from there and it is linked to stock
+ * with the amount per dish), or choose "other name" for things like a mix (then add its ingredients after).
+ */
+function AddOption({ kind, count, menuItemId, ingredients, onAdded }: {
+  kind: Kind;
+  count: number;
+  menuItemId: string;
+  ingredients: Pick<Ingredient, 'id' | 'name_ar' | 'name_he' | 'unit' | 'is_active'>[];
+  onAdded: (optionId: string, custom: boolean) => void;
+}) {
   const t = useT();
-  const { f } = useSettings();
+  const { f, name: label } = useSettings();
   const toast = useToast();
+  const [ing, setIng] = useState('');
   const [name, setName] = useState('');
+  const [qty, setQty] = useState('');
+  const [unit, setUnit] = useState<UnitType | ''>('');
   const [price, setPrice] = useState('');
+  const [busy, setBusy] = useState(false);
+  const picked = ingredients.find((i) => i.id === ing);
+  const custom = ing === CUSTOM;
+  const ready = (custom ? name.trim().length > 0 : Boolean(picked) && Number(qty) > 0) && (kind === 'extra' || price !== '');
+
   const add = async () => {
-    const n = name.trim();
     const p = Number(price || 0);
-    if (!n || !Number.isFinite(p) || p < 0) return;
-    const { error } = await supabase.from('menu_item_options').insert({ menu_item_id: menuItemId, name_ar: n, price: p, kind, sort_order: count + 1 });
-    if (error) return toast.error(errorMessage(t, error));
+    if (!ready || !Number.isFinite(p) || p < 0) return;
+    setBusy(true);
+    const { data, error } = await supabase
+      .from('menu_item_options')
+      .insert({
+        menu_item_id: menuItemId,
+        name_ar: custom ? name.trim() : picked!.name_ar,
+        name_he: custom ? '' : picked!.name_he,
+        price: p,
+        kind,
+        sort_order: count + 1,
+      })
+      .select('id')
+      .single();
+    if (error || !data) {
+      setBusy(false);
+      return toast.error(errorMessage(t, error));
+    }
+    if (!custom && picked) {
+      const { error: e2 } = await supabase
+        .from('menu_option_recipes')
+        .insert({ option_id: data.id, ingredient_id: picked.id, quantity: Number(qty), unit: (unit || defaultRecipeUnit(picked.unit)) as UnitType });
+      if (e2) toast.error(errorMessage(t, e2));
+    }
+    setBusy(false);
+    setIng('');
     setName('');
+    setQty('');
+    setUnit('');
     setPrice('');
-    onAdded();
+    onAdded(data.id, custom);
   };
+
   return (
-    <div className="mt-2 flex items-end gap-2">
-      <TextInput
-        className="flex-1"
-        placeholder={t(kind === 'variant' ? 'opts.variantPlaceholder' : 'opts.namePlaceholder')}
-        aria-label={t('common.name')}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && void add()}
-      />
-      <TextInput
-        className="w-28"
-        placeholder={kind === 'variant' ? t('opts.fullPrice') : '0'}
-        aria-label={t(kind === 'variant' ? 'opts.fullPrice' : 'common.price')}
-        type="number"
-        inputMode="decimal"
-        min={0}
-        value={price}
-        onChange={(e) => setPrice(e.target.value)}
-        suffix={f.money(0).replace(/[0-9.,\s]/g, '')}
-      />
-      <Button icon={<Plus className="size-4" />} onClick={() => void add()} disabled={!name.trim() || (kind === 'variant' && price === '')}>
-        {t(kind === 'variant' ? 'opts.addVariant' : 'opts.add')}
-      </Button>
+    <div className="mt-2 rounded-btn border border-dashed border-line-strong p-2">
+      <div className="flex flex-wrap items-end gap-2">
+        <Select
+          className="min-w-44 flex-1"
+          label={t(kind === 'variant' ? 'opts.pickVariant' : 'opts.pickExtra')}
+          value={ing}
+          onChange={(e) => {
+            setIng(e.target.value);
+            const i = ingredients.find((x) => x.id === e.target.value);
+            setUnit(i ? defaultRecipeUnit(i.unit) : '');
+          }}
+          placeholder={t('opts.fromStock')}
+          options={[
+            ...ingredients.filter((i) => i.is_active).map((i) => ({ value: i.id, label: label(i) })),
+            { value: CUSTOM, label: t(kind === 'variant' ? 'opts.customVariant' : 'opts.customExtra') },
+          ]}
+        />
+        {custom && (
+          <TextInput
+            className="min-w-36 flex-1"
+            label={t('common.name')}
+            placeholder={t(kind === 'variant' ? 'opts.mixPlaceholder' : 'opts.namePlaceholder')}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        )}
+        {picked && (
+          <>
+            <TextInput
+              className="w-24"
+              label={t('opts.perDish')}
+              type="number"
+              inputMode="decimal"
+              min={0}
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+            />
+            <Select
+              className="w-24"
+              label={t('inventory.unit')}
+              value={unit}
+              onChange={(e) => setUnit(e.target.value as UnitType)}
+              options={compatibleUnits(picked.unit).map((u) => ({ value: u, label: t(`unit.${u}`) }))}
+            />
+          </>
+        )}
+        <TextInput
+          className="w-28"
+          label={t(kind === 'variant' ? 'opts.fullPrice' : 'common.price')}
+          placeholder="0"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          suffix={f.money(0).replace(/[0-9.,\s]/g, '')}
+        />
+        <Button icon={<Plus className="size-4" />} loading={busy} onClick={() => void add()} disabled={!ready}>
+          {t(kind === 'variant' ? 'opts.addVariant' : 'opts.add')}
+        </Button>
+      </div>
+      {custom && <p className="mt-1.5 text-xs text-fg-3">{t('opts.customHint')}</p>}
     </div>
   );
 }

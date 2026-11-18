@@ -20,7 +20,7 @@ export function OptionsModal({ item, options, soldOut, qty, onClose, onAdd }: {
   soldOut: Set<string>;
   qty: number;
   onClose: () => void;
-  onAdd: (picked: CartOption[]) => void;
+  onAdd: (picked: CartOption[], notes: string) => void;
 }) {
   const t = useT();
   const { name, f } = useSettings();
@@ -29,10 +29,12 @@ export function OptionsModal({ item, options, soldOut, qty, onClose, onAdd }: {
   const [variant, setVariant] = useState<string | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [tried, setTried] = useState(false);
+  const [notes, setNotes] = useState('');
   useEffect(() => {
     setVariant(null);
     setCounts({});
     setTried(false);
+    setNotes('');
   }, [item]);
 
   const isOut = (o: MenuItemOption) => !o.is_active || soldOut.has(o.id);
@@ -52,7 +54,7 @@ export function OptionsModal({ item, options, soldOut, qty, onClose, onAdd }: {
       const n = isOut(o) ? 0 : counts[o.id] ?? 0;
       if (n > 0) picked.push({ id: o.id, name_ar: o.name_ar, name_he: o.name_he, price: Number(o.price), kind: 'extra', qty: n });
     }
-    onAdd(picked);
+    onAdd(picked, notes);
   };
 
   return (
@@ -151,6 +153,18 @@ export function OptionsModal({ item, options, soldOut, qty, onClose, onAdd }: {
               </ul>
             </section>
           )}
+          <section>
+            <label htmlFor="opt-notes" className="mb-2 block text-sm text-fg-2">{t('pos.kitchenNotes')}</label>
+            <textarea
+              id="opt-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              maxLength={200}
+              rows={2}
+              placeholder={t('pos.kitchenNotesPlaceholder')}
+              className="w-full resize-none rounded-btn border border-line-strong bg-surface px-3 py-2 text-sm placeholder:text-fg-3 focus:border-fg-3 focus:outline-none"
+            />
+          </section>
         </div>
       )}
     </Modal>

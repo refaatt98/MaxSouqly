@@ -65,7 +65,7 @@ export interface CartState {
 }
 
 export type CartAction =
-  | { type: 'add'; item: CartLine['item']; qty: number; options?: CartOption[] }
+  | { type: 'add'; item: CartLine['item']; qty: number; options?: CartOption[]; notes?: string }
   | { type: 'setQty'; lineId: string; qty: number }
   | { type: 'remove'; lineId: string }
   | { type: 'note'; lineId: string; notes: string }
@@ -98,7 +98,8 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
     case 'add': {
       // tapping the same item again raises its quantity (same extras, no notes)
       const key = optionsKey(action.options);
-      const existing = state.lines.find((l) => l.item.id === action.item.id && l.notes === '' && optionsKey(l.options) === key);
+      const notes = (action.notes ?? '').trim().slice(0, 200);
+      const existing = notes ? undefined : state.lines.find((l) => l.item.id === action.item.id && l.notes === '' && optionsKey(l.options) === key);
       if (existing) {
         return {
           ...state,
@@ -109,7 +110,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
       return {
         ...state,
         lastAddedId: action.item.id,
-        lines: [...state.lines, { lineId: crypto.randomUUID(), item: action.item, qty: Math.min(999, action.qty), notes: '', options: action.options ?? [] }],
+        lines: [...state.lines, { lineId: crypto.randomUUID(), item: action.item, qty: Math.min(999, action.qty), notes, options: action.options ?? [] }],
       };
     }
     case 'setQty':

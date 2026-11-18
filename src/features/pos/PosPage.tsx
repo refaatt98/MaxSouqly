@@ -128,8 +128,8 @@ export default function PosPage() {
 
   // items with extras open a picker first; the rest go straight into the cart
   const [picking, setPicking] = useState<{ item: MenuItem; qty: number } | null>(null);
-  const pushItem = useCallback((item: MenuItem, qty: number, options: CartOption[] = []) => {
-    dispatch({ type: 'add', item: { id: item.id, name_ar: item.name_ar, name_he: item.name_he, price: item.price, image_url: item.image_url }, qty, options });
+  const pushItem = useCallback((item: MenuItem, qty: number, options: CartOption[] = [], notes = '') => {
+    dispatch({ type: 'add', item: { id: item.id, name_ar: item.name_ar, name_he: item.name_he, price: item.price, image_url: item.image_url }, qty, options, notes });
     setMultiplier(1);
   }, []);
   const addItem = useCallback(
@@ -545,8 +545,8 @@ export default function PosPage() {
         options={picking ? optionsByItem.get(picking.item.id) ?? [] : []}
         soldOut={soldOut}
         onClose={() => setPicking(null)}
-        onAdd={(opts) => {
-          if (picking) pushItem(picking.item, picking.qty, opts);
+        onAdd={(opts, notes) => {
+          if (picking) pushItem(picking.item, picking.qty, opts, notes);
           setPicking(null);
         }}
       />
