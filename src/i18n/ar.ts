@@ -932,6 +932,7 @@ export const ar = {
   'receipt.due': 'المتبقي',
   'pos.sentTitle': 'تم إرسال الطلب',
   'pos.send': 'إرسال الطلب',
+  'pos.saveChanges': 'حفظ التعديل',
   'pos.kitchenNotes': 'ملاحظات للمطبخ (اختياري)',
   'pos.kitchenNotesPlaceholder': 'مثلاً: بدون بصل، الصوص على جنب، مستوية جيداً',
   'pos.soldOut': 'خلص — غير متوفر',

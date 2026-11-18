@@ -906,6 +906,7 @@ export const he: Dictionary = {
   'receipt.due': 'יתרה לתשלום',
   'pos.sentTitle': 'ההזמנה נשלחה',
   'pos.send': 'שליחת הזמנה',
+  'pos.saveChanges': 'שמירת שינויים',
   'pos.kitchenNotes': 'הערות למטבח (רשות)',
   'pos.kitchenNotesPlaceholder': 'לדוגמה: בלי בצל, רוטב בצד, עשוי היטב',
   'pos.soldOut': 'אזל — לא זמין',

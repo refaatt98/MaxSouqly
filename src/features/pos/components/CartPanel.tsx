@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Armchair, Bike, CirclePause, Minus, Plus, Printer, Send, ShoppingBag, StickyNote, UtensilsCrossed, Wallet, X } from 'lucide-react';
+import { Armchair, Bike, CirclePause, Minus, Pencil, Plus, Printer, Send, ShoppingBag, StickyNote, UtensilsCrossed, Wallet, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { useSettings } from '@/app/providers/SettingsProvider';
@@ -61,7 +61,7 @@ function QtyStepper({ line, dispatch }: { line: CartLine; dispatch: (a: CartActi
   );
 }
 
-function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAction) => void }) {
+function CartLineRow({ line, dispatch, onEdit }: { line: CartLine; dispatch: (a: CartAction) => void; onEdit?: () => void }) {
   const t = useT();
   const { name, f } = useSettings();
   const [editing, setEditing] = useState(line.notes !== '');
@@ -84,17 +84,27 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
         <FoodImage src={line.item.image_url} alt="" className="size-14 shrink-0 rounded-btn bg-fg/[0.03]" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-fg">{name(line.item)}</p>
-          {(line.options ?? []).length > 0 && (
-            <p className="truncate text-xs text-fg-2">+ {(line.options ?? []).map((o) => optionLabel(name(o), o.qty)).join('، ')}</p>
+          {(line.options ?? []).filter((o) => o.kind === 'variant').map((o) => (
+            <p key={o.id} className="text-xs font-medium text-fg">{name(o)}</p>
+          ))}
+          {(line.options ?? []).filter((o) => o.kind !== 'variant').length > 0 && (
+            <p className="text-xs text-fg-2">+ {(line.options ?? []).filter((o) => o.kind !== 'variant').map((o) => optionLabel(name(o), o.qty)).join('، ')}</p>
           )}
+          {line.notes && (onEdit || !editing) && <p className="text-xs text-warning">• {line.notes}</p>}
           <p className="num text-xs text-fg-3">{f.money(unitPrice(line))}</p>
           <p className="num text-sm font-medium text-fg">{f.money(unitPrice(line) * line.qty)}</p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <QtyStepper line={line} dispatch={dispatch} />
           <div className="flex gap-1">
+            {onEdit && (
+              <button type="button" onClick={onEdit} className="flex h-8 items-center gap-1 rounded-btn px-2 text-xs text-fg-2 hover:text-fg">
+                <Pencil className="size-3.5" /> {t('common.edit')}
+              </button>
+            )}
             <button
               type="button"
+              hidden={Boolean(onEdit)}
               onClick={() => setEditing((v) => !v)}
               className={cn('flex h-8 items-center gap-1 rounded-btn px-2 text-xs', line.notes ? 'text-warning' : 'text-fg-3 hover:text-fg')}
             >
@@ -111,7 +121,7 @@ function CartLineRow({ line, dispatch }: { line: CartLine; dispatch: (a: CartAct
           </div>
         </div>
       </div>
-      {editing && (
+      {editing && !onEdit && (
         <input
           value={line.notes}
           onChange={(e) => dispatch({ type: 'note', lineId: line.lineId, notes: e.target.value })}
@@ -144,6 +154,9 @@ export interface CartPanelProps {
   onPrint: () => void;
   onHold: () => void;
   onOpenHeld: () => void;
+  /** lines whose meat type / extras / note can be changed in the item window */
+  canEdit?: (l: CartLine) => boolean;
+  onEditLine?: (l: CartLine) => void;
 }
 
 export function CartPanel(p: CartPanelProps) {
@@ -230,7 +243,7 @@ export function CartPanel(p: CartPanelProps) {
           <ul>
             <AnimatePresence initial={false}>
               {state.lines.map((l) => (
-                <CartLineRow key={l.lineId} line={l} dispatch={dispatch} />
+                <CartLineRow key={l.lineId} line={l} dispatch={dispatch} onEdit={p.canEdit?.(l) ? () => p.onEditLine?.(l) : undefined} />
               ))}
             </AnimatePresence>
           </ul>

@@ -127,7 +127,7 @@ export default function PosPage() {
   const [showIssue, setShowIssue] = useState(false);
 
   // items with extras open a picker first; the rest go straight into the cart
-  const [picking, setPicking] = useState<{ item: MenuItem; qty: number } | null>(null);
+  const [picking, setPicking] = useState<{ item: MenuItem; qty: number; lineId?: string; initial?: { options: CartOption[]; notes: string } } | null>(null);
   const pushItem = useCallback((item: MenuItem, qty: number, options: CartOption[] = [], notes = '') => {
     dispatch({ type: 'add', item: { id: item.id, name_ar: item.name_ar, name_he: item.name_he, price: item.price, image_url: item.image_url }, qty, options, notes });
     setMultiplier(1);
@@ -387,6 +387,11 @@ export default function PosPage() {
       onPrint={printPreview}
       onHold={holdCurrent}
       onOpenHeld={() => setHeldOpen(true)}
+      canEdit={(l) => optionsByItem.has(l.item.id)}
+      onEditLine={(l) => {
+        const item = catalog.data?.items.find((i) => i.id === l.item.id);
+        if (item) setPicking({ item, qty: l.qty, lineId: l.lineId, initial: { options: l.options ?? [], notes: l.notes } });
+      }}
     />
   );
 
@@ -545,8 +550,10 @@ export default function PosPage() {
         options={picking ? optionsByItem.get(picking.item.id) ?? [] : []}
         soldOut={soldOut}
         onClose={() => setPicking(null)}
+        initial={picking?.initial ?? null}
         onAdd={(opts, notes) => {
-          if (picking) pushItem(picking.item, picking.qty, opts, notes);
+          if (picking?.lineId) dispatch({ type: 'editLine', lineId: picking.lineId, options: opts, notes });
+          else if (picking) pushItem(picking.item, picking.qty, opts, notes);
           setPicking(null);
         }}
       />

@@ -13,8 +13,10 @@ import type { CartOption } from '../cart';
  * Picked before an item goes into the cart:
  * the meat type (choose one; its price is the full price of the dish) and extras, each as many times as needed.
  */
-export function OptionsModal({ item, options, soldOut, qty, onClose, onAdd }: {
+export function OptionsModal({ item, options, soldOut, qty, initial, onClose, onAdd }: {
   item: MenuItem | null;
+  /** editing a line already in the cart: its current choices */
+  initial?: { options: CartOption[]; notes: string } | null;
   options: MenuItemOption[];
   /** ids whose ingredients ran out */
   soldOut: Set<string>;
@@ -31,11 +33,12 @@ export function OptionsModal({ item, options, soldOut, qty, onClose, onAdd }: {
   const [tried, setTried] = useState(false);
   const [notes, setNotes] = useState('');
   useEffect(() => {
-    setVariant(null);
-    setCounts({});
+    const opts = initial?.options ?? [];
+    setVariant(opts.find((o) => o.kind === 'variant')?.id ?? null);
+    setCounts(Object.fromEntries(opts.filter((o) => o.kind !== 'variant').map((o) => [o.id, o.qty ?? 1])));
     setTried(false);
-    setNotes('');
-  }, [item]);
+    setNotes(initial?.notes ?? '');
+  }, [item, initial]);
 
   const isOut = (o: MenuItemOption) => !o.is_active || soldOut.has(o.id);
   const chosenVariant = variants.find((v) => v.id === variant && !isOut(v));
@@ -67,7 +70,7 @@ export function OptionsModal({ item, options, soldOut, qty, onClose, onAdd }: {
         <>
           <Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
           <Button variant="primary" icon={<Plus className="size-4" />} onClick={add} disabled={allOut}>
-            {t('pos.addToCart')}
+            {initial ? t('pos.saveChanges') : t('pos.addToCart')}
             {!needVariant && <> · <span className="num">{f.money(unit * qty)}</span></>}
           </Button>
         </>

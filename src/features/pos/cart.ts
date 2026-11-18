@@ -69,6 +69,7 @@ export type CartAction =
   | { type: 'setQty'; lineId: string; qty: number }
   | { type: 'remove'; lineId: string }
   | { type: 'note'; lineId: string; notes: string }
+  | { type: 'editLine'; lineId: string; options: CartOption[]; notes: string }
   | { type: 'field'; field: 'tableNo' | 'customerName' | 'customerPhone' | 'customerAddress' | 'notes' | 'discountValue'; value: string }
   | { type: 'orderType'; value: OrderType }
   | { type: 'staffMeal'; on: boolean }
@@ -118,6 +119,11 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
       return { ...state, lines: state.lines.map((l) => (l.lineId === action.lineId ? { ...l, qty: Math.min(999, action.qty) } : l)) };
     case 'remove':
       return { ...state, lines: state.lines.filter((l) => l.lineId !== action.lineId) };
+    case 'editLine':
+      return {
+        ...state,
+        lines: state.lines.map((l) => (l.lineId === action.lineId ? { ...l, options: action.options, notes: action.notes.trim().slice(0, 200) } : l)),
+      };
     case 'note':
       return { ...state, lines: state.lines.map((l) => (l.lineId === action.lineId ? { ...l, notes: action.notes.slice(0, 200) } : l)) };
     case 'field':
