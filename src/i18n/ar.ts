@@ -672,6 +672,8 @@ export const ar = {
   'recipes.ingredient': 'المادة',
   'recipes.addIngredient': '+ إضافة مكون',
   'recipes.empty': 'لا توجد مكونات لهذا الصنف بعد',
+  'recipes.optionsTitle': 'أنواع اللحمة والإضافات لهذا الصنف',
+  'recipes.optionsHint': 'الوصفة فوق للمكونات المشتركة (خبز، صوص…). اللحمة توضع على كل نوع من «المكونات» تحته، فتُخصم حسب النوع الذي يختاره الزبون.',
   'recipes.unitCost': 'تكلفة الحصة',
   'recipes.costTotal': 'تكلفة الصنف',
   'recipes.marginHint': 'هامش الربح {margin}%',

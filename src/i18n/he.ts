@@ -653,6 +653,8 @@ export const he: Dictionary = {
   'recipes.ingredient': 'חומר גלם',
   'recipes.addIngredient': '+ הוספת רכיב',
   'recipes.empty': 'אין עדיין רכיבים לפריט זה',
+  'recipes.optionsTitle': 'סוגי בשר ותוספות למנה זו',
+  'recipes.optionsHint': 'המתכון למעלה הוא למרכיבים המשותפים (לחם, רוטב…). הבשר מוגדר בכל סוג דרך «מרכיבים», ויורד לפי הסוג שהלקוח בוחר.',
   'recipes.unitCost': 'עלות המנה',
   'recipes.costTotal': 'עלות הפריט',
   'recipes.marginHint': 'רווח גולמי {margin}%',

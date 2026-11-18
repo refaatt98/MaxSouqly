@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonRows } from '@/components/ui/Skeleton';
 import type { Ingredient, MenuItem, UnitType } from '@/types/models';
 import { compatibleUnits, defaultRecipeUnit, unitFactor } from '../api';
+import { OptionsEditor } from '@/features/menu/components/OptionsEditor';
 
 interface Line {
   key: string;
@@ -191,6 +192,11 @@ export function RecipesTab({ ingredients }: { ingredients: Ingredient[] }) {
                     {t('recipes.addIngredient')}
                   </Button>
                   <Button variant="primary" loading={pending} onClick={() => void save()}>{t('common.save')}</Button>
+                </div>
+                <div className="pt-4">
+                  <h3 className="mb-1 text-sm text-fg">{t('recipes.optionsTitle')}</h3>
+                  <p className="mb-3 text-xs text-fg-3">{t('recipes.optionsHint')}</p>
+                  <OptionsEditor menuItemId={selected.id} />
                 </div>
               </div>
             )}
