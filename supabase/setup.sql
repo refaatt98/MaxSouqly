@@ -5471,9 +5471,9 @@ notify pgrst, 'reload schema';
 
 -- >>> 20261119000016_customer_ordering.sql
 -- =====================================================================
--- Customer ordering at the table, without an account.
--- A guest opens the menu, picks dishes (meat type, extras, notes), enters name, phone and table,
--- and sends the order. It reaches the kitchen and the cashier marked as a customer order and
+-- Customer ordering without an account: at the table, delivery or pickup.
+-- A guest opens the menu, picks dishes (meat type, extras, notes), enters name and phone, plus the table
+-- (in the restaurant) or the address (delivery), and sends the order. It reaches the kitchen and the cashier marked as a customer order and
 -- stays unpaid until the customer pays at the cashier.
 --  * public_menu(): what the guest may see (no costs).
 --  * place_customer_order(payload): validated, rate-limited, priced on the server.
@@ -5564,6 +5564,9 @@ declare
   v_name text := left(trim(coalesce(payload ->> 'customer_name', '')), 60);
   v_phone text := left(trim(coalesce(payload ->> 'customer_phone', '')), 20);
   v_table integer;
+  v_type text := coalesce(nullif(payload ->> 'type', ''), 'dine_in');
+  v_address text := left(trim(coalesce(payload ->> 'customer_address', '')), 300);
+  v_label text;
   v_items jsonb := coalesce(payload -> 'items', '[]'::jsonb);
   v_clean jsonb := '[]'::jsonb;
   v_item jsonb;
@@ -5599,13 +5602,21 @@ begin
   if v_phone !~ '^[0-9+\- ]{7,20}$' then
     raise exception 'GUEST_PHONE_REQUIRED' using errcode = '22023';
   end if;
-  begin
-    v_table := (payload ->> 'table_no')::integer;
-  exception when others then
-    v_table := null;
-  end;
-  if v_table is null or v_table < 1 or (v_settings.table_count > 0 and v_table > v_settings.table_count) then
-    raise exception 'INVALID_TABLE' using errcode = '22023';
+  if v_type not in ('dine_in', 'delivery', 'takeaway') then
+    raise exception 'ORDER_TYPE_REQUIRED' using errcode = '22023';
+  end if;
+  if v_type = 'dine_in' then
+    begin
+      v_table := (payload ->> 'table_no')::integer;
+    exception when others then
+      v_table := null;
+    end;
+    if v_table is null or v_table < 1 or (v_settings.table_count > 0 and v_table > v_settings.table_count) then
+      raise exception 'INVALID_TABLE' using errcode = '22023';
+    end if;
+  end if;
+  if v_type = 'delivery' and char_length(v_address) < 4 then
+    raise exception 'DELIVERY_DETAILS_REQUIRED' using errcode = '22023';
   end if;
   if jsonb_typeof(v_items) <> 'array' or jsonb_array_length(v_items) = 0 then
     raise exception 'EMPTY_ORDER' using errcode = '22023';
@@ -5639,10 +5650,11 @@ begin
 
   v_result := public.place_order_guest_core(jsonb_build_object(
     'client_ref', v_ref,
-    'type', 'dine_in',
+    'type', v_type,
     'table_no', v_table,
     'customer_name', v_name,
     'customer_phone', v_phone,
+    'customer_address', case when v_type = 'delivery' then v_address else '' end,
     'notes', left(coalesce(payload ->> 'notes', ''), 300),
     'items', v_clean,
     'payments', '[]'::jsonb,
@@ -5650,8 +5662,9 @@ begin
   ));
   v_id := (v_result ->> 'id')::uuid;
   update public.orders set source = 'customer' where id = v_id;
+  v_label := case v_type when 'dine_in' then 'طاولة ' || v_table when 'delivery' then 'توصيل' else 'استلام' end;
   insert into public.notifications (type, title, body, ref_id, target_roles)
-  values ('new_order', 'طلب زبون من التطبيق #' || (v_result ->> 'order_number') || ' — طاولة ' || v_table,
+  values ('new_order', 'طلب زبون من التطبيق #' || (v_result ->> 'order_number') || ' — ' || v_label,
           v_name || ' · ' || v_phone, v_id, '{owner,manager,cashier}');
   return jsonb_build_object('order_number', (v_result ->> 'order_number')::integer, 'total', (v_result ->> 'total')::numeric, 'client_ref', v_ref);
 end;
@@ -5668,7 +5681,7 @@ security definer
 set search_path = public
 as $$
   select jsonb_build_object(
-    'order_number', o.order_number, 'status', o.status, 'total', o.total, 'payment_status', o.payment_status, 'table_no', o.table_no,
+    'order_number', o.order_number, 'status', o.status, 'total', o.total, 'payment_status', o.payment_status, 'table_no', o.table_no, 'type', o.type,
     'items', coalesce((select jsonb_agg(jsonb_build_object('name', oi.name_snapshot, 'name_he', oi.name_he_snapshot, 'qty', oi.quantity, 'options', oi.options, 'notes', oi.notes)
                                         order by oi.created_at)
                        from public.order_items oi where oi.order_id = o.id and oi.voided_at is null), '[]'::jsonb)

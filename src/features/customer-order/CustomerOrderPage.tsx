@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Check, ChefHat, CircleCheck, Clock, Minus, Pencil, Plus, Search, ShoppingBag, Utensils, X } from 'lucide-react';
+import { Armchair, ArrowRight, Bike, Check, ChefHat, CircleCheck, Clock, Minus, Pencil, Plus, Search, ShoppingBag, Utensils, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useI18n } from '@/i18n';
 import { supabase } from '@/lib/supabase';
@@ -12,6 +12,7 @@ import { BrandMark } from '@/app/shell/BrandMark';
 import { LanguageSwitcher } from '@/app/shell/LanguageSwitcher';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Input';
+import { Segmented } from '@/components/ui/Tabs';
 import { Modal } from '@/components/ui/Modal';
 import { FoodImage } from '@/components/ui/FoodImage';
 import { EmptyState, ErrorState } from '@/components/ui/EmptyState';
@@ -36,6 +37,7 @@ interface OrderStatus {
   total: number;
   payment_status: 'paid' | 'partial' | 'unpaid';
   table_no: number | null;
+  type: 'dine_in' | 'delivery' | 'takeaway';
   items: { name: string; name_he: string; qty: number; options: unknown; notes: string }[];
 }
 
@@ -109,10 +111,12 @@ export default function CustomerOrderPage() {
   };
 
   const [cartOpen, setCartOpen] = useState(false);
-  const guest = readJson<{ name: string; phone: string }>(GUEST_KEY, { name: '', phone: '' });
+  const guest = readJson<{ name: string; phone: string; address?: string }>(GUEST_KEY, { name: '', phone: '' });
   const [guestName, setGuestName] = useState(guest.name);
   const [phone, setPhone] = useState(guest.phone);
   const [table, setTable] = useState(params.get('table') ?? '');
+  const [address, setAddress] = useState(guest.address ?? '');
+  const [type, setType] = useState<'dine_in' | 'delivery' | 'takeaway'>(params.get('table') ? 'dine_in' : 'delivery');
   const [orderNotes, setOrderNotes] = useState('');
   const [tried, setTried] = useState(false);
   const [sending, setSending] = useState(false);
@@ -120,26 +124,29 @@ export default function CustomerOrderPage() {
   const nameOk = guestName.trim().length >= 2;
   const phoneOk = /^[0-9+\- ]{7,20}$/.test(phone.trim());
   const tableN = Number(table);
-  const tableOk = Number.isInteger(tableN) && tableN >= 1 && (tableCount === 0 || tableN <= tableCount);
+  const tableOk = type !== 'dine_in' || (Number.isInteger(tableN) && tableN >= 1 && (tableCount === 0 || tableN <= tableCount));
+  const addressOk = type !== 'delivery' || address.trim().length >= 4;
 
   const [tracking, setTracking] = useState<string | null>(() => readJson<string[]>(ORDERS_KEY, [])[0] ?? null);
 
   const send = async () => {
     setTried(true);
-    if (!nameOk || !phoneOk || !tableOk || cart.lines.length === 0 || sending) return;
+    if (!nameOk || !phoneOk || !tableOk || !addressOk || cart.lines.length === 0 || sending) return;
     setSending(true);
     const payload = {
       client_ref: cart.clientRef,
       customer_name: guestName.trim(),
       customer_phone: phone.trim(),
-      table_no: tableN,
+      type,
+      table_no: type === 'dine_in' ? tableN : null,
+      customer_address: type === 'delivery' ? address.trim() : '',
       notes: orderNotes.trim(),
       items: cart.lines.map((l) => ({ menu_item_id: l.item.id, quantity: l.qty, notes: l.notes.trim(), ...lineOptions(l) })),
     };
     const { error } = await supabase.rpc('place_customer_order', { payload: payload as never });
     setSending(false);
     if (error) return toast.error(errorMessage(t, error));
-    writeJson(GUEST_KEY, { name: guestName.trim(), phone: phone.trim() });
+    writeJson(GUEST_KEY, { name: guestName.trim(), phone: phone.trim(), address: address.trim() || guest.address || '' });
     writeJson(ORDERS_KEY, [cart.clientRef, ...readJson<string[]>(ORDERS_KEY, [])].slice(0, 5));
     setTracking(cart.clientRef);
     setCartOpen(false);
@@ -234,7 +241,7 @@ export default function CustomerOrderPage() {
         footer={
           <div className="flex w-full items-center gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-fg-3">{t('guest.payAtCashier')}</p>
+              <p className="text-xs text-fg-3">{t(type === 'delivery' ? 'guest.payOnDelivery' : 'guest.payAtCashier')}</p>
               <p className="num text-xl font-medium text-fg">{f.money(total)}</p>
             </div>
             <Button variant="primary" size="lg" loading={sending} onClick={() => void send()} disabled={cart.lines.length === 0}>
@@ -265,11 +272,24 @@ export default function CustomerOrderPage() {
           </ul>
 
           <section className="space-y-3 rounded-card border border-line bg-card p-3.5">
-            <h3 className="text-[0.9375rem] font-medium text-fg">{t('guest.details')}</h3>
+            <h3 className="text-[0.9375rem] font-medium text-fg">{t('guest.howTo')}</h3>
+            <Segmented
+              className="w-full"
+              layoutId="guest-type"
+              value={type}
+              onChange={setType}
+              items={[
+                { key: 'delivery', label: t('order.type.delivery'), icon: <Bike className="size-4" /> },
+                { key: 'takeaway', label: t('guest.pickup'), icon: <ShoppingBag className="size-4" /> },
+                { key: 'dine_in', label: t('guest.atTable'), icon: <Armchair className="size-4" /> },
+              ]}
+            />
+            <p className="text-xs text-fg-3">{t(`guest.typeHint.${type}` as 'guest.typeHint.delivery')}</p>
+            <h3 className="pt-1 text-[0.9375rem] font-medium text-fg">{t('guest.details')}</h3>
             <TextInput label={t('guest.name')} value={guestName} onChange={(e) => setGuestName(e.target.value)} autoComplete="name" maxLength={60} error={tried && !nameOk ? t('guest.nameError') : null} />
-            <div className="grid grid-cols-[1fr_7rem] gap-3">
+            <div className={cn('grid gap-3', type === 'dine_in' && 'grid-cols-[1fr_7rem]')}>
               <TextInput label={t('guest.phone')} type="tel" inputMode="tel" dir="ltr" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" maxLength={20} error={tried && !phoneOk ? t('validation.phone') : null} />
-              <TextInput
+              {type === 'dine_in' && <TextInput
                 label={t('guest.table')}
                 type="number"
                 inputMode="numeric"
@@ -278,8 +298,19 @@ export default function CustomerOrderPage() {
                 value={table}
                 onChange={(e) => setTable(e.target.value)}
                 error={tried && !tableOk ? t('errors.INVALID_TABLE') : null}
-              />
+              />}
             </div>
+            {type === 'delivery' && (
+              <TextInput
+                label={t('guest.address')}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                autoComplete="street-address"
+                maxLength={300}
+                placeholder={t('guest.addressHint')}
+                error={tried && !addressOk ? t('errors.DELIVERY_DETAILS_REQUIRED') : null}
+              />
+            )}
             <TextInput label={t('guest.orderNotes')} value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} maxLength={300} placeholder={t('guest.orderNotesHint')} />
             <p className="text-xs text-fg-3">{t('guest.privacy')} <a href="/privacy.html" target="_blank" rel="noreferrer" className="underline">{t('guest.privacyLink')}</a></p>
           </section>
@@ -391,7 +422,10 @@ function OrderTracker({ clientRef, onNew }: { clientRef: string; onNew: () => vo
             <h1 className="mt-4 text-xl font-medium text-fg">{t('guest.sent')}</h1>
             <p className="mt-1 text-sm text-fg-2">{t('guest.orderNo')}</p>
             <p className="num mt-1 text-5xl font-medium text-fg">#{order.order_number}</p>
-            <p className="mt-2 text-sm text-fg-3">{t('guest.tableN', { table: f.number(order.table_no ?? 0) })} · <span className="num">{f.money(Number(order.total))}</span></p>
+            <p className="mt-2 text-sm text-fg-3">
+              {order.type === 'dine_in' ? t('guest.tableN', { table: f.number(order.table_no ?? 0) }) : order.type === 'delivery' ? t('order.type.delivery') : t('guest.pickup')} ·{' '}
+              <span className="num">{f.money(Number(order.total))}</span>
+            </p>
 
             {cancelled ? (
               <p className="mt-6 rounded-card bg-danger/10 p-3 text-sm text-danger">{t('guest.cancelled')}</p>
@@ -420,7 +454,7 @@ function OrderTracker({ clientRef, onNew }: { clientRef: string; onNew: () => vo
               ))}
             </div>
             <p className="mt-4 flex items-center justify-center gap-1.5 text-sm text-fg-2">
-              <Clock className="size-4" /> {order.payment_status === 'paid' ? t('guest.paid') : t('guest.payAtCashier')}
+              <Clock className="size-4" /> {order.payment_status === 'paid' ? t('guest.paid') : t(order.type === 'delivery' ? 'guest.payOnDelivery' : 'guest.payAtCashier')}
             </p>
             <Button className="mt-6 w-full" size="lg" variant="secondary" icon={<Plus className="size-4" />} onClick={onNew}>
               {t('guest.newOrder')}
