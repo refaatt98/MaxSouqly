@@ -38,7 +38,7 @@ export function unitPrice(l: CartLine): number {
 const optionsKey = (opts: CartOption[] | undefined) => (opts ?? []).map((o) => `${o.id}:${o.qty ?? 1}`).sort().join(',');
 
 /** What the server needs for one line: the meat type and the extras with their counts. */
-function lineOptions(l: CartLine): { variant_id?: string; options: { id: string; qty: number }[] } {
+export function lineOptions(l: CartLine): { variant_id?: string; options: { id: string; qty: number }[] } {
   const opts = l.options ?? [];
   const variant = opts.find((o) => o.kind === 'variant');
   return {

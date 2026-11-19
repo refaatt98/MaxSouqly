@@ -5,7 +5,7 @@ import { useSettings } from '@/app/providers/SettingsProvider';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import type { Category } from '@/types/models';
 
-export function CategoryTabs({ categories, value, onChange }: { categories: Category[]; value: string | null; onChange: (id: string | null) => void }) {
+export function CategoryTabs({ categories, value, onChange, hotkeys = true }: { categories: Pick<Category, 'id' | 'name_ar' | 'name_he' | 'icon' | 'image_url'>[]; value: string | null; onChange: (id: string | null) => void; hotkeys?: boolean }) {
   const t = useT();
   const { name } = useSettings();
   const tabs: { id: string | null; label: string; icon: React.ReactNode; key?: string }[] = [
@@ -14,7 +14,7 @@ export function CategoryTabs({ categories, value, onChange }: { categories: Cate
       id: c.id,
       label: name(c),
       icon: c.image_url ? <img src={c.image_url} alt="" className="size-8 rounded-btn object-cover" /> : <CategoryIcon icon={c.icon} className="size-6" />,
-      key: i < 6 ? `F${i + 1}` : undefined,
+      key: hotkeys && i < 6 ? `F${i + 1}` : undefined,
     })),
   ];
   return (

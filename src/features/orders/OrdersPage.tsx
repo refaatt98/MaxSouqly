@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Armchair, Ban, Bike, ChefHat, ClipboardList, Download, Pencil, Phone, Printer, RotateCcw, Search, ShoppingBag, Trash, Undo2, UserRound, UtensilsCrossed } from 'lucide-react';
+import { Armchair, Ban, Bike, ChefHat, ClipboardList, Download, Pencil, Phone, Printer, RotateCcw, Search, ShoppingBag, Smartphone, Trash, Undo2, UserRound, UtensilsCrossed } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/errors';
@@ -404,7 +404,11 @@ function OrderCard({ order: o, selected, onSelect, onOpen, payLabel }: {
   const voided = o.status === 'cancelled' || o.status === 'refunded';
   const unpaid = !voided && o.payment_status !== 'paid';
   const where =
-    o.staff_employee_id ? (
+    o.source === 'customer' ? (
+      <span className="inline-flex items-center gap-1.5 rounded-btn bg-info/15 px-2.5 py-1 text-sm text-info">
+        <Smartphone className="size-4" /> {t('order.fromCustomer')}{o.table_no ? ` · ${t('order.table', { table: f.digits(o.table_no) })}` : ''}
+      </span>
+    ) : o.staff_employee_id ? (
       <span className="inline-flex items-center gap-1.5 rounded-btn bg-warning/15 px-2.5 py-1 text-sm text-warning">
         <UtensilsCrossed className="size-4" /> {t('order.staffMeal')}
       </span>

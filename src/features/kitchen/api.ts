@@ -1,13 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import type { KitchenStatus, Order, OrderItem } from '@/types/models';
 
-export type KitchenOrder = Pick<Order, 'id' | 'order_number' | 'type' | 'table_no' | 'status' | 'created_at' | 'preparing_at' | 'ready_at' | 'notes' | 'customer_name'> & {
+export type KitchenOrder = Pick<Order, 'id' | 'order_number' | 'type' | 'table_no' | 'status' | 'created_at' | 'preparing_at' | 'ready_at' | 'notes' | 'customer_name' | 'source'> & {
   items: (Pick<OrderItem, 'id' | 'menu_item_id' | 'name_snapshot' | 'name_he_snapshot' | 'quantity' | 'notes' | 'options' | 'unit_price_snapshot' | 'voided_at'> & {
     menu_item: { image_url: string | null } | null;
   })[];
 };
 
-const SELECT = 'id, order_number, type, table_no, status, created_at, preparing_at, ready_at, notes, customer_name, items:order_items(id, menu_item_id, name_snapshot, name_he_snapshot, quantity, notes, options, unit_price_snapshot, voided_at, menu_item:menu_items(image_url))';
+const SELECT = 'id, order_number, type, table_no, status, created_at, preparing_at, ready_at, notes, customer_name, source, items:order_items(id, menu_item_id, name_snapshot, name_he_snapshot, quantity, notes, options, unit_price_snapshot, voided_at, menu_item:menu_items(image_url))';
 
 export async function fetchActiveOrders(): Promise<KitchenOrder[]> {
   const { data, error } = await supabase.from('orders').select(SELECT).in('status', ['new', 'preparing', 'ready']).order('created_at');

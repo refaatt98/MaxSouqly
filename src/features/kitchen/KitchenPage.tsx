@@ -104,6 +104,11 @@ function OrderCard({ order, now, fresh, onAdvance, onBack, onEdit }: {
             {t(`order.type.${order.type}`)}
             {order.table_no ? ` · ${t('order.table', { table: f.digits(order.table_no) })}` : ''}
           </p>
+          {order.source === 'customer' && (
+            <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-[#b4242c] px-2.5 py-0.5 text-xs font-medium text-white">
+              {t('order.fromCustomer')}{order.customer_name ? ` · ${order.customer_name}` : ''}
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <span

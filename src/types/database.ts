@@ -609,6 +609,7 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"];
           paid_amount: number;
           staff_employee_id: string | null;
+          source: string;
         };
         Insert: {
           id?: string;
@@ -642,6 +643,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"];
           paid_amount?: number;
           staff_employee_id?: string | null;
+          source?: string;
         };
         Update: {
           id?: string;
@@ -675,6 +677,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"];
           paid_amount?: number;
           staff_employee_id?: string | null;
+          source?: string;
         };
         Relationships: [
           { foreignKeyName: "orders_cashier_id_fkey"; columns: ["cashier_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
@@ -1008,6 +1011,7 @@ export type Database = {
           updated_at: string;
           payroll_cycle_day: number;
           print_kitchen_on_send: boolean;
+          customer_ordering: boolean;
         };
         Insert: {
           id?: string;
@@ -1036,6 +1040,7 @@ export type Database = {
           updated_at?: string;
           payroll_cycle_day?: number;
           print_kitchen_on_send?: boolean;
+          customer_ordering?: boolean;
         };
         Update: {
           id?: string;
@@ -1064,6 +1069,7 @@ export type Database = {
           updated_at?: string;
           payroll_cycle_day?: number;
           print_kitchen_on_send?: boolean;
+          customer_ordering?: boolean;
         };
         Relationships: [
         ];
@@ -1339,6 +1345,7 @@ export type Database = {
       cost_data: { Args: Record<PropertyKey, never>; Returns: Json };
       create_stock_count: { Args: { p_notes?: string }; Returns: string };
       current_user_role: { Args: Record<PropertyKey, never>; Returns: Database["public"]["Enums"]["app_role"] };
+      customer_order_status: { Args: { p_client_ref: string }; Returns: Json };
       daily_report: { Args: { p_date?: string }; Returns: Json };
       dashboard_extra: { Args: Record<PropertyKey, never>; Returns: Json };
       dashboard_today: { Args: Record<PropertyKey, never>; Returns: Json };
@@ -1362,8 +1369,10 @@ export type Database = {
       options_out_of_stock: { Args: Record<PropertyKey, never>; Returns: Json };
       payroll_range: { Args: { p_month: string }; Returns: unknown[] };
       perm_locked: { Args: { p_role: Database["public"]["Enums"]["app_role"]; p: string }; Returns: boolean };
+      place_customer_order: { Args: { payload: Json }; Returns: Json };
       place_order: { Args: { payload: Json }; Returns: Json };
       po_item_costs: { Args: { p_po_id: string }; Returns: Json };
+      public_menu: { Args: Record<PropertyKey, never>; Returns: Json };
       range_end: { Args: { p_to: string }; Returns: string };
       range_start: { Args: { p_from: string }; Returns: string };
       receive_goods: { Args: { p_lines: Json; p_supplier_id: string; p_date: string; p_notes?: string }; Returns: string };

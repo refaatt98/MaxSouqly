@@ -51,6 +51,8 @@ const page = (load: Loader): LazyRouteFunction<RouteObject> => async () => ({ Co
 
 export const router = createBrowserRouter([
   { path: '/login', lazy: page(() => import('@/features/auth/LoginPage')), errorElement: <ErrorPage /> },
+  // ordering from the table, no account
+  { path: '/order', lazy: page(() => import('@/features/customer-order/CustomerOrderPage')), errorElement: <ErrorPage /> },
   {
     element: <RequireAuth />,
     errorElement: <ErrorPage />,

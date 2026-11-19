@@ -58,7 +58,7 @@ function SystemTab({ settings }: { settings: Settings }) {
   const [pending, setPending] = useState(false);
   const set = (k: Field, value: string) => setForm((s) => ({ ...s, [k]: value }));
 
-  const toggle = async (key: 'offline_mode' | 'auto_sync' | 'order_notifications', value: boolean) => {
+  const toggle = async (key: 'offline_mode' | 'auto_sync' | 'order_notifications' | 'customer_ordering', value: boolean) => {
     try {
       await update({ [key]: value });
     } catch (err) {
@@ -142,6 +142,7 @@ function SystemTab({ settings }: { settings: Settings }) {
             <Toggle id="s-offline" label={t('settings.offlineMode')} description={t('settings.offlineModeHint')} checked={settings.offline_mode} onChange={(val) => void toggle('offline_mode', val)} />
             <Toggle id="s-sync" label={t('settings.autoSync')} description={t('settings.autoSyncHint')} checked={settings.auto_sync} onChange={(val) => void toggle('auto_sync', val)} />
             <Toggle id="s-notif" label={t('settings.orderNotifications')} description={t('settings.orderNotificationsHint')} checked={settings.order_notifications} onChange={(val) => void toggle('order_notifications', val)} />
+            <Toggle id="s-guest" label={t('settings.customerOrdering')} description={t('settings.customerOrderingHint')} checked={settings.customer_ordering} onChange={(val) => void toggle('customer_ordering', val)} />
           </div>
         </Section>
         <Section title={t('settings.kitchen')}>

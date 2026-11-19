@@ -17,12 +17,12 @@ import type { Order } from '@/types/models';
 import { addPayment } from '../api';
 import { PaymentModal, type PaymentResult } from './PaymentModal';
 
-type Row = Pick<Order, 'id' | 'order_number' | 'type' | 'table_no' | 'customer_name' | 'customer_phone' | 'total' | 'paid_amount' | 'payment_status' | 'created_at'>;
+type Row = Pick<Order, 'id' | 'order_number' | 'type' | 'table_no' | 'customer_name' | 'customer_phone' | 'total' | 'paid_amount' | 'payment_status' | 'created_at' | 'source'>;
 
 export async function fetchUnpaid(): Promise<Row[]> {
   const { data, error } = await supabase
     .from('orders')
-    .select('id, order_number, type, table_no, customer_name, customer_phone, total, paid_amount, payment_status, created_at')
+    .select('id, order_number, type, table_no, customer_name, customer_phone, total, paid_amount, payment_status, created_at, source')
     .in('payment_status', ['unpaid', 'partial'])
     .not('status', 'in', '(cancelled,refunded)')
     .order('created_at', { ascending: false })
@@ -76,6 +76,7 @@ export function UnpaidOrdersModal({ open, onClose }: { open: boolean; onClose: (
                     <p className="flex items-center gap-2 text-fg">
                       <span className="num font-medium">#{f.digits(o.order_number)}</span>
                       <Badge tone={o.payment_status === 'partial' ? 'amber' : 'red'}>{t(`payStatus.${o.payment_status}`)}</Badge>
+                      {o.source === 'customer' && <Badge tone="blue">{t('order.fromCustomer')}</Badge>}
                     </p>
                     <p className="truncate text-xs text-fg-3">
                       {o.type === 'dine_in' && o.table_no ? t('order.table', { table: f.digits(o.table_no) }) : t(`order.type.${o.type}`)}
