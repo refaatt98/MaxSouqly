@@ -939,6 +939,7 @@ export const ar = {
   'pos.send': 'إرسال الطلب',
   'guest.back': 'رجوع',
   'guest.title': 'اطلب الآن',
+  'guest.staffLogin': 'دخول الموظفين',
   'guest.howTo': 'كيف بدك طلبك؟',
   'guest.pickup': 'استلام',
   'guest.atTable': 'في المطعم',

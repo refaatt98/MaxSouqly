@@ -38,7 +38,9 @@ targets:
         UIRequiresFullScreen: false
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
-        NSCameraUsageDescription: "لالتقاط صور الأصناف · לצילום תמונות של פריטים"
-        NSPhotoLibraryUsageDescription: "لاختيار صور الأصناف · לבחירת תמונות של פריטים"
-        NSPhotoLibraryAddUsageDescription: "لحفظ الملفات المصدّرة · לשמירת קבצים"
+        CFBundleLocalizations: [ar, he]
+        # one language per message: Arabic here, Hebrew in he.lproj/InfoPlist.strings
+        NSCameraUsageDescription: "يستخدم التطبيق الكاميرا لتصوير أطباق القائمة عند إضافتها أو تعديلها."
+        NSPhotoLibraryUsageDescription: "يستخدم التطبيق الصور لاختيار صورة طبق في القائمة."
+        NSPhotoLibraryAddUsageDescription: "يحفظ التطبيق الملفات التي تصدّرها، مثل تقارير Excel."
         ITSAppUsesNonExemptEncryption: false

@@ -913,6 +913,7 @@ export const he: Dictionary = {
   'pos.send': 'שליחת הזמנה',
   'guest.back': 'חזרה',
   'guest.title': 'הזמינו עכשיו',
+  'guest.staffLogin': 'כניסת צוות',
   'guest.howTo': 'איך תרצו את ההזמנה?',
   'guest.pickup': 'איסוף',
   'guest.atTable': 'במסעדה',

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useReducer, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, Navigate, useSearchParams } from 'react-router';
+import { useAuth } from '@/app/providers/AuthProvider';
+import { homeFor, usePermissions } from '@/app/providers/PermissionsProvider';
 import { AnimatePresence, motion } from 'motion/react';
-import { Armchair, ArrowRight, Bike, Check, ChefHat, CircleCheck, Clock, Minus, Pencil, Plus, Search, ShoppingBag, Utensils, X } from 'lucide-react';
+import { Armchair, Bike, Check, ChefHat, CircleCheck, Clock, Minus, Pencil, Plus, Search, ShoppingBag, UserRound, Utensils, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useI18n } from '@/i18n';
 import { supabase } from '@/lib/supabase';
@@ -69,6 +71,8 @@ export default function CustomerOrderPage() {
   const { f } = useSettings();
   const toast = useToast();
   const [params] = useSearchParams();
+  const { status, role } = useAuth();
+  const { can, ready } = usePermissions();
 
   const [menu, setMenu] = useState<PublicMenu | null>(null);
   const [menuError, setMenuError] = useState<unknown>(null);
@@ -155,6 +159,8 @@ export default function CustomerOrderPage() {
     dispatch({ type: 'reset' });
   };
 
+  // the phone app opens here; a team member who is already signed in goes straight to their screens
+  if (params.get('start') === 'app' && status === 'signedIn' && role && ready) return <Navigate to={homeFor(role, can)} replace />;
   if (tracking) return <OrderTracker clientRef={tracking} onNew={() => setTracking(null)} />;
 
   return (
@@ -162,12 +168,17 @@ export default function CustomerOrderPage() {
       <header className="sticky top-0 z-30 border-b border-line bg-bg/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-3">
-            <Link to="/login" aria-label={t('guest.back')} className="grid size-10 place-items-center rounded-btn text-fg-3 hover:bg-fg/5 hover:text-fg">
-              <ArrowRight className="size-5 ltr:rotate-180" />
-            </Link>
             <BrandMark size="sm" />
           </div>
-          <LanguageSwitcher compact className="w-24" />
+          <div className="flex items-center gap-2">
+            <Link
+              to="/login"
+              className="flex h-10 items-center gap-1.5 rounded-btn border border-line px-3 text-xs text-fg-2 transition-colors hover:border-line-strong hover:text-fg"
+            >
+              <UserRound className="size-4" /> {t('guest.staffLogin')}
+            </Link>
+            <LanguageSwitcher compact className="w-24" />
+          </div>
         </div>
       </header>
 

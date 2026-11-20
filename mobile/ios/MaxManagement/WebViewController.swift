@@ -3,7 +3,7 @@ import WebKit
 
 /// MAX Management: the web app (maxsouqly.netlify.app) in a full-screen web view.
 final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
-    static let home = URL(string: "https://maxsouqly.netlify.app/")!
+    static let home = URL(string: "https://maxsouqly.netlify.app/order?start=app")!  // opens on ordering; signed-in staff go to their screens
     static let host = "maxsouqly.netlify.app"
     static let background = UIColor(red: 19 / 255, green: 17 / 255, blue: 16 / 255, alpha: 1)
 

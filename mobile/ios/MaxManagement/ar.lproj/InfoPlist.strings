@@ -1,0 +1,4 @@
+"CFBundleDisplayName" = "Max Restaurant";
+"NSCameraUsageDescription" = "يستخدم التطبيق الكاميرا لتصوير أطباق القائمة عند إضافتها أو تعديلها.";
+"NSPhotoLibraryUsageDescription" = "يستخدم التطبيق الصور لاختيار صورة طبق في القائمة.";
+"NSPhotoLibraryAddUsageDescription" = "يحفظ التطبيق الملفات التي تصدّرها، مثل تقارير Excel.";
