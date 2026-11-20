@@ -1,4 +1,4 @@
-import { createBrowserRouter, type LazyRouteFunction, type RouteObject } from 'react-router';
+import { Navigate, createBrowserRouter, type LazyRouteFunction, type RouteObject } from 'react-router';
 import { AppShell } from './shell/AppShell';
 import { RequireAuth, RequireRole } from './guards';
 import { ErrorPage, NotFound } from './pages';
@@ -51,8 +51,8 @@ const page = (load: Loader): LazyRouteFunction<RouteObject> => async () => ({ Co
 
 export const router = createBrowserRouter([
   { path: '/login', lazy: page(() => import('@/features/auth/LoginPage')), errorElement: <ErrorPage /> },
-  // ordering from the table, no account
-  { path: '/order', lazy: page(() => import('@/features/customer-order/CustomerOrderPage')), errorElement: <ErrorPage /> },
+  // the phone app (build 6) opens /order?start=app: it is staff sign-in now
+  { path: '/order', element: <Navigate to="/login" replace /> },
   {
     element: <RequireAuth />,
     errorElement: <ErrorPage />,

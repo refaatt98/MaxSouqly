@@ -25,11 +25,7 @@ export function RequireAuth() {
   const { status } = useAuth();
   const location = useLocation();
   if (status === 'loading') return <FullScreenLoader />;
-  if (status === 'signedOut') {
-    // opening the app or site signed out lands on public ordering; staff screens still ask for sign-in
-    if (location.pathname === '/') return <Navigate to="/order" replace />;
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
+  if (status === 'signedOut') return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   return <Outlet />;
 }
 

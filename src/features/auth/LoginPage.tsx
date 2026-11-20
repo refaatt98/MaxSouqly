@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, Navigate } from 'react-router';
+import { Navigate } from 'react-router';
 import { motion } from 'motion/react';
-import { ChevronLeft, KeyRound, Lock, Mail, UtensilsCrossed } from 'lucide-react';
+import { KeyRound, Lock, Mail } from 'lucide-react';
 import { useT } from '@/i18n';
 import { useAuth, AuthError } from '@/app/providers/AuthProvider';
 import { homeFor, usePermissions } from '@/app/providers/PermissionsProvider';
@@ -193,24 +193,6 @@ export default function LoginPage() {
             onChange={setMode}
           />
           <div className="mt-6">{mode === 'email' ? <EmailForm /> : <PinForm />}</div>
-          <div className="mt-8 flex items-center gap-3 text-xs text-fg-3">
-            <span className="h-px flex-1 bg-line" />
-            {t('guest.or')}
-            <span className="h-px flex-1 bg-line" />
-          </div>
-          <Link
-            to="/order"
-            className="mt-4 flex items-center gap-3 rounded-card border border-line-strong bg-card p-3.5 transition-colors hover:border-brand/60 hover:bg-brand/[0.06]"
-          >
-            <span className="grid size-11 shrink-0 place-items-center rounded-btn bg-brand/15 text-brand">
-              <UtensilsCrossed className="size-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-fg">{t('guest.loginButton')}</span>
-              <span className="block text-xs text-fg-3">{t('guest.loginHint')}</span>
-            </span>
-            <ChevronLeft className="size-4 text-fg-3 ltr:rotate-180" />
-          </Link>
         </motion.div>
         <p className="mt-10 text-center text-xs text-fg-3">{t('app.version')}</p>
       </div>
